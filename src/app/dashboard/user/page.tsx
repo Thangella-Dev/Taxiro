@@ -1,0 +1,1267 @@
+﻿"use client";
+
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Bike,
+  CalendarClock,
+  ChevronDown,
+  Clock3,
+  HelpCircle,
+  Info,
+  ListChecks,
+  LocateFixed,
+  LogOut,
+  Menu,
+  Radio,
+  Settings,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+
+import { AppShell } from "@/components/AppShell";
+import { CancelRideDialog } from "@/components/CancelRideDialog";
+import { DynamicMapPicker } from "@/components/DynamicMapPicker";
+import { RideChatPanel } from "@/components/RideChatPanel";
+import { LocationSearch } from "@/components/LocationSearch";
+import { ProfileSettings } from "@/components/ProfileSettings";
+import { RideCard } from "@/components/RideCard";
+import { RideProgress } from "@/components/RideProgress";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
+import { estimateBikeFare, getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
+import { getSupabase } from "@/lib/supabase";
+import type {
+  LatLng,
+  Profile,
+  RideConfirmationCode,
+  RideRequest,
+  RiderLocation,
+} from "@/types/database";
+
+export default function UserDashboard() {
+  const router = useRouter();
+  const [bookingMode, setBookingMode] = useState<"now" | "advance">("now");
+  const [cancelTarget, setCancelTarget] = useState<RideRequest | null>(null);
+  const [clickTarget, setClickTarget] = useState<"pickup" | "drop">("pickup");
+  const [confirmationCodes, setConfirmationCodes] = useState<Record<string, string>>({});
+  const [drop, setDrop] = useState<LatLng | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mapPickMode, setMapPickMode] = useState<"pickup" | "drop" | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [panelView, setPanelView] = useState<"book" | "rides">("book");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi">("cash");
+  const [pickup, setPickup] = useState<LatLng | null>(null);
+  const [pickupAccuracy, setPickupAccuracy] = useState<number | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
+  const [rideNote, setRideNote] = useState("");
+  const [routePath, setRoutePath] = useState<LatLng[]>([]);
+  const [routeSummary, setRouteSummary] = useState<{ distanceKm: number | null; durationMin: number | null } | null>(null);
+  const [rides, setRides] = useState<RideRequest[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [showRideOptions, setShowRideOptions] = useState(false);
+  const [scheduledTime, setScheduledTime] = useState(() =>
+    new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16),
+  );
+
+  const loadRides = useCallback(async (currentUserId: string) => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return;
+    }
+    const { data, error } = await supabase
+      .from("ride_requests")
+      .select("*")
+      .eq("user_id", currentUserId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    const userRides = (data as RideRequest[]) ?? [];
+    setRides(userRides);
+    const rideIds = userRides.map((ride) => ride.id);
+
+    if (!rideIds.length) {
+      setConfirmationCodes({});
+      setRiderLocations([]);
+      return;
+    }
+
+    const [codeResult, riderResult] = await Promise.all([
+      supabase.from("ride_confirmation_codes").select("*").in("ride_id", rideIds),
+      supabase.from("rider_locations").select("*"),
+    ]);
+
+    const nextCodes = (codeResult.data as RideConfirmationCode[] | null)?.reduce<Record<string, string>>(
+      (codes, row) => {
+        codes[row.ride_id] = row.code;
+        return codes;
+      },
+      {},
+    ) ?? {};
+
+    const ridesNeedingCodes = userRides.filter(
+      (ride) => ["assigned", "started"].includes(ride.status) && !nextCodes[ride.id],
+    );
+
+    if (ridesNeedingCodes.length) {
+      const repairedCodes = await Promise.all(
+        ridesNeedingCodes.map(async (ride) => {
+          const { data: code } = await supabase.rpc("get_or_create_ride_confirmation_code", {
+            p_ride_id: ride.id,
+          });
+          return { code: typeof code === "string" ? code : null, rideId: ride.id };
+        }),
+      );
+      repairedCodes.forEach((item) => {
+        if (item.code) nextCodes[item.rideId] = item.code;
+      });
+    }
+
+    if (codeResult.error) {
+      setMessage(codeResult.error.message);
+    }
+    setConfirmationCodes(nextCodes);
+    if (riderResult.data) {
+      setRiderLocations(riderResult.data as RiderLocation[]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      queueMicrotask(() => {
+        setMessage("Supabase is not configured.");
+        setLoading(false);
+      });
+      return;
+    }
+
+    let activeUserId: string | null = null;
+    void getCurrentUser(supabase).then(async (user) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      activeUserId = user.id;
+      setUserId(user.id);
+      await ensureProfile(supabase, user, "user");
+      setProfile(await getProfile(supabase, user.id));
+      await loadRides(user.id);
+      setLoading(false);
+    });
+
+    const channel = supabase
+      .channel("user-live-dashboard")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ride_requests" },
+        (payload) => {
+          if (!activeUserId) return;
+
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old as Partial<RideRequest>;
+            if (deleted.id) {
+              setRides((current) => current.filter((ride) => ride.id !== deleted.id));
+            }
+            return;
+          }
+
+          const incoming = payload.new as RideRequest;
+          if (incoming.user_id !== activeUserId) return;
+
+          setRides((current) => sortRides(upsertById(current, incoming)));
+          void loadRides(activeUserId);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ride_confirmation_codes" },
+        (payload) => {
+          if (!activeUserId) return;
+
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old as Partial<RideConfirmationCode>;
+            if (deleted.ride_id) {
+              setConfirmationCodes((current) => {
+                const next = { ...current };
+                delete next[deleted.ride_id as string];
+                return next;
+              });
+            }
+            return;
+          }
+
+          const incoming = payload.new as RideConfirmationCode;
+          if (incoming.user_id !== activeUserId) return;
+          setConfirmationCodes((current) => ({
+            ...current,
+            [incoming.ride_id]: incoming.code,
+          }));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rider_locations" },
+        (payload) => {
+          if (!activeUserId) return;
+
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old as Partial<RiderLocation>;
+            if (deleted.rider_id) {
+              setRiderLocations((current) => current.filter((rider) => rider.rider_id !== deleted.rider_id));
+            }
+            return;
+          }
+
+          setRiderLocations((current) => upsertRiderLocation(current, payload.new as RiderLocation));
+        },
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setMessage("Live updates are reconnecting. Keep this page open for instant ride updates.");
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadRides]);
+
+  function handleMapPick(point: LatLng) {
+    const selected = {
+      ...point,
+      address: `Map selected ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`,
+    };
+    if (clickTarget === "pickup") {
+      setPickup(selected);
+    } else {
+      setDrop(selected);
+    }
+    if (mapPickMode) {
+      setMapPickMode(null);
+      setMessage(`${clickTarget === "pickup" ? "Pickup" : "Drop"} selected from map.`);
+    }
+  }
+
+  function startMapPick(target: "pickup" | "drop") {
+    setClickTarget(target);
+    setMapPickMode(target);
+    setMessage(`Tap anywhere on the map to set ${target}.`);
+  }
+
+  function detectPickupLocation() {
+    if (!navigator.geolocation) {
+      setMessage("Location detection is not supported in this browser.");
+      return;
+    }
+
+    setMessage("Detecting your current location...");
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const detected = {
+          address: "Current location",
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setPickupAccuracy(Math.round(position.coords.accuracy));
+        setPickup(detected);
+        setClickTarget("drop");
+        setMapPickMode(null);
+        setMessage("Location found. Getting address...");
+        const address = await reverseGeocode(detected);
+        setPickup({ ...detected, address: address ?? "Current location" });
+        setMessage(`Pickup set${position.coords.accuracy ? ` • +/-${Math.round(position.coords.accuracy)}m` : ""}. Now choose destination.`);
+      },
+      (error) => {
+        setMessage(error.message || "Location permission denied, search or choose on map.");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 30_000,
+        timeout: 12_000,
+      },
+    );
+  }
+
+  async function createRide() {
+    if (!userId) {
+      setMessage("Please sign in before creating a ride.");
+      return;
+    }
+    if (!pickup || !drop) {
+      setMessage("Choose pickup and drop first.");
+      return;
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      setMessage("Supabase is not configured.");
+      return;
+    }
+
+    if (bookingMode === "advance" && new Date(scheduledTime).getTime() <= Date.now()) {
+      setMessage("Choose a future date and time for an advance booking.");
+      return;
+    }
+
+    const rideTime =
+      bookingMode === "now"
+        ? new Date(Date.now() + 5 * 60 * 1000).toISOString()
+        : new Date(scheduledTime).toISOString();
+
+    setMessage("Finding route...");
+    const summary = await getRouteSummary(pickup, drop);
+    const fareEstimate = estimateBikeFare(summary.distanceKm, summary.durationMin);
+    const { error } = await supabase.from("ride_requests").insert({
+      assigned_rider_id: null,
+      distance_km: summary.distanceKm,
+      drop_address: drop.address ?? "Selected destination",
+      drop_lat: drop.lat,
+      drop_lng: drop.lng,
+      estimated_duration_min: summary.durationMin,
+      fare_estimate: fareEstimate,
+      passenger_count: 1,
+      payment_method: paymentMethod,
+      pickup_address: pickup.address ?? "Selected pickup",
+      pickup_lat: pickup.lat,
+      pickup_lng: pickup.lng,
+      rider_note: rideNote.trim() || null,
+      scheduled_time: rideTime,
+      status: "scheduled",
+      user_id: userId,
+    });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage(
+      bookingMode === "now"
+        ? "Ride created for now. Tap I'm Ready when you are at pickup."
+        : "Advance ride scheduled. Tap I'm Ready when you want riders to see it.",
+    );
+    await loadRides(userId);
+  }
+
+  async function markReady(ride: RideRequest) {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return;
+    }
+    const { error } = await supabase.rpc("mark_ride_ready_and_assign", {
+      p_ride_id: ride.id,
+    });
+    setMessage(error ? error.message : "Searching nearby riders now.");
+    if (userId) {
+      await loadRides(userId);
+    }
+  }
+
+  async function cancelRide(ride: RideRequest, reason: string) {
+    if (!userId) {
+      return;
+    }
+    const supabase = getSupabase();
+    if (!supabase) {
+      return;
+    }
+    const { error } = await supabase.rpc("cancel_ride", {
+      p_reason: reason,
+      p_ride_id: ride.id,
+    });
+    setMessage(error ? error.message : "Ride cancelled.");
+    if (!error) {
+      setCancelTarget(null);
+    }
+    await loadRides(userId);
+  }
+  async function signOut() {
+    const supabase = getSupabase();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    router.push("/auth");
+  }
+
+  const activeRide =
+    rides.find((ride) => ["assigned", "started", "ready"].includes(ride.status)) ??
+    rides.find((ride) => ride.status === "scheduled");
+  const mapPickup = useMemo(
+    () =>
+      activeRide
+        ? {
+            address: activeRide.pickup_address,
+            lat: activeRide.pickup_lat,
+            lng: activeRide.pickup_lng,
+          }
+        : pickup,
+    [activeRide, pickup],
+  );
+  const mapDrop = useMemo(
+    () =>
+      activeRide
+        ? {
+            address: activeRide.drop_address,
+            lat: activeRide.drop_lat,
+            lng: activeRide.drop_lng,
+          }
+        : drop,
+    [activeRide, drop],
+  );
+  const assignedRiderLocation = activeRide
+    ? riderLocations.find((rider) => rider.rider_id === activeRide.assigned_rider_id)
+    : null;
+  const routeFrom = useMemo(() => {
+    if (activeRide?.assigned_rider_id && assignedRiderLocation && ["assigned", "started"].includes(activeRide.status)) {
+      return { lat: assignedRiderLocation.lat, lng: assignedRiderLocation.lng };
+    }
+    return mapPickup;
+  }, [activeRide, assignedRiderLocation, mapPickup]);
+  const routeTo = useMemo(() => {
+    if (activeRide?.status === "assigned") {
+      return mapPickup;
+    }
+    return mapDrop;
+  }, [activeRide, mapDrop, mapPickup]);
+  const activeRides = rides.filter((ride) =>
+    ["ready", "assigned", "started"].includes(ride.status),
+  );
+  const upcomingRides = rides.filter((ride) => ride.status === "scheduled");
+  const completedRides = rides.filter((ride) =>
+    ["completed", "cancelled"].includes(ride.status),
+  );
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadRoutePath() {
+      if (!routeFrom || !routeTo) {
+        setRoutePath([]);
+        return;
+      }
+
+      const [path, summary] = await Promise.all([
+        getRoutePath(routeFrom, routeTo),
+        getRouteSummary(routeFrom, routeTo),
+      ]);
+      if (!ignore) {
+        setRoutePath(path);
+        setRouteSummary(summary);
+      }
+    }
+
+    void loadRoutePath();
+
+    return () => {
+      ignore = true;
+    };
+  }, [routeFrom, routeTo]);
+
+  if (!loading && (!userId || profile?.role !== "user")) {
+    return (
+      <AppShell title="Book Taxidi">
+        <Card className="mx-auto max-w-lg text-center">
+          <CardHeader>
+            <CardTitle>{profile ? "User account required" : "Sign in required"}</CardTitle>
+            <CardDescription>
+              {profile
+                ? "This area is only for customers. Rider accounts use the driver app."
+                : "Create an account or sign in to book real Taxidi rides."}
+            </CardDescription>
+          </CardHeader>
+          <Button asChild>
+            <Link href="/auth">Go to sign in</Link>
+          </Button>
+        </Card>
+      </AppShell>
+    );
+  }
+
+
+
+  return (
+    <AppShell immersive title="Book Taxidi">
+      <div className="relative min-h-0 min-w-0 w-full max-w-full overflow-x-clip bg-muted sm:min-h-[100svh] [contain:inline-size] sm:overflow-hidden">
+        <DynamicMapPicker
+          className="h-[38svh] min-h-[16rem] overflow-hidden sm:h-[100svh] sm:min-h-[100svh]"
+          drop={mapDrop}
+          onPick={handleMapPick}
+          pickup={mapPickup}
+          riders={assignedRiderLocation ? [assignedRiderLocation] : []}
+          route={routePath}
+        />
+
+        {!mapPickMode ? (
+        <div className="pointer-events-none absolute inset-x-2 top-2 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3 sm:gap-3">
+          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur-xl sm:p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxidi</p>
+            <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
+              <Bike className="size-4 sm:size-5" />
+              {activeRide ? rideHeadline(activeRide.status) : "Where to?"}
+            </p>
+          </div>
+          <div className="pointer-events-auto flex items-center gap-2">
+            <button
+              aria-label="Detect pickup location"
+              className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur sm:size-11"
+              onClick={detectPickupLocation}
+              type="button"
+            >
+              <LocateFixed className="size-4 text-primary sm:size-5" />
+            </button>
+            <button
+              aria-label="Open menu"
+              className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur sm:size-11"
+              onClick={() => setMenuOpen(true)}
+              type="button"
+            >
+              <Menu className="size-4 text-primary sm:size-5" />
+            </button>
+          </div>
+        </div>
+        ) : null}
+
+        {!mapPickMode ? (
+        <section className="relative z-[1200] mx-auto -mt-8 w-[calc(100%-1rem)] min-w-0 max-w-full overflow-x-clip pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:absolute sm:inset-x-0 sm:bottom-0 sm:mx-auto sm:-mt-0 sm:w-full sm:max-w-[28rem] sm:px-2 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="min-w-0 max-w-full overflow-x-clip rounded-t-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_24px_90px_rgb(0_0_0_/_0.22)] backdrop-blur-2xl sm:max-h-[74dvh] sm:overflow-y-auto sm:rounded-[2rem] sm:p-4">
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+            {activeRide ? (
+              <ActiveUserRide
+                code={confirmationCodes[activeRide.id]}
+                onCancel={() => setCancelTarget(activeRide)}
+                onReady={() => void markReady(activeRide)}
+                riderLocation={assignedRiderLocation}
+                routeSummary={routeSummary}
+                ride={activeRide}
+                userId={userId}
+              />
+            ) : (
+              <div className="grid gap-3">
+                <div className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1">
+                  {(["book", "rides"] as const).map((view) => (
+                    <button
+                      className={`rounded-full px-3 py-3 text-sm font-black transition ${
+                        panelView === view
+                          ? "bg-[#101713] text-white shadow-sm"
+                          : "text-muted-foreground"
+                      }`}
+                      key={view}
+                      onClick={() => setPanelView(view)}
+                      type="button"
+                    >
+                      <span className="block truncate">{view === "book" ? "Book" : `My rides (${rides.length})`}</span>
+                    </button>
+                  ))}
+                </div>
+                {panelView === "book" ? (
+                  <>
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">Where are you going?</h1>
+                  <p className="text-xs text-muted-foreground sm:text-sm">Bike taxi - quick pickup</p>
+                </div>
+                <div className="hidden min-w-0 grid-cols-[repeat(3,minmax(0,1fr))] gap-2 sm:grid">
+                  <ModeMetric icon={Bike} label="Bike" />
+                  <ModeMetric icon={Clock3} label="Fast" />
+                  <ModeMetric icon={Radio} label="Ready" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1">
+                  {(["now", "advance"] as const).map((mode) => (
+                    <button
+                      className={`rounded-full px-3 py-3 text-sm font-black transition ${
+                        bookingMode === mode
+                          ? "bg-[#101713] text-white shadow-sm"
+                          : "text-muted-foreground"
+                      }`}
+                      key={mode}
+                      onClick={() => setBookingMode(mode)}
+                      type="button"
+                    >
+                      <span className="block truncate">{mode === "now" ? "Ride now" : "Advance booking"}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid gap-3">
+                  <div className="min-w-0 rounded-2xl border border-border bg-card p-3">
+                    <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                        From
+                      </p>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <Button
+                          className="h-8 min-w-0 rounded-full px-3 text-xs"
+                          onClick={detectPickupLocation}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Detect
+                        </Button>
+                        <Button
+                          className="h-8 min-w-0 rounded-full px-3 text-xs"
+                          onClick={() => startMapPick("pickup")}
+                          size="sm"
+                          variant={mapPickMode === "pickup" ? "default" : "secondary"}
+                        >
+                          <span className="sm:hidden">Map</span>
+                          <span className="hidden sm:inline">Choose on map</span>
+                        </Button>
+                      </div>
+                    </div>
+                    {pickupAccuracy ? (
+                      <p className={`mb-2 text-xs font-semibold ${pickupAccuracy > 50 ? "text-amber-700" : "text-muted-foreground"}`}>
+                        {pickupAccuracy > 50 ? "Low GPS accuracy" : "GPS accuracy"} +/-{pickupAccuracy}m
+                      </p>
+                    ) : null}
+                    <LocationSearch
+                      hideLabel
+                      key={`pickup-${pickup?.address ?? "empty"}`}
+                      label="Pickup"
+                      onSelect={setPickup}
+                      selectedValue={pickup?.address}
+                    />
+                  </div>
+
+                  <div className="min-w-0 rounded-2xl border border-border bg-card p-3">
+                    <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                        To
+                      </p>
+                      <Button
+                        className="h-8 min-w-0 rounded-full px-3 text-xs"
+                        onClick={() => startMapPick("drop")}
+                        size="sm"
+                        variant={mapPickMode === "drop" ? "default" : "secondary"}
+                      >
+                        <span className="sm:hidden">Map</span>
+                        <span className="hidden sm:inline">Choose on map</span>
+                      </Button>
+                    </div>
+                    <LocationSearch
+                      hideLabel
+                      key={`drop-${drop?.address ?? "empty"}`}
+                      label="Drop"
+                      onSelect={setDrop}
+                      selectedValue={drop?.address}
+                    />
+                  </div>
+                </div>
+                {mapPickMode ? (
+                  <div className="rounded-2xl border border-[#101713]/20 bg-secondary p-3 text-sm font-semibold text-secondary-foreground">
+                    Tap the map to set {mapPickMode === "pickup" ? "From / pickup" : "To / drop"}.
+                  </div>
+                ) : null}
+                {bookingMode === "advance" ? (
+                  <div className="grid gap-3 rounded-2xl bg-muted p-3">
+                    <div>
+                      <Label htmlFor="scheduled">Advance pickup date and time</Label>
+                      <Input
+                        className="mt-1 h-12 rounded-2xl bg-card"
+                        id="scheduled"
+                        min={new Date().toISOString().slice(0, 16)}
+                        onChange={(event) => setScheduledTime(event.target.value)}
+                        type="datetime-local"
+                        value={scheduledTime}
+                      />
+                    </div>
+                    <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
+                      <TimePreset
+                        label="+30 min"
+                        onClick={() => setScheduledTime(offsetDateTime(30))}
+                      />
+                      <TimePreset
+                        label="+1 hour"
+                        onClick={() => setScheduledTime(offsetDateTime(60))}
+                      />
+                      <TimePreset
+                        label="Tomorrow"
+                        onClick={() => setScheduledTime(tomorrowMorning())}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="rounded-xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+                    Book now, then tap I&apos;m Ready when you are at the pickup point.
+                  </p>
+                )}
+                <div className="grid gap-3 rounded-2xl border border-border bg-card p-3">
+                  <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
+                    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+                      <p className="text-xs text-muted-foreground">Fare</p>
+                      <p className="mt-1 font-black">Rs {estimateBikeFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null) ?? "--"}</p>
+                    </div>
+                    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+                      <p className="text-xs text-muted-foreground">Distance</p>
+                      <p className="mt-1 font-black">{routeSummary?.distanceKm ?? "--"} km</p>
+                    </div>
+                    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+                      <p className="text-xs text-muted-foreground">ETA</p>
+                      <p className="mt-1 font-black">{routeSummary?.durationMin ?? "--"} min</p>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Payment preference</Label>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {(["cash", "upi"] as const).map((method) => (
+                        <button
+                          className={paymentMethod === method ? "rounded-full bg-primary px-3 py-3 text-sm font-black text-primary-foreground" : "rounded-full bg-muted px-3 py-3 text-sm font-black"}
+                          key={method}
+                          onClick={() => setPaymentMethod(method)}
+                          type="button"
+                        >
+                          {method === "cash" ? "Cash" : "UPI after ride"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    className="flex w-full items-center justify-between rounded-xl bg-muted px-3 py-2.5 text-left text-sm font-bold"
+                    onClick={() => setShowRideOptions((current) => !current)}
+                    type="button"
+                  >
+                    <span>{rideNote ? "Pickup note added" : "Add pickup note"}</span>
+                    <ChevronDown className={`size-4 transition ${showRideOptions ? "rotate-180" : ""}`} />
+                  </button>
+                  {showRideOptions ? (
+                    <div className="animate-in">
+                      <Label htmlFor="rider-note">Note for rider</Label>
+                      <Input
+                        className="mt-1"
+                        id="rider-note"
+                        maxLength={180}
+                        onChange={(event) => setRideNote(event.target.value)}
+                        placeholder="Gate, landmark, or pickup instruction"
+                        value={rideNote}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                <Button className="sticky bottom-2 z-10 h-14 rounded-full text-base font-bold shadow-[0_12px_32px_rgb(16_23_19_/_0.24)]" onClick={() => void createRide()}>
+                  {bookingMode === "now" ? "Book ride now" : "Schedule advance ride"}
+                </Button>
+                  </>
+                ) : (
+                  <RideHistoryPanel
+                    activeRides={activeRides}
+                    onCancel={setCancelTarget}
+                    completedRides={completedRides}
+                    onReady={(ride) => void markReady(ride)}
+                    upcomingRides={upcomingRides}
+                  />
+                )}
+              </div>
+            )}
+            {message ? <p className="mt-3 text-center text-sm text-muted-foreground">{message}</p> : null}
+          </div>
+        </section>
+        ) : null}
+        {activeRide ? (
+          <div className="absolute left-2 right-2 top-20 z-[1200] mx-auto hidden max-w-xl grid-cols-3 gap-1.5 sm:left-3 sm:right-3 sm:top-24 sm:grid sm:gap-2">
+            <FloatingStat label="Status" value={activeRide.status} />
+            <FloatingStat label="ETA" value={`${activeRide.estimated_duration_min ?? "--"}m`} />
+            <FloatingStat label="KM" value={`${activeRide.distance_km ?? "--"}`} />
+          </div>
+        ) : null}
+        {mapPickMode ? (
+          <button
+            className="absolute inset-x-2 top-3 z-[1300] rounded-[1.5rem] bg-[#101713] px-4 py-3 text-center text-sm font-black text-white shadow-2xl sm:left-1/2 sm:right-auto sm:w-[24rem] sm:max-w-[calc(100%-0.75rem)] sm:-translate-x-1/2"
+            onClick={() => setMapPickMode(null)}
+            type="button"
+          >
+            Tap map to set {mapPickMode === "pickup" ? "From / pickup" : "To / drop"}. Tap here to cancel.
+          </button>
+        ) : null}
+        {cancelTarget ? (
+          <CancelRideDialog
+            onClose={() => setCancelTarget(null)}
+            onConfirm={(reason) => void cancelRide(cancelTarget, reason)}
+            ride={cancelTarget}
+          />
+        ) : null}
+        {menuOpen ? (
+          <UserMenu
+            completedCount={completedRides.length}
+            onClose={() => setMenuOpen(false)}
+            onOpenRides={() => {
+              setPanelView("rides");
+              setMenuOpen(false);
+            }}
+            onProfileSaved={setProfile}
+            onSignOut={() => void signOut()}
+            profile={profile}
+            ridesCount={rides.length}
+            upcomingCount={upcomingRides.length}
+          />
+        ) : null}
+      </div>
+
+    </AppShell>
+  );
+}
+
+function ModeMetric({ icon: Icon, label }: { icon: typeof Bike; label: string }) {
+  return (
+    <div className="min-w-0 rounded-2xl bg-muted p-2 text-center sm:p-3">
+      <Icon className="mx-auto mb-1.5 size-4 text-primary sm:mb-2" />
+      <p className="truncate text-xs font-black">{label}</p>
+    </div>
+  );
+}
+
+function offsetDateTime(minutes: number) {
+  return new Date(Date.now() + minutes * 60 * 1000).toISOString().slice(0, 16);
+}
+
+function tomorrowMorning() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(9, 0, 0, 0);
+  return date.toISOString().slice(0, 16);
+}
+
+function TimePreset({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      className="rounded-full bg-card px-3 py-2 text-xs font-bold shadow-sm"
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
+function RideHistoryPanel({
+  activeRides,
+  completedRides,
+  onCancel,
+  onReady,
+  upcomingRides,
+}: {
+  activeRides: RideRequest[];
+  completedRides: RideRequest[];
+  onCancel: (ride: RideRequest) => void;
+  onReady: (ride: RideRequest) => void;
+  upcomingRides: RideRequest[];
+}) {
+  return (
+    <div className="grid max-h-[56dvh] gap-4 overflow-y-auto overflow-x-hidden pr-1">
+      <div>
+        <h1 className="text-2xl font-black tracking-tight">My rides</h1>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Active, advance, and completed trips in one place.
+        </p>
+      </div>
+      <RideSection
+        actionForRide={(ride) =>
+          ["scheduled", "ready", "assigned"].includes(ride.status) ? (
+            <Button onClick={() => onCancel(ride)} size="sm" variant="destructive">
+              Cancel
+            </Button>
+          ) : null
+        }
+        emptyText="No active rides right now."
+        rides={activeRides}
+        title="Active rides"
+      />
+      <RideSection
+        actionForRide={(ride) =>
+          ride.status === "scheduled" ? (
+            <Button onClick={() => onReady(ride)} size="sm">
+              I&apos;m Ready
+            </Button>
+          ) : null
+        }
+        secondaryActionForRide={(ride) =>
+          ride.status === "scheduled" ? (
+            <Button onClick={() => onCancel(ride)} size="sm" variant="destructive">
+              Cancel
+            </Button>
+          ) : null
+        }
+        emptyText="No advance bookings yet."
+        rides={upcomingRides}
+        title="Upcoming"
+      />
+      <RideSection
+        emptyText="Completed and cancelled rides will appear here."
+        rides={completedRides}
+        title="Completed"
+      />
+    </div>
+  );
+}
+
+function RideSection({
+  actionForRide,
+  emptyText,
+  rides,
+  secondaryActionForRide,
+  title,
+}: {
+  actionForRide?: (ride: RideRequest) => ReactNode;
+  emptyText: string;
+  rides: RideRequest[];
+  secondaryActionForRide?: (ride: RideRequest) => ReactNode;
+  title: string;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-black tracking-tight">{title}</h2>
+        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+          {rides.length}
+        </span>
+      </div>
+      {rides.length ? (
+        <div className="grid min-w-0 gap-3 md:grid-cols-2">
+          {rides.map((ride) => (
+            <RideCard
+              action={
+                <div className="flex flex-wrap gap-2">
+                  {actionForRide?.(ride)}
+                  {secondaryActionForRide?.(ride)}
+                </div>
+              }
+              key={ride.id}
+              ride={ride}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          {emptyText}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FloatingStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-center shadow-2xl backdrop-blur-xl">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-black capitalize">{value}</p>
+    </div>
+  );
+}
+
+function rideHeadline(status: RideRequest["status"]) {
+  if (status === "started") {
+    return "Trip in progress";
+  }
+  if (status === "assigned") {
+    return "Rider is arriving";
+  }
+  if (status === "ready") {
+    return "Finding rider";
+  }
+  return "Ride scheduled";
+}
+
+function ActiveUserRide({
+  code,
+  onCancel,
+  onReady,
+  riderLocation,
+  routeSummary,
+  ride,
+  userId,
+}: {
+  code?: string;
+  onCancel: () => void;
+  onReady: () => void;
+  riderLocation?: RiderLocation | null;
+  routeSummary: { distanceKm: number | null; durationMin: number | null } | null;
+  ride: RideRequest;
+  userId: string | null;
+}) {
+  const hasLivePhase = ["assigned", "started"].includes(ride.status);
+  const trackingTitle = ride.status === "assigned" ? "Rider is coming to pickup" : "Tracking trip to destination";
+  const trackingText = ride.status === "assigned"
+    ? "After the rider reaches you, share the private code to start the trip."
+    : "Code verified. The live route now follows the trip toward your drop location.";
+  const liveEta = routeSummary?.durationMin ?? ride.estimated_duration_min;
+  const liveDistance = routeSummary?.distanceKm ?? ride.distance_km;
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 sm:flex sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Badge className="bg-primary text-primary-foreground">{ride.status}</Badge>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">{rideHeadline(ride.status)}</h1>
+          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+            {ride.pickup_address} to {ride.drop_address}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+          {ride.status === "scheduled" ? (
+            <Button className="rounded-full" onClick={onReady}>
+              I&apos;m Ready
+            </Button>
+          ) : null}
+          {["scheduled", "ready", "assigned"].includes(ride.status) ? (
+            <Button className="rounded-full" onClick={onCancel} variant="destructive">
+              Cancel
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      {ride.status === "started" ? (
+        <div className="rounded-[1.5rem] bg-[#101713] p-4 text-white">
+          <p className="text-sm font-semibold text-white/60">Trip live</p>
+          <p className="mt-1 text-xl font-black">You are on your way</p>
+          <p className="mt-2 text-sm leading-6 text-white/65">
+            The ride can be completed from the rider app after reaching the drop point.
+          </p>
+        </div>
+      ) : null}
+      <RideProgress ride={ride} />
+      {hasLivePhase ? (
+        <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-black">{trackingTitle}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{trackingText}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] font-black text-secondary-foreground">
+              {ride.status === "assigned" ? "Pickup" : "Drop"}
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Live ETA</p>
+              <p className="mt-1 text-lg font-black">{liveEta ? `${liveEta} min` : "--"}</p>
+            </div>
+            <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Route</p>
+              <p className="mt-1 text-lg font-black">{liveDistance ? `${liveDistance} km` : "--"}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {riderLocation
+              ? `Rider GPS ${formatTrackingAge(riderLocation.last_seen_at ?? riderLocation.updated_at)}${riderLocation.accuracy_m ? ` - accuracy +/-${Math.round(riderLocation.accuracy_m)}m` : ""}`
+              : "Waiting for the rider app to send live GPS. Ask the rider to keep Taxidi open."}
+          </p>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock3 className="size-3" />
+            ETA
+          </p>
+          <p className="mt-1 font-semibold">{ride.estimated_duration_min ?? "--"} min</p>
+        </div>
+        <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <CalendarClock className="size-3" />
+            Distance
+          </p>
+          <p className="mt-1 font-semibold">{ride.distance_km ?? "--"} km</p>
+        </div>
+      </div>
+      {ride.status === "assigned" ? (
+        <div className="rounded-2xl border border-primary/25 bg-secondary p-4">
+          <p className="text-sm font-semibold">Show this code only to your rider</p>
+          <div className="mt-2 grid gap-3 sm:flex sm:items-end sm:justify-between">
+            <p className="text-xs text-muted-foreground">Required before the ride starts.</p>
+            <span className="font-mono text-3xl font-semibold tracking-[0.28em] text-primary sm:tracking-[0.35em]">
+              {code ?? "----"}
+            </span>
+          </div>
+        </div>
+      ) : ride.status === "started" ? (
+        <div className="rounded-2xl border border-primary/20 bg-secondary p-4">
+          <p className="text-sm font-black">Code verified</p>
+          <p className="mt-1 text-xs text-muted-foreground">The rider entered the private code. Destination tracking is now active.</p>
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-muted p-4">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Radio className="size-4 text-primary" />
+            Tap I&apos;m Ready when you are at pickup.
+          </p>
+        </div>
+      )}
+      <RideChatPanel currentUserId={userId} ride={ride} />
+    </div>
+  );
+}
+
+function UserMenu({
+  completedCount,
+  onClose,
+  onOpenRides,
+  onProfileSaved,
+  onSignOut,
+  profile,
+  ridesCount,
+  upcomingCount,
+}: {
+  completedCount: number;
+  onClose: () => void;
+  onOpenRides: () => void;
+  onProfileSaved: (profile: Profile) => void;
+  onSignOut: () => void;
+  profile: Profile | null;
+  ridesCount: number;
+  upcomingCount: number;
+}) {
+  return (
+    <div className="absolute inset-0 z-[1500] bg-[#101713]/45 backdrop-blur-sm">
+      <aside className="absolute inset-x-2 bottom-2 top-2 grid max-h-[calc(100svh-1rem)] gap-3 overflow-y-auto overflow-x-clip rounded-[1.75rem] bg-white p-3 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[24rem] sm:max-w-[calc(100%-1.5rem)] sm:gap-4 sm:rounded-[2rem] sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+              Taxidi menu
+            </p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight">
+              {profile?.full_name ?? "Your account"}
+            </h2>
+          </div>
+          <button
+            aria-label="Close menu"
+            className="flex size-10 items-center justify-center rounded-full bg-muted"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <ProfileSettings onSaved={onProfileSaved} profile={profile} />
+
+        <button className="text-left" onClick={onOpenRides} type="button">
+          <MenuCard
+            icon={ListChecks}
+            title="My rides"
+            text={`${ridesCount} total rides, ${upcomingCount} upcoming, ${completedCount} completed/cancelled. Tap to open ride history and cancellation options.`}
+          />
+        </button>
+        <MenuCard
+          icon={Settings}
+          title="Settings"
+          text="Manage account details, preferred pickup behavior, location permissions, and notification preferences."
+        />
+        <MenuCard
+          icon={Info}
+          title="About Taxidi"
+          text="Taxidi means journey/trip in Greek. This MVP uses Supabase, OpenStreetMap, Nominatim, OSRM, and a free-stack ride flow."
+        />
+        <MenuCard
+          icon={HelpCircle}
+          title="Help and support"
+          text="For booking issues: check pickup/drop, allow location permission, and confirm the private ride code only with your assigned rider."
+        />
+
+        <Button className="h-12 rounded-full" onClick={onSignOut} variant="outline">
+          <LogOut className="size-4" />
+          Sign out
+        </Button>
+      </aside>
+    </div>
+  );
+}
+
+function MenuCard({
+  icon: Icon,
+  text,
+  title,
+}: {
+  icon: LucideIcon;
+  text: string;
+  title: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-muted p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="flex size-9 items-center justify-center rounded-full bg-card">
+          <Icon className="size-4" />
+        </span>
+        <h3 className="font-black">{title}</h3>
+      </div>
+      <p className="text-sm leading-6 text-muted-foreground">{text}</p>
+    </section>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function upsertById<T extends { id: string }>(items: T[], incoming: T) {
+  const exists = items.some((item) => item.id === incoming.id);
+  if (!exists) return [incoming, ...items];
+  return items.map((item) => (item.id === incoming.id ? incoming : item));
+}
+
+function upsertRiderLocation(items: RiderLocation[], incoming: RiderLocation) {
+  const exists = items.some((item) => item.rider_id === incoming.rider_id);
+  if (!exists) return [incoming, ...items];
+  return items.map((item) => (item.rider_id === incoming.rider_id ? incoming : item));
+}
+
+function sortRides(items: RideRequest[]) {
+  return [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+function formatTrackingAge(value: string) {
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 10) return "live now";
+  if (seconds < 60) return `${seconds}s ago`;
+  return `${Math.round(seconds / 60)}m ago`;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
