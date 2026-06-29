@@ -102,6 +102,7 @@ function FitMap({
   demandRides,
   disabled,
   drop,
+  focusPoint,
   pickup,
   riders,
   route,
@@ -109,6 +110,7 @@ function FitMap({
   demandRides: RideRequest[];
   disabled?: boolean;
   drop?: LatLng | null;
+  focusPoint?: LatLng | null;
   pickup?: LatLng | null;
   riders: RiderLocation[];
   route: LatLng[];
@@ -117,6 +119,12 @@ function FitMap({
 
   useEffect(() => {
     if (disabled) return;
+
+    if (route.length < 2 && focusPoint) {
+      map.setView([focusPoint.lat, focusPoint.lng], Math.max(map.getZoom(), 16), { animate: true });
+      return;
+    }
+
     const points = [...route];
     if (pickup) points.push(pickup);
     if (drop) points.push(drop);
@@ -133,7 +141,7 @@ function FitMap({
     if (center) {
       map.setView([center.lat, center.lng], Math.max(map.getZoom(), 13), { animate: true });
     }
-  }, [demandRides, disabled, drop, map, pickup, riders, route]);
+  }, [demandRides, disabled, drop, focusPoint, map, pickup, riders, route]);
 
   return null;
 }
@@ -150,6 +158,7 @@ export function MapPicker({
   className,
   demandRides = [],
   drop,
+  focusPoint,
   onPick,
   onSelectionChange,
   pickup,
@@ -161,6 +170,7 @@ export function MapPicker({
   className?: string;
   demandRides?: RideRequest[];
   drop?: LatLng | null;
+  focusPoint?: LatLng | null;
   onPick?: (point: LatLng) => void;
   onSelectionChange?: (point: LatLng) => void;
   pickup?: LatLng | null;
@@ -183,7 +193,7 @@ export function MapPicker({
         scrollWheelZoom
         zoom={12}
       >
-        <FitMap demandRides={demandRides} disabled={Boolean(selectionMode)} drop={drop} pickup={pickup} riders={riders} route={route} />
+        <FitMap demandRides={demandRides} disabled={Boolean(selectionMode)} drop={drop} focusPoint={focusPoint} pickup={pickup} riders={riders} route={route} />
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

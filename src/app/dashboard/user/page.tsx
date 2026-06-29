@@ -38,7 +38,7 @@ import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
 import { calculateFareBreakdown, estimateBikeFare, formatMoney, getUserCancellationFine } from "@/lib/fare";
 import { getSupabase } from "@/lib/supabase";
-import { getPreciseCurrentLocation } from "@/lib/tracking";
+import { getPreciseCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M } from "@/lib/tracking";
 import { useLiveResync } from "@/lib/useLiveResync";
 import type {
   LatLng,
@@ -56,6 +56,7 @@ export default function UserDashboard() {
   const [clickTarget, setClickTarget] = useState<"pickup" | "drop">("pickup");
   const [confirmationCodes, setConfirmationCodes] = useState<Record<string, string>>({});
   const [drop, setDrop] = useState<LatLng | null>(null);
+  const [detectingPickup, setDetectingPickup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mapPickMode, setMapPickMode] = useState<"pickup" | "drop" | null>(null);
   const [mapCandidate, setMapCandidate] = useState<LatLng | null>(null);
@@ -296,8 +297,10 @@ export default function UserDashboard() {
       ...mapCandidate,
       address: address ?? `Pinned location ${mapCandidate.lat.toFixed(5)}, ${mapCandidate.lng.toFixed(5)}`,
     };
-    if (mapPickMode === "pickup") setPickup(selected);
-    else setDrop(selected);
+    if (mapPickMode === "pickup") {
+      setPickup(selected);
+      setPickupAccuracy(null);
+    } else setDrop(selected);
     setMapPickMode(null);
     setMapCandidate(null);
     setMapSelectionStart(null);
@@ -309,6 +312,8 @@ export default function UserDashboard() {
       return;
     }
 
+    setDetectingPickup(true);
+    setPickupAccuracy(null);
     setMessage("Finding your precise GPS location...");
     try {
       const position = await getPreciseCurrentLocation((accuracy) => {
@@ -316,7 +321,7 @@ export default function UserDashboard() {
         setMessage(`Improving GPS accuracy... currently +/-${accuracy}m`);
       });
       const detected = {
-        address: "Current location",
+        address: `Detected location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`,
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
@@ -325,10 +330,16 @@ export default function UserDashboard() {
       setClickTarget("drop");
       setMapPickMode(null);
       const address = await reverseGeocode(detected);
-      setPickup({ ...detected, address: address ?? "Current location" });
-      setMessage(`Pickup set within about ${Math.round(position.coords.accuracy)}m. You can fine-tune it on the map.`);
+      setPickup({ ...detected, address: address ?? detected.address });
+      setMessage(
+        position.coords.accuracy > 100
+          ? `Pickup detected with +/-${Math.round(position.coords.accuracy)}m accuracy. Please fine-tune the pin on the map.`
+          : `Pickup detected within about ${Math.round(position.coords.accuracy)}m.`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Location permission denied. Search or choose on map.");
+    } finally {
+      setDetectingPickup(false);
     }
   }
 
@@ -476,6 +487,10 @@ export default function UserDashboard() {
   const assignedRiderLocation = activeRide
     ? riderLocations.find((rider) => rider.rider_id === activeRide.assigned_rider_id)
     : null;
+  const mapRiders = useMemo(
+    () => (assignedRiderLocation ? [assignedRiderLocation] : []),
+    [assignedRiderLocation],
+  );
   const assignedRiderProfile = activeRide?.assigned_rider_id ? riderProfiles[activeRide.assigned_rider_id] ?? null : null;
   const routeFrom = useMemo(() => {
     if (activeRide?.assigned_rider_id && assignedRiderLocation && ["assigned", "started"].includes(activeRide.status)) {
@@ -552,9 +567,10 @@ export default function UserDashboard() {
         <DynamicMapPicker
           className="h-[38svh] min-h-[16rem] overflow-hidden sm:h-[100svh] sm:min-h-[100svh]"
           drop={mapDrop}
+          focusPoint={!activeRide ? pickup : null}
           onSelectionChange={setMapCandidate}
           pickup={mapPickup}
-          riders={assignedRiderLocation ? [assignedRiderLocation] : []}
+          riders={mapRiders}
           route={routePath}
           selectionCenter={mapSelectionStart}
           selectionMode={mapPickMode}
@@ -572,11 +588,13 @@ export default function UserDashboard() {
           <div className="pointer-events-auto flex items-center gap-2">
             <button
               aria-label="Detect pickup location"
-              className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur sm:size-11"
+              aria-busy={detectingPickup}
+              className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur disabled:cursor-wait disabled:opacity-70 sm:size-11"
+              disabled={detectingPickup}
               onClick={detectPickupLocation}
               type="button"
             >
-              <LocateFixed className="size-4 text-primary sm:size-5" />
+              <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingPickup ? "animate-pulse" : ""}`} />
             </button>
             <button
               aria-label="Open menu"
@@ -659,11 +677,12 @@ export default function UserDashboard() {
                       <div className="flex shrink-0 items-center gap-1.5">
                         <Button
                           className="h-8 min-w-0 rounded-full px-3 text-xs"
+                          disabled={detectingPickup}
                           onClick={detectPickupLocation}
                           size="sm"
                           variant="outline"
                         >
-                          Detect
+                          {detectingPickup ? "Detecting..." : "Detect"}
                         </Button>
                         <Button
                           className="h-8 min-w-0 rounded-full px-3 text-xs"
@@ -677,15 +696,22 @@ export default function UserDashboard() {
                       </div>
                     </div>
                     {pickupAccuracy ? (
-                      <p className={`mb-2 text-xs font-semibold ${pickupAccuracy > 50 ? "text-amber-700" : "text-muted-foreground"}`}>
-                        {pickupAccuracy > 50 ? "Low GPS accuracy" : "GPS accuracy"} +/-{pickupAccuracy}m
+                      <p
+                        className={`mb-2 text-xs font-semibold ${!detectingPickup && pickupAccuracy > MAX_USABLE_LOCATION_ACCURACY_M ? "text-amber-700" : "text-muted-foreground"}`}
+                      >
+                        {detectingPickup
+                          ? `Improving GPS accuracy... +/-${pickupAccuracy}m`
+                          : `${pickupAccuracy > MAX_USABLE_LOCATION_ACCURACY_M ? "GPS fix rejected" : "GPS accuracy"} +/-${pickupAccuracy}m`}
                       </p>
                     ) : null}
                     <LocationSearch
                       hideLabel
                       key={`pickup-${pickup?.address ?? "empty"}`}
                       label="Pickup"
-                      onSelect={setPickup}
+                      onSelect={(selected) => {
+                        setPickup(selected);
+                        setPickupAccuracy(null);
+                      }}
                       selectedValue={pickup?.address}
                     />
                   </div>

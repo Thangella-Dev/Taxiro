@@ -65,6 +65,7 @@ The MVP currently includes:
 - Accidental page zoom and iPhone input-focus zoom prevention.
 - Compact user booking flow with duplicate-label cleanup, expandable pickup note, low-GPS-accuracy warning, and sticky booking action.
 - Compact rider workflow with expandable On-The-Way route setup.
+- Improved high-accuracy GPS acquisition with weak-fix rejection, progress feedback, movement filtering, and rider location heartbeats.
 - Supabase Realtime publication enabled for live user, rider, admin, chat, code, and tracking updates.
 - User/rider/admin dashboards now merge realtime row changes without requiring manual page refresh.
 - Ride chat now refreshes on browser reconnect and tab visibility changes.
@@ -234,6 +235,8 @@ Important RPC/functions:
 - `verify_ride_code`
 - `complete_ride`
 - `cancel_ride`
+- `mark_ride_reached_drop`
+- `confirm_ride_payment_and_complete`
 - `get_or_create_ride_confirmation_code`
 - `is_admin`
 - `is_rider`
@@ -302,13 +305,16 @@ Project documentation:
 - Progress report through 12 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-12.md`
 - Progress report through 22 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-22.md`
 - Progress report through 23 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-23.md`
-- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
+- Progress report through 24 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
+- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md`
 - Daily update for 22 June: `docs/daily-update-2026-06-22.md`
 - Daily update for 23 June: `docs/daily-update-2026-06-23.md`
-- Latest daily update: `docs/daily-update-2026-06-24.md`
+- Daily update for 24 June: `docs/daily-update-2026-06-24.md`
+- Latest daily update: `docs/daily-update-2026-06-29.md`
 - Manager email for 22 June: `docs/manager-update-email-2026-06-22.md`
 - Manager email for 23 June: `docs/manager-update-email-2026-06-23.md`
-- Latest manager email: `docs/manager-update-email-2026-06-24.md`
+- Manager email for 24 June: `docs/manager-update-email-2026-06-24.md`
+- Latest manager email: `docs/manager-update-email-2026-06-29.md`
 
 ## Development Timeline
 
@@ -379,17 +385,34 @@ Wednesday - 24 June 2026:
 - Fixed GitHub push protection issue by removing `.mcp.json` from Git tracking and ignoring it.
 - Confirmed `.env.local` remains ignored and Vercel should only receive public frontend env variables.
 - Passed TypeScript, focused ESLint, production build, Supabase realtime verification, and Git tracking checks.
+
+Monday - 29 June 2026:
+
+- Completed the public/package rename to Taxiro across the application, documentation, metadata, and user-facing content.
+- Added distance-based fare locking and a transparent 7% Taxiro / 93% rider earnings split.
+- Added rider UPI ID and QR image settings plus the `rider-upi-qr` Supabase Storage design.
+- Added reached-drop, awaiting-payment, payment-confirmed, and ride-completed states for cash and UPI collection.
+- Added fare and payment visibility across user, rider, ride-detail, demand, history, and admin views.
+- Added the accepted-ride cancellation policy: a Rs 50 fine from the user's 3rd cancellation onward when a rider has accepted.
+- Added About, Help and Support, Privacy Policy, and Rules and Regulations pages and linked them from app menus.
+- Improved booking search, map selection, rider demand/request cards, and realtime recovery behavior.
+- Hardened location detection with accuracy thresholds, weak-fix rejection, progress states, movement filtering, and rider GPS heartbeats.
+- Created additive SQL migrations for fare/payment/UPI and cancellation-fine support. Remote Supabase application and live two-account verification remain pending.
 ## Verification Status
 
-Latest verification completed on 24 June 2026:
+Latest verification completed on 29 June 2026:
 
-- npm run lint: passed.
-- npx tsc --noEmit: passed.
-- `npm run build`: passed on Next.js 16.2.7 after live tracking, phase-aware routing, mobile layout, and zoom-prevention updates.
-- Focused `npx eslint` and `npx tsc --noEmit` checks passed after the June 23 live-tracking and mobile UX update.
-- User and rider dashboard routes returned HTTP 200.
-- Supabase live-tracking migration applied successfully.
-- All application routes compiled successfully.
+- `npx tsc --noEmit`: passed against the current code.
+- Focused ESLint for user dashboard, rider dashboard, and tracking helpers: passed.
+- `npm run build`: passed on Next.js 16.2.7.
+- All 12 application routes compiled/generated successfully, including user, rider, admin, policy, auth, and ride-detail routes.
+- Earlier Supabase live-tracking and Realtime publication verification passed.
+
+June 29 database status:
+
+- `20260629093000_taxiro_fare_payment_flow.sql` is implemented locally but must still be applied to the remote Supabase project.
+- `20260629113000_accepted_ride_cancellation_fine.sql` is implemented locally but must still be applied to the remote Supabase project.
+- The current `upi_id` schema-cache error is expected until the fare/payment migration is applied and PostgREST reloads its schema.
 
 Pending manual QA:
 
@@ -429,7 +452,7 @@ Future scope:
 
 - Push notifications.
 - In-app chat/call masking.
-- Payment flow.
+- Integrated payment gateway and automated payment verification.
 - Production-grade geocoding/routing provider.
 - Native mobile wrapper.
 

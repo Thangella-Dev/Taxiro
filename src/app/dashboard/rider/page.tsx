@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary } from "@/lib/maps";
 import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
-import { watchRiderLocation, type RiderTrackingUpdate } from "@/lib/tracking";
+import { getPreciseCurrentLocation, watchRiderLocation, type RiderTrackingUpdate } from "@/lib/tracking";
 import { getSupabase } from "@/lib/supabase";
 import { useLiveResync } from "@/lib/useLiveResync";
 import type { LatLng, Profile, RideRequest, RiderLocation, RiderProfile } from "@/types/database";
@@ -41,6 +41,7 @@ export default function RiderDashboard() {
   const router = useRouter();
   const [cancelTarget, setCancelTarget] = useState<RideRequest | null>(null);
   const [codes, setCodes] = useState<Record<string, string>>({});
+  const [detectingLocation, setDetectingLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<LatLng>({ lat: 17.385, lng: 78.4867 });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -179,7 +180,7 @@ export default function RiderDashboard() {
     const stop = watchRiderLocation({
       isAvailable: riderLocation?.is_available ?? true,
       onError: (trackingError) => {
-        setGpsStatus(`${trackingError} Search or choose on map if needed.`);
+        setGpsStatus(trackingError);
       },
       onUpdate: (liveLocation: RiderTrackingUpdate) => {
         const now = new Date().toISOString();
@@ -195,7 +196,7 @@ export default function RiderDashboard() {
           speed: liveLocation.speed,
           updated_at: now,
         }));
-        setGpsStatus(`Live GPS on${liveLocation.accuracy_m ? ` • +/-${Math.round(liveLocation.accuracy_m)}m` : ""}`);
+        setGpsStatus(`Live GPS on${liveLocation.accuracy_m ? ` - +/-${Math.round(liveLocation.accuracy_m)}m` : ""}`);
       },
       riderId: profile.id,
       supabase,
@@ -216,7 +217,7 @@ export default function RiderDashboard() {
     intervalMs: 5000,
     onResync: resyncRiderData,
   });
-  async function updateLocation(point: LatLng & Partial<RiderTrackingUpdate>) {
+  async function updateLocation(point: LatLng & Partial<RiderTrackingUpdate>, source: "gps" | "manual" = "manual") {
     if (!profile) {
       setMessage("Please sign in as a rider.");
       return;
@@ -231,15 +232,51 @@ export default function RiderDashboard() {
       lat: point.lat,
       lng: point.lng,
       rider_id: profile.id,
-      accuracy_m: point.accuracy_m ?? riderLocation?.accuracy_m ?? null,
-      heading: point.heading ?? riderLocation?.heading ?? null,
+      accuracy_m: point.accuracy_m ?? null,
+      heading: point.heading ?? null,
       last_seen_at: new Date().toISOString(),
-      speed: point.speed ?? riderLocation?.speed ?? null,
+      speed: point.speed ?? null,
       updated_at: new Date().toISOString(),
     });
-    setGpsStatus(error ? "Manual location update failed." : `Manual location updated${point.accuracy_m ? ` • +/-${Math.round(point.accuracy_m)}m` : ""}.`);
+    setGpsStatus(
+      error
+        ? `${source === "gps" ? "GPS" : "Manual"} location update failed.`
+        : `${source === "gps" ? "GPS refreshed" : "Manual location updated"}${point.accuracy_m ? ` - +/-${Math.round(point.accuracy_m)}m` : ""}.`,
+    );
     setMessage(error ? error.message : "Location updated.");
     await loadRiderData(profile.id);
+  }
+
+  async function detectRiderLocation() {
+    if (!profile) {
+      setMessage("Please sign in as a rider.");
+      return;
+    }
+
+    setDetectingLocation(true);
+    setGpsStatus("Finding a precise GPS fix...");
+    try {
+      const position = await getPreciseCurrentLocation((accuracyM) => {
+        setGpsStatus(`Improving GPS accuracy... +/-${accuracyM}m`);
+      });
+      await updateLocation(
+        {
+          accuracy_m: Math.round(position.coords.accuracy),
+          heading: position.coords.heading,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          speed: position.coords.speed,
+        },
+        "gps",
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "GPS detection failed. Choose your location on the map.";
+      setGpsStatus(errorMessage);
+      setMessage(errorMessage);
+    } finally {
+      setDetectingLocation(false);
+    }
   }
 
   async function acceptRide(ride: RideRequest) {
@@ -373,6 +410,10 @@ export default function RiderDashboard() {
         : location,
     [activeRide, location],
   );
+  const mapRiders = useMemo(
+    () => (riderLocation ? [{ ...riderLocation, lat: location.lat, lng: location.lng }] : []),
+    [location.lat, location.lng, riderLocation],
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -429,9 +470,10 @@ export default function RiderDashboard() {
           className="h-[38svh] min-h-[16rem] overflow-hidden sm:h-[100svh] sm:min-h-[100svh]"
           demandRides={activeRide ? [] : demandMapRides}
           drop={mapDrop}
+          focusPoint={!activeRide ? location : null}
           onPick={(point) => void updateLocation(point)}
           pickup={mapPickup}
-          riders={riders}
+          riders={mapRiders}
           route={routePath}
         />
 
@@ -484,11 +526,13 @@ export default function RiderDashboard() {
           </div>
           <button
             aria-label="Refresh rider location"
-            className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur sm:size-11"
-            onClick={() => void updateLocation(location)}
+            aria-busy={detectingLocation}
+            className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur disabled:cursor-wait disabled:opacity-70 sm:size-11"
+            disabled={detectingLocation}
+            onClick={() => void detectRiderLocation()}
             type="button"
           >
-            <LocateFixed className="size-4 text-primary sm:size-5" />
+            <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingLocation ? "animate-pulse" : ""}`} />
           </button>
         </div>
 
