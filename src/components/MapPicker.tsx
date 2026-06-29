@@ -13,6 +13,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 
+import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import type { LatLng, RideRequest, RiderLocation } from "@/types/database";
 
 const pickupIcon = L.divIcon({
@@ -152,6 +153,7 @@ export function MapPicker({
         ) : null}
         {demandRides.map((ride) => {
           const ready = ride.status === "ready";
+          const earning = ride.rider_earning ?? calculateFareBreakdown(ride.fare_estimate).riderEarning;
           return (
             <Fragment key={ride.id}>
               <Circle
@@ -159,21 +161,22 @@ export function MapPicker({
                 pathOptions={{
                   color: ready ? "#dbf86f" : "#101713",
                   fillColor: ready ? "#dbf86f" : "#101713",
-                  fillOpacity: ready ? 0.18 : 0.08,
-                  opacity: ready ? 0.65 : 0.3,
-                  weight: ready ? 3 : 1,
+                  fillOpacity: ready ? 0.22 : 0.09,
+                  opacity: ready ? 0.78 : 0.32,
+                  weight: ready ? 4 : 1,
                 }}
-                radius={ready ? 850 : 380}
+                radius={ready ? 950 : 420}
               />
               <Marker icon={ready ? readyDemandIcon : scheduledDemandIcon} position={[ride.pickup_lat, ride.pickup_lng]}>
                 <Popup>
-                  <strong>{ready ? "Ready ride now" : "Scheduled demand"}</strong>
-                  <br />
-                  {ride.pickup_address}
-                  <br />
-                  {ride.distance_km ?? "--"} km | {ride.estimated_duration_min ?? "--"} min
-                  <br />
-                  {new Date(ride.scheduled_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  <div className="grid gap-1 text-sm">
+                    <strong>{ready ? "Ready ride - accept now" : "Scheduled demand"}</strong>
+                    <span>Fare: {formatMoney(ride.fare_estimate)} | Earn: {formatMoney(earning)}</span>
+                    <span>{ride.distance_km ?? "--"} km | {ride.estimated_duration_min ?? "--"} min | {(ride.payment_method ?? "cash").toUpperCase()}</span>
+                    <span>Pickup: {ride.pickup_address}</span>
+                    <span>Drop: {ride.drop_address}</span>
+                    <span>{new Date(ride.scheduled_time).toLocaleString()}</span>
+                  </div>
                 </Popup>
               </Marker>
             </Fragment>

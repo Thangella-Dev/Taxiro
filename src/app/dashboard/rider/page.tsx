@@ -336,8 +336,16 @@ export default function RiderDashboard() {
     return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${from.lat}%2C${from.lng}%3B${to.lat}%2C${to.lng}`;
   }
 
-  const readyRides = rides.filter((ride) => ride.status === "ready");
-  const demandMapRides = rides.filter((ride) => ["ready", "scheduled"].includes(ride.status));
+  const readyRides = rides
+    .filter((ride) => ride.status === "ready")
+    .sort((a, b) => approxDistanceKm(location, a) - approxDistanceKm(location, b));
+  const demandMapRides = rides
+    .filter((ride) => ["ready", "scheduled"].includes(ride.status))
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === "ready" ? -1 : 1;
+      return approxDistanceKm(location, a) - approxDistanceKm(location, b);
+    })
+    .slice(0, 18);
   const activeRide = rides.find(
     (ride) =>
       ride.assigned_rider_id === profile?.id &&
@@ -534,6 +542,7 @@ export default function RiderDashboard() {
                     {readyRides.length ? (
                       readyRides.map((ride) => (
                         <RequestCard
+                          currentLocation={location}
                           key={ride.id}
                           onAccept={() => void acceptRide(ride)}
                           ride={ride}
@@ -626,46 +635,86 @@ function MiniStat({
   );
 }
 
+function approxDistanceKm(from: LatLng, ride: RideRequest) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const earthKm = 6371;
+  const dLat = toRad(ride.pickup_lat - from.lat);
+  const dLng = toRad(ride.pickup_lng - from.lng);
+  const lat1 = toRad(from.lat);
+  const lat2 = toRad(ride.pickup_lat);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return Math.round(earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+}
+
 function RequestCard({
+  currentLocation,
   onAccept,
   ride,
 }: {
+  currentLocation: LatLng;
   onAccept: () => void;
   ride: RideRequest;
 }) {
+  const fareBreakdown = calculateFareBreakdown(ride.fare_estimate);
+  const riderEarning = ride.rider_earning ?? fareBreakdown.riderEarning;
+  const companyCommission = ride.company_commission ?? fareBreakdown.companyCommission;
+  const pickupDistance = approxDistanceKm(currentLocation, ride);
+
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
+    <div className="min-w-0 rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
       <div className="grid gap-3 sm:flex sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <Badge className="bg-amber-50 text-amber-700">Ready now</Badge>
-          <p className="mt-2 font-semibold">Ride #{ride.id.slice(0, 8)}</p>
+          <Badge className="bg-secondary text-secondary-foreground">Ready now</Badge>
+          <p className="mt-2 font-black">Ride #{ride.id.slice(0, 8)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{pickupDistance} km away from you</p>
         </div>
-        <Button className="rounded-full sm:shrink-0" onClick={onAccept} size="sm">
-          Accept
-        </Button>
+        <div className="grid grid-cols-2 gap-2 text-center sm:min-w-48">
+          <div className="rounded-2xl bg-muted p-2">
+            <p className="text-[10px] font-bold uppercase text-muted-foreground">Fare</p>
+            <p className="font-black">{formatMoney(ride.fare_estimate)}</p>
+          </div>
+          <div className="rounded-2xl bg-secondary p-2">
+            <p className="text-[10px] font-bold uppercase text-secondary-foreground/70">You earn</p>
+            <p className="font-black text-secondary-foreground">{formatMoney(riderEarning)}</p>
+          </div>
+        </div>
       </div>
       <div className="mt-3 grid gap-2 text-sm">
         <p className="flex gap-2">
           <MapPinned className="mt-0.5 size-4 shrink-0 text-primary" />
-          <span className="line-clamp-1">{ride.pickup_address}</span>
+          <span className="line-clamp-2">{ride.pickup_address}</span>
         </p>
         <p className="flex gap-2">
           <Navigation className="mt-0.5 size-4 shrink-0 text-primary" />
-          <span className="line-clamp-1">{ride.drop_address}</span>
+          <span className="line-clamp-2">{ride.drop_address}</span>
         </p>
       </div>
       {ride.rider_note ? (
-        <p className="mt-3 rounded-2xl bg-secondary p-3 text-sm font-semibold">
+        <p className="mt-3 rounded-2xl bg-secondary/80 p-3 text-sm font-semibold">
           Pickup note: {ride.rider_note}
         </p>
       ) : null}
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span>{ride.distance_km ?? "--"} km</span>
-        <span>{formatMoney(ride.fare_estimate)}</span>
-        <span className="uppercase">{ride.payment_method ?? "cash"}</span>
-        <span>{ride.estimated_duration_min ?? "--"} min</span>
-        <span>Earn {formatMoney(ride.rider_earning ?? calculateFareBreakdown(ride.fare_estimate).riderEarning)}</span>
+      <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+        <div className="rounded-2xl bg-muted p-2">
+          <p className="font-black">{ride.distance_km ?? "--"}</p>
+          <p className="text-muted-foreground">km trip</p>
+        </div>
+        <div className="rounded-2xl bg-muted p-2">
+          <p className="font-black">{ride.estimated_duration_min ?? "--"}</p>
+          <p className="text-muted-foreground">min</p>
+        </div>
+        <div className="rounded-2xl bg-muted p-2">
+          <p className="font-black uppercase">{ride.payment_method ?? "cash"}</p>
+          <p className="text-muted-foreground">pay</p>
+        </div>
+        <div className="rounded-2xl bg-muted p-2">
+          <p className="font-black">{formatMoney(companyCommission)}</p>
+          <p className="text-muted-foreground">Taxiro</p>
+        </div>
       </div>
+      <Button className="mt-4 h-12 w-full rounded-full bg-[#101713] text-base font-black text-white hover:bg-[#101713]/90" onClick={onAccept}>
+        Accept ride - earn {formatMoney(riderEarning)}
+      </Button>
     </div>
   );
 }
