@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { ChevronDown, Route } from "lucide-react";
@@ -46,14 +46,14 @@ export function RouteSetupForm({ riderId }: { riderId: string }) {
   }
 
   return (
-    <Card className="min-w-0 max-w-full overflow-hidden rounded-2xl p-4">
+    <Card className="min-w-0 max-w-full overflow-hidden p-4">
       <button
         aria-expanded={expanded}
         className="flex w-full min-w-0 items-center gap-3 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
           <Route className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
@@ -68,7 +68,7 @@ export function RouteSetupForm({ riderId }: { riderId: string }) {
         <div className="animate-in mt-4 grid min-w-0 max-w-full gap-3 border-t border-border pt-4">
           <LocationSearch label="From" onSelect={setFrom} />
           <LocationSearch label="To" onSelect={setTo} />
-          <Button className="h-12 rounded-xl" onClick={() => void saveRoute()}>
+          <Button className="h-12" onClick={() => void saveRoute()}>
             Save route
           </Button>
           {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCheck, MessageCircle, Send, ShieldCheck } from "lucide-react";
@@ -141,10 +141,10 @@ export function RideChatPanel({
   }
 
   return (
-    <section className="rounded-[1.5rem] border border-border bg-card p-3 shadow-sm">
+    <section className="rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
             <MessageCircle className="size-4" />
           </span>
           <div className="min-w-0">
@@ -156,7 +156,7 @@ export function RideChatPanel({
             </p>
           </div>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
+        <span className="flex shrink-0 items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
           <ShieldCheck className="size-3" /> Live
         </span>
       </div>
@@ -164,7 +164,7 @@ export function RideChatPanel({
       <div className="mb-3 flex flex-wrap gap-2">
         {quickMessages.map((message) => (
           <button
-            className="max-w-full rounded-full border border-border bg-muted px-3 py-2 text-left text-xs font-bold text-foreground transition hover:bg-secondary"
+            className="max-w-full rounded-lg border border-border bg-muted px-3 py-2 text-left text-xs font-bold text-foreground transition hover:border-primary/20 hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring"
             key={message}
             onClick={() => void sendMessage(message)}
             type="button"
@@ -174,7 +174,7 @@ export function RideChatPanel({
         ))}
       </div>
 
-      <div ref={scrollRef} className="grid max-h-56 gap-2 overflow-y-auto pr-1">
+      <div ref={scrollRef} className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:max-h-64">
         {messages.length ? (
           messages.map((message) => {
             const mine = message.sender_id === currentUserId;
@@ -184,7 +184,7 @@ export function RideChatPanel({
                 <p className={mine ? "mb-1 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground" : "mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground"}>
                   {mine ? "You" : label}
                 </p>
-                <div className={mine ? "rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground" : "rounded-2xl rounded-bl-md bg-muted px-3 py-2"}>
+                <div className={mine ? "rounded-lg rounded-br-sm bg-primary px-3 py-2 text-primary-foreground" : "rounded-lg rounded-bl-sm bg-muted px-3 py-2"}>
                   <p className="whitespace-pre-wrap break-words text-sm leading-5">{message.body}</p>
                 </div>
                 <p className={mine ? "mt-1 flex justify-end gap-1 text-[10px] text-muted-foreground" : "mt-1 text-[10px] text-muted-foreground"}>
@@ -195,7 +195,7 @@ export function RideChatPanel({
             );
           })
         ) : (
-          <div className="rounded-2xl bg-muted p-3 text-sm text-muted-foreground">
+          <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
             <p className="font-semibold text-foreground">No messages yet.</p>
             <p className="mt-1 leading-5">Start with a quick message so both sides know pickup and route details clearly.</p>
           </div>
@@ -205,7 +205,7 @@ export function RideChatPanel({
       <div className="mt-3 flex gap-2">
         <Input
           aria-label="Ride chat message"
-          className="h-11 rounded-full"
+          className="h-11 rounded-lg"
           disabled={sending}
           maxLength={500}
           onChange={(event) => setDraft(event.target.value)}
@@ -218,7 +218,7 @@ export function RideChatPanel({
           placeholder={phase === "pickup" ? "Message about pickup or code" : "Message about route or drop"}
           value={draft}
         />
-        <Button aria-label="Send message" className="size-11 shrink-0 rounded-full p-0" disabled={sending || !draft.trim()} onClick={() => void sendMessage()}>
+        <Button aria-label="Send message" className="size-11 shrink-0 p-0" disabled={sending || !draft.trim()} onClick={() => void sendMessage()}>
           <Send className="size-4" />
         </Button>
       </div>

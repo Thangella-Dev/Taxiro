@@ -539,6 +539,9 @@ export default function UserDashboard() {
     };
   }, [routeFrom, routeTo]);
 
+  if (loading) {
+    return <LoadingRideShell label="Taxiro" title="Preparing your ride app" />;
+  }
   if (!loading && (!userId || profile?.role !== "user")) {
     return (
       <AppShell title="Book Taxiro">
@@ -563,9 +566,9 @@ export default function UserDashboard() {
 
   return (
     <AppShell immersive title="Book Taxiro">
-      <div className="relative min-h-0 min-w-0 w-full max-w-full overflow-x-clip bg-muted sm:min-h-[100svh] [contain:inline-size] sm:overflow-hidden">
+      <div className="taxiro-immersive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
         <DynamicMapPicker
-          className="h-[38svh] min-h-[16rem] overflow-hidden sm:h-[100svh] sm:min-h-[100svh]"
+          className="taxiro-map-canvas overflow-hidden"
           drop={mapDrop}
           focusPoint={!activeRide ? pickup : null}
           onSelectionChange={setMapCandidate}
@@ -577,8 +580,8 @@ export default function UserDashboard() {
         />
 
         {!mapPickMode ? (
-        <div className="pointer-events-none absolute inset-x-2 top-2 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3 sm:gap-3">
-          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur-xl sm:p-3">
+        <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:gap-3 lg:inset-x-4">
+          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-xl border border-white/80 bg-white/94 p-2.5 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-sm sm:p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxiro</p>
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
               <Bike className="size-4 sm:size-5" />
@@ -589,7 +592,7 @@ export default function UserDashboard() {
             <button
               aria-label="Detect pickup location"
               aria-busy={detectingPickup}
-              className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur disabled:cursor-wait disabled:opacity-70 sm:size-11"
+              className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur disabled:cursor-wait disabled:opacity-70"
               disabled={detectingPickup}
               onClick={detectPickupLocation}
               type="button"
@@ -598,7 +601,7 @@ export default function UserDashboard() {
             </button>
             <button
               aria-label="Open menu"
-              className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur sm:size-11"
+              className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur"
               onClick={() => setMenuOpen(true)}
               type="button"
             >
@@ -609,9 +612,9 @@ export default function UserDashboard() {
         ) : null}
 
         {!mapPickMode ? (
-        <section className="relative z-[1200] mx-auto -mt-8 w-[calc(100%-1rem)] min-w-0 max-w-full overflow-x-clip pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:absolute sm:inset-x-0 sm:bottom-0 sm:mx-auto sm:-mt-0 sm:w-full sm:max-w-[28rem] sm:px-2 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="min-w-0 max-w-full overflow-x-clip rounded-t-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_24px_90px_rgb(0_0_0_/_0.22)] backdrop-blur-2xl sm:max-h-[74dvh] sm:overflow-y-auto sm:rounded-[2rem] sm:p-4">
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+        <section className="taxiro-sheet-shell min-w-0 max-w-full overflow-x-clip">
+          <div className="taxiro-sheet-surface min-w-0 max-w-full">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
             {activeRide ? (
               <ActiveUserRide
                 code={confirmationCodes[activeRide.id]}
@@ -625,10 +628,10 @@ export default function UserDashboard() {
               />
             ) : (
               <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1">
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
                   {(["book", "rides"] as const).map((view) => (
                     <button
-                      className={`rounded-full px-3 py-3 text-sm font-black transition ${
+                      className={`rounded-md px-3 py-2.5 text-sm font-black transition ${
                         panelView === view
                           ? "bg-[#101713] text-white shadow-sm"
                           : "text-muted-foreground"
@@ -652,10 +655,10 @@ export default function UserDashboard() {
                   <ModeMetric icon={Clock3} label="Fast" />
                   <ModeMetric icon={Radio} label="Ready" />
                 </div>
-                <div className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1">
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
                   {(["now", "advance"] as const).map((mode) => (
                     <button
-                      className={`rounded-full px-3 py-3 text-sm font-black transition ${
+                      className={`rounded-md px-3 py-2.5 text-sm font-black transition ${
                         bookingMode === mode
                           ? "bg-[#101713] text-white shadow-sm"
                           : "text-muted-foreground"
@@ -669,14 +672,14 @@ export default function UserDashboard() {
                   ))}
                 </div>
                 <div className="grid gap-3">
-                  <div className="min-w-0 rounded-2xl border border-border bg-card p-3">
+                  <div className="min-w-0 rounded-lg border border-border bg-card p-3">
                     <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
                         From
                       </p>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <Button
-                          className="h-8 min-w-0 rounded-full px-3 text-xs"
+                          className="h-8 min-w-0 rounded-lg px-3 text-xs"
                           disabled={detectingPickup}
                           onClick={detectPickupLocation}
                           size="sm"
@@ -685,7 +688,7 @@ export default function UserDashboard() {
                           {detectingPickup ? "Detecting..." : "Detect"}
                         </Button>
                         <Button
-                          className="h-8 min-w-0 rounded-full px-3 text-xs"
+                          className="h-8 min-w-0 rounded-lg px-3 text-xs"
                           onClick={() => startMapPick("pickup")}
                           size="sm"
                           variant={mapPickMode === "pickup" ? "default" : "secondary"}
@@ -716,13 +719,13 @@ export default function UserDashboard() {
                     />
                   </div>
 
-                  <div className="min-w-0 rounded-2xl border border-border bg-card p-3">
+                  <div className="min-w-0 rounded-lg border border-border bg-card p-3">
                     <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
                         To
                       </p>
                       <Button
-                        className="h-8 min-w-0 rounded-full px-3 text-xs"
+                        className="h-8 min-w-0 rounded-lg px-3 text-xs"
                         onClick={() => startMapPick("drop")}
                         size="sm"
                         variant={mapPickMode === "drop" ? "default" : "secondary"}
@@ -741,16 +744,16 @@ export default function UserDashboard() {
                   </div>
                 </div>
                 {mapPickMode ? (
-                  <div className="rounded-2xl border border-[#101713]/20 bg-secondary p-3 text-sm font-semibold text-secondary-foreground">
+                  <div className="rounded-lg border border-[#101713]/20 bg-secondary p-3 text-sm font-semibold text-secondary-foreground">
                     Tap the map to set {mapPickMode === "pickup" ? "From / pickup" : "To / drop"}.
                   </div>
                 ) : null}
                 {bookingMode === "advance" ? (
-                  <div className="grid gap-3 rounded-2xl bg-muted p-3">
+                  <div className="grid gap-3 rounded-lg bg-muted p-3">
                     <div>
                       <Label htmlFor="scheduled">Advance pickup date and time</Label>
                       <Input
-                        className="mt-1 h-12 rounded-2xl bg-card"
+                        className="mt-1 h-12 bg-card"
                         id="scheduled"
                         min={new Date().toISOString().slice(0, 16)}
                         onChange={(event) => setScheduledTime(event.target.value)}
@@ -778,17 +781,17 @@ export default function UserDashboard() {
                     Book now, then tap I&apos;m Ready when you are at the pickup point.
                   </p>
                 )}
-                <div className="grid gap-3 rounded-2xl border border-border bg-card p-3">
+                <div className="grid gap-3 rounded-lg border border-border bg-card p-3">
                   <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
-                    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+                    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">Fare</p>
                       <p className="mt-1 font-black">{formatMoney(estimateBikeFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null))}</p>
                     </div>
-                    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+                    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">Distance</p>
                       <p className="mt-1 font-black">{routeSummary?.distanceKm ?? "--"} km</p>
                     </div>
-                    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+                    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">ETA</p>
                       <p className="mt-1 font-black">{routeSummary?.durationMin ?? "--"} min</p>
                     </div>
@@ -798,7 +801,7 @@ export default function UserDashboard() {
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {(["cash", "upi"] as const).map((method) => (
                         <button
-                          className={paymentMethod === method ? "rounded-full bg-primary px-3 py-3 text-sm font-black text-primary-foreground" : "rounded-full bg-muted px-3 py-3 text-sm font-black"}
+                          className={paymentMethod === method ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground" : "rounded-lg bg-muted px-3 py-3 text-sm font-black"}
                           key={method}
                           onClick={() => setPaymentMethod(method)}
                           type="button"
@@ -830,7 +833,7 @@ export default function UserDashboard() {
                     </div>
                   ) : null}
                 </div>
-                <Button className="sticky bottom-2 z-10 h-14 rounded-full text-base font-bold shadow-[0_12px_32px_rgb(16_23_19_/_0.24)]" onClick={() => void createRide()}>
+                <Button className="sticky bottom-2 z-10 h-14 rounded-lg text-base font-bold shadow-[0_12px_32px_rgb(16_23_19_/_0.24)]" onClick={() => void createRide()}>
                   {bookingMode === "now" ? "Book ride now" : "Schedule advance ride"}
                 </Button>
                   </>
@@ -858,13 +861,13 @@ export default function UserDashboard() {
         ) : null}
         {mapPickMode ? (
           <div
-            className="absolute inset-x-2 top-3 z-[1300] rounded-[1.5rem] bg-[#101713] px-4 py-3 text-center text-sm font-black text-white shadow-2xl sm:left-1/2 sm:right-auto sm:w-[24rem] sm:max-w-[calc(100%-0.75rem)] sm:-translate-x-1/2"
+            className="absolute inset-x-2 top-3 z-[1300] rounded-lg bg-[#101713] px-4 py-3 text-center text-sm font-black text-white shadow-[var(--shadow-soft)] sm:left-1/2 sm:right-auto sm:w-[24rem] sm:max-w-[calc(100%-0.75rem)] sm:-translate-x-1/2"
           >
             Move the map under the pin to set {mapPickMode === "pickup" ? "your pickup" : "your drop"}.
           </div>
         ) : null}
         {mapPickMode ? (
-          <div className="absolute inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[1300] mx-auto max-w-sm rounded-[1.5rem] border border-white/70 bg-white/95 p-3 shadow-2xl backdrop-blur-xl">
+          <div className="absolute inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[1300] mx-auto max-w-sm rounded-lg border border-white/70 bg-white/95 p-3 shadow-[var(--shadow-soft)] backdrop-blur-xl">
             <p className="text-sm font-black">Is the pin exactly where you need it?</p>
             <p className="mt-1 text-xs text-muted-foreground">Zoom and move the map for a precise entrance or pickup point.</p>
             <div className="mt-3 grid grid-cols-[0.7fr_1.3fr] gap-2">
@@ -910,9 +913,43 @@ export default function UserDashboard() {
   );
 }
 
+function LoadingRideShell({ label, title }: { label: string; title: string }) {
+  return (
+    <AppShell immersive title={title}>
+      <div className="taxiro-immersive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
+        <DynamicMapPicker className="taxiro-map-canvas overflow-hidden" />
+        <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 lg:inset-x-4">
+          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-xl border border-white/80 bg-white/94 p-2.5 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-sm sm:p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+            <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
+              <Bike className="size-4 sm:size-5" />
+              {title}
+            </p>
+          </div>
+        </div>
+        <section className="taxiro-sheet-shell min-w-0 max-w-full overflow-x-clip">
+          <div className="taxiro-sheet-surface min-w-0 max-w-full">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
+            <div className="grid gap-3" aria-busy="true" aria-live="polite">
+              <div className="h-8 w-3/4 animate-pulse rounded-lg bg-muted" />
+              <div className="h-4 w-11/12 animate-pulse rounded-lg bg-muted" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="h-16 animate-pulse rounded-lg bg-muted" />
+                <div className="h-16 animate-pulse rounded-lg bg-muted" />
+                <div className="h-16 animate-pulse rounded-lg bg-muted" />
+              </div>
+              <div className="h-28 animate-pulse rounded-lg bg-muted" />
+              <div className="h-14 animate-pulse rounded-lg bg-primary/15" />
+            </div>
+          </div>
+        </section>
+      </div>
+    </AppShell>
+  );
+}
 function ModeMetric({ icon: Icon, label }: { icon: typeof Bike; label: string }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-muted p-2 text-center sm:p-3">
+    <div className="min-w-0 rounded-lg bg-muted p-2 text-center sm:p-3">
       <Icon className="mx-auto mb-1.5 size-4 text-primary sm:mb-2" />
       <p className="truncate text-xs font-black">{label}</p>
     </div>
@@ -933,7 +970,7 @@ function tomorrowMorning() {
 function TimePreset({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
-      className="rounded-full bg-card px-3 py-2 text-xs font-bold shadow-sm"
+      className="rounded-lg bg-card px-3 py-2 text-xs font-bold shadow-sm"
       onClick={onClick}
       type="button"
     >
@@ -1020,7 +1057,7 @@ function RideSection({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-black tracking-tight">{title}</h2>
-        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+        <span className="rounded-md bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
           {rides.length}
         </span>
       </div>
@@ -1040,7 +1077,7 @@ function RideSection({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           {emptyText}
         </div>
       )}
@@ -1050,7 +1087,7 @@ function RideSection({
 
 function FloatingStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-center shadow-2xl backdrop-blur-xl">
+    <div className="rounded-lg border border-white/70 bg-white/90 px-3 py-2 text-center shadow-[var(--shadow-soft)] backdrop-blur-xl">
       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </p>
@@ -1111,19 +1148,19 @@ function ActiveUserRide({
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           {ride.status === "scheduled" ? (
-            <Button className="rounded-full" onClick={onReady}>
+            <Button className="rounded-lg" onClick={onReady}>
               I&apos;m Ready
             </Button>
           ) : null}
           {["scheduled", "ready", "assigned"].includes(ride.status) ? (
-            <Button className="rounded-full" onClick={onCancel} variant="destructive">
+            <Button className="rounded-lg" onClick={onCancel} variant="destructive">
               Cancel
             </Button>
           ) : null}
         </div>
       </div>
       {ride.status === "started" ? (
-        <div className="rounded-[1.5rem] bg-[#101713] p-4 text-white">
+        <div className="rounded-lg bg-[#101713] p-4 text-white">
           <p className="text-sm font-semibold text-white/60">Trip live</p>
           <p className="mt-1 text-xl font-black">You are on your way</p>
           <p className="mt-2 text-sm leading-6 text-white/65">
@@ -1133,22 +1170,22 @@ function ActiveUserRide({
       ) : null}
       <RideProgress ride={ride} />
       {hasLivePhase ? (
-        <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-black">{trackingTitle}</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{trackingText}</p>
             </div>
-            <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] font-black text-secondary-foreground">
+            <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-black text-secondary-foreground">
               {ride.status === "assigned" ? "Pickup" : "Drop"}
             </span>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+            <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Live ETA</p>
               <p className="mt-1 text-lg font-black">{liveEta ? `${liveEta} min` : "--"}</p>
             </div>
-            <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+            <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Route</p>
               <p className="mt-1 text-lg font-black">{liveDistance ? `${liveDistance} km` : "--"}</p>
             </div>
@@ -1160,7 +1197,7 @@ function ActiveUserRide({
           </p>
         </div>
       ) : null}
-      <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-black">Your fare</p>
@@ -1168,16 +1205,16 @@ function ActiveUserRide({
               This is the customer fare saved when the ride was booked. Rider earning and Taxiro share are shown only in the rider/admin views.
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] font-black uppercase text-secondary-foreground">
+          <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-black uppercase text-secondary-foreground">
             {ride.payment_status ?? "pending"}
           </span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-          <div className="min-w-0 rounded-2xl bg-muted p-2">
+          <div className="min-w-0 rounded-lg bg-muted p-2">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Fare</p>
             <p className="mt-1 font-black">{formatMoney(ride.fare_estimate)}</p>
           </div>
-          <div className="min-w-0 rounded-2xl bg-muted p-2">
+          <div className="min-w-0 rounded-lg bg-muted p-2">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Pay by</p>
             <p className="mt-1 font-black uppercase">{ride.payment_method ?? "cash"}</p>
           </div>
@@ -1190,7 +1227,7 @@ function ActiveUserRide({
               : "No payment is due until the trip reaches the drop point."}
         </p>
         {ride.payment_status === "awaiting_payment" ? (
-          <div className="mt-3 rounded-2xl bg-secondary p-3">
+          <div className="mt-3 rounded-lg bg-secondary p-3">
             <p className="text-sm font-black">Pay your rider</p>
             {ride.payment_method === "upi" ? (
               <div className="mt-2 grid gap-2">
@@ -1208,14 +1245,14 @@ function ActiveUserRide({
         ) : null}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+        <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock3 className="size-3" />
             ETA
           </p>
           <p className="mt-1 font-semibold">{ride.estimated_duration_min ?? "--"} min</p>
         </div>
-        <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+        <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             <CalendarClock className="size-3" />
             Distance
@@ -1224,7 +1261,7 @@ function ActiveUserRide({
         </div>
       </div>
       {ride.status === "assigned" ? (
-        <div className="rounded-2xl border border-primary/25 bg-secondary p-4">
+        <div className="rounded-lg border border-primary/25 bg-secondary p-4">
           <p className="text-sm font-semibold">Show this code only to your rider</p>
           <div className="mt-2 grid gap-3 sm:flex sm:items-end sm:justify-between">
             <p className="text-xs text-muted-foreground">Required before the ride starts.</p>
@@ -1234,12 +1271,12 @@ function ActiveUserRide({
           </div>
         </div>
       ) : ride.status === "started" ? (
-        <div className="rounded-2xl border border-primary/20 bg-secondary p-4">
+        <div className="rounded-lg border border-primary/20 bg-secondary p-4">
           <p className="text-sm font-black">Code verified</p>
           <p className="mt-1 text-xs text-muted-foreground">The rider entered the private code. Destination tracking is now active.</p>
         </div>
       ) : (
-        <div className="rounded-2xl bg-muted p-4">
+        <div className="rounded-lg bg-muted p-4">
           <p className="flex items-center gap-2 text-sm font-semibold">
             <Radio className="size-4 text-primary" />
             Tap I&apos;m Ready when you are at pickup.
@@ -1271,8 +1308,8 @@ function UserMenu({
   upcomingCount: number;
 }) {
   return (
-    <div className="absolute inset-0 z-[1500] bg-[#101713]/45 backdrop-blur-sm">
-      <aside className="absolute inset-x-2 bottom-2 top-2 grid max-h-[calc(100svh-1rem)] gap-3 overflow-y-auto overflow-x-clip rounded-[1.75rem] bg-white p-3 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[24rem] sm:max-w-[calc(100%-1.5rem)] sm:gap-4 sm:rounded-[2rem] sm:p-4">
+    <div className="fixed inset-0 z-[1500] bg-[#101713]/48 backdrop-blur-sm">
+      <aside className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-soft)] sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:gap-4 sm:rounded-xl">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -1284,7 +1321,7 @@ function UserMenu({
           </div>
           <button
             aria-label="Close menu"
-            className="flex size-10 items-center justify-center rounded-full bg-muted"
+            className="flex size-11 items-center justify-center rounded-lg bg-muted"
             onClick={onClose}
             type="button"
           >
@@ -1331,7 +1368,7 @@ function UserMenu({
           text="Safety rules, misuse rules, payment rules, and accepted-ride cancellation fine policy."
         />
 
-        <Button className="h-12 rounded-full" onClick={onSignOut} variant="outline">
+        <Button className="h-12" onClick={onSignOut} variant="outline">
           <LogOut className="size-4" />
           Sign out
         </Button>
@@ -1352,9 +1389,9 @@ function MenuLink({
   title: string;
 }) {
   return (
-    <Link className="block rounded-2xl border border-border bg-muted p-4 transition hover:bg-secondary" href={href}>
+    <Link className="block rounded-lg border border-border bg-muted p-4 transition hover:border-primary/20 hover:bg-secondary" href={href}>
       <div className="mb-2 flex items-center gap-2">
-        <span className="flex size-9 items-center justify-center rounded-full bg-card">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-card">
           <Icon className="size-4" />
         </span>
         <h3 className="font-black">{title}</h3>
@@ -1373,9 +1410,9 @@ function MenuCard({
   title: string;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-muted p-4">
+    <section className="rounded-lg border border-border bg-muted p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className="flex size-9 items-center justify-center rounded-full bg-card">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-card">
           <Icon className="size-4" />
         </span>
         <h3 className="font-black">{title}</h3>

@@ -142,7 +142,7 @@ export default function RideDetails({
   return (
     <AppShell title="Ride details">
       <div className="mb-4">
-        <Button asChild className="rounded-full" variant="outline">
+        <Button asChild variant="outline">
           <Link href="/dashboard/user">
             <ArrowLeft className="size-4" />
             Back to app
@@ -151,10 +151,10 @@ export default function RideDetails({
       </div>
 
       {ride ? (
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(28rem,1.08fr)] lg:items-start">
           <div className="grid min-w-0 gap-4">
             <RideCard ride={ride} />
-            <Card className="grid gap-4 rounded-2xl p-4">
+            <Card className="grid gap-4">
               <RideProgress ride={ride} />
               <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <DetailLine icon={MapPin} label="Pickup" value={ride.pickup_address} />
@@ -176,20 +176,20 @@ export default function RideDetails({
                 />
               </div>
             </Card>
-            <Card className="rounded-2xl p-4">
+            <Card>
               <p className="font-black">Customer payment</p>
               <p className="mt-1 text-sm text-muted-foreground">Fare and payment method for this ride. Rider earning details are shown in the rider workspace.</p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
-                <div className="rounded-2xl bg-muted p-3"><p className="text-xs text-muted-foreground">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>
-                <div className="rounded-2xl bg-muted p-3"><p className="text-xs text-muted-foreground">Method</p><p className="font-black uppercase">{ride.payment_method ?? "cash"}</p></div>
-                <div className="rounded-2xl bg-muted p-3"><p className="text-xs text-muted-foreground">Status</p><p className="font-black capitalize">{ride.payment_status ?? "pending"}</p></div>
+                <div className="rounded-lg bg-muted p-3"><p className="text-xs text-muted-foreground">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>
+                <div className="rounded-lg bg-muted p-3"><p className="text-xs text-muted-foreground">Method</p><p className="font-black uppercase">{ride.payment_method ?? "cash"}</p></div>
+                <div className="rounded-lg bg-muted p-3"><p className="text-xs text-muted-foreground">Status</p><p className="truncate font-black capitalize">{ride.payment_status ?? "pending"}</p></div>
               </div>
               {isCustomer && ride.payment_status === "awaiting_payment" ? (
                 <p className="mt-3 rounded-2xl bg-secondary p-3 text-sm font-semibold">Pay the rider now. For UPI, ask the rider to show their QR. The ride completes after they confirm payment.</p>
               ) : null}
             </Card>
             {userId === ride.user_id && ["assigned", "started"].includes(ride.status) ? (
-              <Card className="rounded-2xl border-primary/20 bg-secondary p-4">
+              <Card className="border-primary/20 bg-secondary">
                 <p className="text-sm font-semibold">Private ride code</p>
                 <p className="mt-1 text-xs text-muted-foreground">Show this only to your assigned rider before the ride starts.</p>
                 <p className="mt-3 font-mono text-4xl font-black tracking-[0.35em] text-primary">{confirmationCode ?? "Loading..."}</p>
@@ -199,7 +199,7 @@ export default function RideDetails({
               <RideChatPanel currentUserId={userId} ride={ride} />
             ) : null}
             {riderProfile ? (
-              <Card className="rounded-2xl p-4">
+              <Card>
                 <p className="flex items-center gap-2 font-black">
                   <Bike className="size-4" />
                   Assigned vehicle
@@ -237,7 +237,7 @@ export default function RideDetails({
             ) : null}
           </div>
           <DynamicMapPicker
-            className="h-[420px] min-h-[420px] overflow-hidden rounded-[2rem] border border-border lg:h-[640px]"
+            className="h-[42svh] min-h-[18rem] overflow-hidden rounded-xl border border-border shadow-[var(--shadow-soft)] lg:sticky lg:top-24 lg:h-[calc(100svh-8rem)] lg:min-h-[36rem]"
             drop={{
               address: ride.drop_address,
               lat: ride.drop_lat,
@@ -252,7 +252,7 @@ export default function RideDetails({
           />
         </div>
       ) : (
-        <Card className="rounded-2xl p-5 text-sm text-muted-foreground">
+        <Card className="text-sm text-muted-foreground">
           {message || "Ride not found."}
         </Card>
       )}
@@ -270,7 +270,7 @@ function DetailLine({
   value: string;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-muted p-3">
+    <div className="min-w-0 rounded-lg bg-muted p-3">
       <p className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
         <Icon className="size-3.5" />
         {label}

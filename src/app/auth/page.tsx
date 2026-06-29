@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bike, BriefcaseBusiness, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,22 +115,33 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="min-h-[100svh] overflow-hidden bg-[#101713] px-3 py-4 text-white sm:px-4 sm:py-6">
-      <div className="mx-auto grid min-h-[calc(100svh-2rem)] max-w-6xl items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="hidden lg:block">
-          <p className="mb-4 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/70">
-            Taxiro account
-          </p>
-          <h1 className="max-w-xl text-6xl font-black tracking-tight">
-            One login. Two real ride modes.
-          </h1>
+    <main className="min-h-[100svh] overflow-x-clip bg-[#e9eee9] p-3 text-[#101713] sm:p-5 lg:bg-[#101713] lg:p-6">
+      <div className="mx-auto grid min-h-[calc(100svh-1.5rem)] max-w-7xl items-stretch gap-5 sm:min-h-[calc(100svh-2.5rem)] lg:min-h-[calc(100svh-3rem)] lg:grid-cols-[minmax(0,1fr)_minmax(32rem,0.82fr)]">
+        <section className="hidden flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#101713] p-10 text-white lg:flex xl:p-14">
+          <div className="flex items-center gap-3 text-lg font-black">
+            <span className="flex size-11 items-center justify-center rounded-lg bg-secondary text-primary"><Bike className="size-5" /></span>
+            Taxiro
+          </div>
+          <div>
+          <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-white/50">Move with confidence</p>
+          <h1 className="max-w-xl text-5xl font-black tracking-tight xl:text-6xl">One account. A complete ride journey.</h1>
           <p className="mt-5 max-w-lg text-lg leading-8 text-white/60">
             Users book and confirm rides. Riders go online, accept ready jobs, verify the private code, and complete trips.
           </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="rounded-lg border border-white/10 p-3"><p className="text-white/45">Maps</p><p className="mt-1 font-bold">Live routes</p></div>
+            <div className="rounded-lg border border-white/10 p-3"><p className="text-white/45">Safety</p><p className="mt-1 font-bold">Ride code</p></div>
+            <div className="rounded-lg border border-white/10 p-3"><p className="text-white/45">Updates</p><p className="mt-1 font-bold">Realtime</p></div>
+          </div>
         </section>
 
-        <Card className="animate-in mx-auto max-h-[calc(100svh-2rem)] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border-white/10 bg-white p-3 text-[#101713] shadow-2xl sm:rounded-[2rem] sm:p-5">
-          <CardHeader>
+        <Card className="animate-in my-auto w-full border-white/50 bg-white p-4 shadow-[var(--shadow-float)] sm:p-6 lg:max-h-[calc(100svh-3rem)] lg:overflow-y-auto xl:p-8">
+          <div className="mb-6 flex items-center gap-3 lg:hidden">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-white"><Bike className="size-5" /></span>
+            <div><p className="font-black">Taxiro</p><p className="text-xs text-muted-foreground">Bike taxi account</p></div>
+          </div>
+          <CardHeader className="mb-5">
             <CardTitle className="text-3xl font-black tracking-tight">
               {mode === "signup" ? "Join Taxiro" : "Welcome back"}
             </CardTitle>
@@ -138,16 +150,16 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <form className="grid gap-4" onSubmit={(event) => void submit(event)}>
-            <div className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1">
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
               <button
-                className={`rounded-full px-3 py-3 text-sm font-bold ${mode === "signup" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+                className={`rounded-md px-3 py-2.5 text-sm font-bold transition ${mode === "signup" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
                 onClick={() => setMode("signup")}
                 type="button"
               >
                 Sign up
               </button>
               <button
-                className={`rounded-full px-3 py-3 text-sm font-bold ${mode === "signin" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+                className={`rounded-md px-3 py-2.5 text-sm font-bold transition ${mode === "signin" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
                 onClick={() => setMode("signin")}
                 type="button"
               >
@@ -180,7 +192,7 @@ export default function AuthPage() {
                   <div className="grid grid-cols-2 gap-2">
                     {(["user", "rider"] as const).map((accountRole) => (
                       <button
-                        className={`rounded-2xl border p-4 text-left transition ${
+                        className={`rounded-lg border p-4 text-left transition ${
                           role === accountRole
                             ? "border-[#101713] bg-[#101713] text-white"
                             : "border-border bg-muted text-[#101713]"
@@ -189,8 +201,11 @@ export default function AuthPage() {
                         onClick={() => setRole(accountRole)}
                         type="button"
                       >
-                        <span className="block text-sm font-black capitalize">{accountRole}</span>
-                        <span className="mt-1 block text-xs opacity-70">
+                        <span className="flex items-center gap-2 text-sm font-black capitalize">
+                          {accountRole === "user" ? <UserRound className="size-4" /> : <BriefcaseBusiness className="size-4" />}
+                          {accountRole}
+                        </span>
+                        <span className="mt-1.5 block text-xs opacity-70">
                           {accountRole === "user" ? "Book rides" : "Accept jobs"}
                         </span>
                       </button>
@@ -220,10 +235,10 @@ export default function AuthPage() {
                 value={password}
               />
             </div>
-            <Button className="h-12 rounded-full text-base font-bold" disabled={loading} type="submit">
+            <Button className="h-12 w-full text-base font-bold" disabled={loading} type="submit">
               {loading ? "Working..." : mode === "signup" ? "Create account" : "Sign in"}
             </Button>
-            <p className="text-sm text-muted-foreground">{message}</p>
+            <p aria-live="polite" className="rounded-lg bg-muted px-3 py-2.5 text-sm leading-5 text-muted-foreground">{message}</p>
           </form>
         </Card>
       </div>

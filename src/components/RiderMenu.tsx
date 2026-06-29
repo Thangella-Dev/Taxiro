@@ -27,8 +27,8 @@ export function RiderMenu({
   );
 
   return (
-    <div className="absolute inset-0 z-[1500] bg-[#101713]/45 backdrop-blur-sm">
-      <aside className="absolute inset-x-2 bottom-2 top-2 grid content-start gap-3 overflow-y-auto overflow-x-clip rounded-[1.75rem] bg-white p-3 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[26rem] sm:max-w-[calc(100%-1.5rem)] sm:rounded-[2rem] sm:p-4">
+    <div className="fixed inset-0 z-[1500] bg-[#101713]/48 backdrop-blur-sm">
+      <aside className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid content-start gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:rounded-xl">
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -40,7 +40,7 @@ export function RiderMenu({
           </div>
           <button
             aria-label="Close rider menu"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted"
             onClick={onClose}
             type="button"
           >
@@ -51,7 +51,7 @@ export function RiderMenu({
         <ProfileSettings onSaved={onProfileSaved} profile={profile} />
         {profile ? <RiderIdentitySettings riderId={profile.id} /> : null}
 
-        <section className="rounded-2xl border border-border bg-muted p-4">
+        <section className="rounded-lg border border-border bg-muted p-4">
           <p className="flex items-center gap-2 font-black">
             <History className="size-4" />
             Ride history
@@ -70,7 +70,7 @@ export function RiderMenu({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-muted p-4">
+        <section className="rounded-lg border border-border bg-muted p-4">
           <p className="flex items-center gap-2 font-black">
             <ShieldCheck className="size-4" />
             Safety
@@ -88,7 +88,7 @@ export function RiderMenu({
           <RiderInfoLink href="/rules" icon={ListChecks} title="Rules and regulations" text="Safety, misuse, and accepted-ride cancellation fine rules." />
         </div>
 
-        <Button className="h-12 rounded-full" onClick={onSignOut} variant="outline">
+        <Button className="h-12" onClick={onSignOut} variant="outline">
           <LogOut className="size-4" />
           Sign out
         </Button>
@@ -109,7 +109,7 @@ function RiderInfoLink({
   title: string;
 }) {
   return (
-    <Link className="rounded-2xl border border-border bg-muted p-4 transition hover:bg-secondary" href={href}>
+    <Link className="rounded-lg border border-border bg-muted p-4 transition hover:border-primary/20 hover:bg-secondary" href={href}>
       <p className="flex items-center gap-2 font-black">
         <Icon className="size-4" />
         {title}

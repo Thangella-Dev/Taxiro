@@ -226,7 +226,7 @@ export default function AdminDashboard() {
         </Card>
       ) : null}
 
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <AdminStatsCard
           icon={Users}
           label="Users"
@@ -249,14 +249,14 @@ export default function AdminDashboard() {
         />
       </div>
 
-      <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
         <AdminStatsCard icon={IndianRupee} label="Gross fares" value={formatMoney(moneyStats.gross)} />
         <AdminStatsCard icon={IndianRupee} label="Taxiro 7%" value={formatMoney(moneyStats.company)} />
         <AdminStatsCard icon={Bike} label="Rider earnings" value={formatMoney(moneyStats.riders)} />
         <AdminStatsCard icon={CalendarClock} label="Awaiting payment" value={moneyStats.awaitingPayment} />
       </div>
 
-      <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[0.7fr_1.3fr]">
+      <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(18rem,0.68fr)_minmax(0,1.32fr)]">
         <section className="grid min-w-0 gap-4">
           <DemandZoneCard count={rides.length} label="All demand areas" />
           <Card className="animate-in">
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
               <CardTitle>People</CardTitle>
               <CardDescription>Real profiles visible through Supabase RLS.</CardDescription>
             </CardHeader>
-            <div className="grid gap-3 text-sm">
+            <div className="grid max-h-80 gap-2 overflow-y-auto pr-1 text-sm">
               {profiles.length ? (
                 profiles.map((item) => (
                   <div className="min-w-0 rounded-md bg-muted p-3" key={item.id}>
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <div className="grid gap-3">
               {riderProfiles.length ? riderProfiles.map((item) => (
-                <div className="rounded-2xl bg-muted p-3" key={item.rider_id}>
+                <div className="rounded-lg bg-muted p-3" key={item.rider_id}>
                   <p className="font-black">{item.vehicle_number ?? "No registration"}</p>
                   <p className="text-sm text-muted-foreground">
                     {item.vehicle_make ?? "Unknown"} {item.vehicle_model ?? "vehicle"} | {item.license_number ?? "No licence"}
@@ -320,7 +320,7 @@ export default function AdminDashboard() {
               />
             </label>
             <select
-              className="h-11 rounded-2xl border border-border bg-card px-3 text-sm font-semibold"
+              className="h-11 rounded-lg border border-border bg-card px-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-ring"
               onChange={(event) => setStatusFilter(event.target.value as "all" | RideRequest["status"])}
               value={statusFilter}
             >

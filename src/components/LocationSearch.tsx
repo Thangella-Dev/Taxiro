@@ -56,7 +56,7 @@ export function LocationSearch({
       <p className={hideLabel ? "sr-only" : "mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"}>
         {label}
       </p>
-      <div className="relative flex min-h-12 min-w-0 items-center gap-2 rounded-2xl border border-border bg-muted px-3 py-1.5 shadow-inner">
+      <div className="relative flex min-h-12 min-w-0 items-center gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 shadow-inner transition focus-within:border-primary/30 focus-within:bg-card focus-within:ring-2 focus-within:ring-ring/60">
         <Search className="size-4 shrink-0 text-muted-foreground" />
         <Input
           aria-autocomplete="list"
@@ -83,7 +83,7 @@ export function LocationSearch({
         {query ? (
           <button
             aria-label={`Clear ${label.toLowerCase()} search`}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-card"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-card"
             onClick={() => {
               setQuery("");
               setResults([]);
@@ -96,11 +96,11 @@ export function LocationSearch({
         ) : null}
       </div>
       {open && (results.length || status) ? (
-        <div className="absolute z-[1500] mt-2 grid max-h-52 w-full min-w-0 gap-1 overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-card p-2 shadow-2xl" id={listId} role="listbox">
+        <div className="absolute z-[1500] mt-2 grid max-h-56 w-full min-w-0 gap-1 overflow-y-auto overflow-x-hidden rounded-lg border border-border bg-card p-2 shadow-[var(--shadow-float)]" id={listId} role="listbox">
           {results.map((result) => (
             <button
               aria-selected="false"
-              className="min-w-0 rounded-xl p-3 text-left text-sm transition hover:bg-secondary"
+              className="min-w-0 rounded-md p-3 text-left text-sm transition hover:bg-secondary focus:bg-secondary focus:outline-none"
               key={`${result.lat}-${result.lng}`}
               onMouseDown={(event) => {
                 event.preventDefault();

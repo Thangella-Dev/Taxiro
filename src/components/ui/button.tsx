@@ -34,12 +34,12 @@ export function Button({
   ...props
 }: ButtonProps) {
   const classes = cn(
-    "inline-flex max-w-full items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
-    size === "lg" ? "h-11 px-5" : size === "sm" ? "h-8 px-3" : "h-10 px-4",
+    "inline-flex max-w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+    size === "lg" ? "h-12 px-5" : size === "sm" ? "h-9 px-3" : "h-11 px-4",
     variant === "default" &&
-      "bg-primary text-primary-foreground hover:bg-primary/90",
+      "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md",
     variant === "outline" &&
-      "border border-border bg-card hover:bg-secondary",
+      "border border-border bg-card hover:border-primary/25 hover:bg-muted",
     variant === "ghost" && "hover:bg-secondary",
     variant === "secondary" &&
       "bg-secondary text-secondary-foreground hover:bg-secondary/80",

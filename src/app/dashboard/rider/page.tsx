@@ -443,6 +443,9 @@ export default function RiderDashboard() {
     };
   }, [activeRide, location.lat, location.lng]);
 
+  if (loading) {
+    return <LoadingRiderShell />;
+  }
   if (!loading && (!profile || profile.role !== "rider")) {
     return (
       <AppShell title="Rider app">
@@ -465,9 +468,9 @@ export default function RiderDashboard() {
 
   return (
     <AppShell immersive title="Rider app">
-      <div className="relative min-h-0 min-w-0 w-full max-w-full overflow-x-clip bg-muted sm:min-h-[100svh] [contain:inline-size] sm:overflow-hidden">
+      <div className="taxiro-immersive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
         <DynamicMapPicker
-          className="h-[38svh] min-h-[16rem] overflow-hidden sm:h-[100svh] sm:min-h-[100svh]"
+          className="taxiro-map-canvas overflow-hidden"
           demandRides={activeRide ? [] : demandMapRides}
           drop={mapDrop}
           focusPoint={!activeRide ? location : null}
@@ -477,15 +480,15 @@ export default function RiderDashboard() {
           route={routePath}
         />
 
-        <div className="pointer-events-none absolute inset-x-2 top-2 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3 sm:gap-3">
-          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur-xl sm:p-3">
+        <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:gap-3 lg:inset-x-4">
+          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-xl border border-white/80 bg-white/94 p-2.5 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-sm sm:p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxiro rider</p>
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
               <Bike className="size-4 sm:size-5" />
               {activeRide ? riderHeadline(activeRide.status) : "Find nearby work"}
             </p>
           </div>
-          <div className="pointer-events-auto flex min-w-0 shrink items-center gap-1 rounded-full border border-white/70 bg-white/90 p-1 shadow-2xl backdrop-blur-xl sm:gap-2">
+          <div className="pointer-events-auto flex min-w-0 shrink items-center gap-1 rounded-xl border border-white/80 bg-white/94 p-1 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:gap-2">
             <span className="hidden pl-3 text-xs font-semibold text-muted-foreground sm:inline">
               {riderLocation?.is_available ? "Online" : "Offline"}
             </span>
@@ -520,14 +523,14 @@ export default function RiderDashboard() {
           </div>
         </div>
 
-        <div className="absolute right-2 top-20 z-[1200] grid max-w-[calc(100%-1rem)] justify-items-end gap-2 sm:right-4 sm:top-24">
-          <div className="max-w-[14rem] rounded-2xl border border-white/70 bg-white/95 px-3 py-2 text-right text-[11px] font-bold text-muted-foreground shadow-xl backdrop-blur">
+        <div className="absolute right-2 top-20 z-[1200] grid max-w-[calc(100%-1rem)] justify-items-end gap-2 sm:right-4 sm:top-24 lg:left-4 lg:right-auto lg:justify-items-start">
+          <div className="max-w-[14rem] rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-right text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur lg:text-left">
             {gpsStatus}
           </div>
           <button
             aria-label="Refresh rider location"
             aria-busy={detectingLocation}
-            className="flex size-10 items-center justify-center rounded-full border border-border bg-card/95 shadow-xl backdrop-blur disabled:cursor-wait disabled:opacity-70 sm:size-11"
+            className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur disabled:cursor-wait disabled:opacity-70"
             disabled={detectingLocation}
             onClick={() => void detectRiderLocation()}
             type="button"
@@ -536,9 +539,9 @@ export default function RiderDashboard() {
           </button>
         </div>
 
-        <section className="relative z-[1200] mx-auto -mt-8 w-[calc(100%-1rem)] min-w-0 max-w-full overflow-x-clip pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:absolute sm:inset-x-0 sm:bottom-0 sm:mx-auto sm:-mt-0 sm:w-full sm:max-w-[36rem] sm:px-3 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="min-w-0 max-w-full overflow-x-clip rounded-t-[2rem] border border-white/80 bg-white/95 p-3 shadow-[0_24px_90px_rgb(0_0_0_/_0.22)] backdrop-blur-2xl sm:max-h-[76dvh] sm:overflow-y-auto sm:rounded-[2rem] sm:p-4">
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+        <section className="taxiro-sheet-shell taxiro-rider-sheet min-w-0 max-w-full overflow-x-clip">
+          <div className="taxiro-sheet-surface min-w-0 max-w-full">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
             {activeRide ? (
               <ActiveRiderJob
                 code={codes[activeRide.id] ?? ""}
@@ -586,7 +589,7 @@ export default function RiderDashboard() {
                     value={riders.filter((rider) => rider.is_available).length}
                   />
                 </div>
-                <div className="max-h-[36svh] overflow-y-auto overflow-x-hidden">
+                <div className="max-h-[36svh] overflow-y-auto overflow-x-hidden lg:max-h-none lg:overflow-visible">
                   <div className="grid gap-3">
                     {readyRides.length ? (
                       readyRides.map((ride) => (
@@ -598,7 +601,7 @@ export default function RiderDashboard() {
                         />
                       ))
                     ) : (
-                      <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
+                      <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
                         No ready requests right now. Go online and keep location fresh.
                       </div>
                     )}
@@ -645,9 +648,42 @@ export default function RiderDashboard() {
   );
 }
 
+function LoadingRiderShell() {
+  return (
+    <AppShell immersive title="Rider app">
+      <div className="taxiro-immersive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
+        <DynamicMapPicker className="taxiro-map-canvas overflow-hidden" />
+        <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 lg:inset-x-4">
+          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-xl border border-white/80 bg-white/94 p-2.5 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-sm sm:p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxiro rider</p>
+            <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
+              <Bike className="size-4 sm:size-5" />
+              Finding nearby work
+            </p>
+          </div>
+        </div>
+        <section className="taxiro-sheet-shell taxiro-rider-sheet min-w-0 max-w-full overflow-x-clip">
+          <div className="taxiro-sheet-surface min-w-0 max-w-full">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
+            <div className="grid gap-3" aria-busy="true" aria-live="polite">
+              <div className="h-8 w-4/5 animate-pulse rounded-lg bg-muted" />
+              <div className="h-4 w-full animate-pulse rounded-lg bg-muted" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="h-20 animate-pulse rounded-lg bg-muted" />
+                <div className="h-20 animate-pulse rounded-lg bg-muted" />
+                <div className="h-20 animate-pulse rounded-lg bg-muted" />
+              </div>
+              <div className="h-24 animate-pulse rounded-lg bg-muted" />
+            </div>
+          </div>
+        </section>
+      </div>
+    </AppShell>
+  );
+}
 function FloatingStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-center shadow-2xl backdrop-blur-xl">
+    <div className="rounded-lg border border-white/70 bg-white/90 px-3 py-2 text-center shadow-[var(--shadow-soft)] backdrop-blur-xl">
       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </p>
@@ -676,7 +712,7 @@ function MiniStat({
   value: number | string;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
       <Icon className="mb-2 size-4 text-primary" />
       <p className="truncate text-base font-semibold leading-none sm:text-lg">{value}</p>
       <p className="mt-1 truncate text-[10px] text-muted-foreground sm:text-[11px]">{label}</p>
@@ -710,7 +746,7 @@ function RequestCard({
   const pickupDistance = approxDistanceKm(currentLocation, ride);
 
   return (
-    <div className="min-w-0 rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="grid gap-3 sm:flex sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Badge className="bg-secondary text-secondary-foreground">Ready now</Badge>
@@ -718,11 +754,11 @@ function RequestCard({
           <p className="mt-1 text-xs text-muted-foreground">{pickupDistance} km away from you</p>
         </div>
         <div className="grid grid-cols-2 gap-2 text-center sm:min-w-48">
-          <div className="rounded-2xl bg-muted p-2">
+          <div className="rounded-lg bg-muted p-2">
             <p className="text-[10px] font-bold uppercase text-muted-foreground">Fare</p>
             <p className="font-black">{formatMoney(ride.fare_estimate)}</p>
           </div>
-          <div className="rounded-2xl bg-secondary p-2">
+          <div className="rounded-lg bg-secondary p-2">
             <p className="text-[10px] font-bold uppercase text-secondary-foreground/70">You earn</p>
             <p className="font-black text-secondary-foreground">{formatMoney(riderEarning)}</p>
           </div>
@@ -739,29 +775,29 @@ function RequestCard({
         </p>
       </div>
       {ride.rider_note ? (
-        <p className="mt-3 rounded-2xl bg-secondary/80 p-3 text-sm font-semibold">
+        <p className="mt-3 rounded-lg bg-secondary/80 p-3 text-sm font-semibold">
           Pickup note: {ride.rider_note}
         </p>
       ) : null}
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
-        <div className="rounded-2xl bg-muted p-2">
+        <div className="rounded-lg bg-muted p-2">
           <p className="font-black">{ride.distance_km ?? "--"}</p>
           <p className="text-muted-foreground">km trip</p>
         </div>
-        <div className="rounded-2xl bg-muted p-2">
+        <div className="rounded-lg bg-muted p-2">
           <p className="font-black">{ride.estimated_duration_min ?? "--"}</p>
           <p className="text-muted-foreground">min</p>
         </div>
-        <div className="rounded-2xl bg-muted p-2">
+        <div className="rounded-lg bg-muted p-2">
           <p className="font-black uppercase">{ride.payment_method ?? "cash"}</p>
           <p className="text-muted-foreground">pay</p>
         </div>
-        <div className="rounded-2xl bg-muted p-2">
+        <div className="rounded-lg bg-muted p-2">
           <p className="font-black">{formatMoney(companyCommission)}</p>
           <p className="text-muted-foreground">Taxiro</p>
         </div>
       </div>
-      <Button className="mt-4 h-12 w-full rounded-full bg-[#101713] text-base font-black text-white hover:bg-[#101713]/90" onClick={onAccept}>
+      <Button className="mt-4 h-12 w-full rounded-lg bg-[#101713] text-base font-black text-white hover:bg-[#101713]/90" onClick={onAccept}>
         Accept ride - earn {formatMoney(riderEarning)}
       </Button>
     </div>
@@ -823,44 +859,44 @@ function ActiveRiderJob({
         </p>
       </div>
       <RideProgress ride={ride} />
-      <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-black">{currentTask}</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">{taskHelp}</p>
           </div>
-          <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] font-black capitalize text-secondary-foreground">
+          <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-black capitalize text-secondary-foreground">
             {destination}
           </span>
         </div>
         <div className="mt-3 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
-          <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+          <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">ETA</p>
             <p className="mt-1 text-lg font-black">{liveEta ? `${liveEta}m` : "--"}</p>
           </div>
-          <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+          <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Route</p>
             <p className="mt-1 text-lg font-black">{liveDistance ? `${liveDistance}km` : "--"}</p>
           </div>
-          <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
+          <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">GPS</p>
             <p className="mt-1 truncate text-xs font-black">
               {riderLocation?.last_seen_at ? formatTrackingAge(riderLocation.last_seen_at) : "manual"}
             </p>
           </div>
         </div>
-        <Button asChild className="mt-3 h-12 w-full rounded-full bg-[#101713] text-white hover:bg-[#101713]/90">
+        <Button asChild className="mt-3 h-12 w-full rounded-lg bg-[#101713] text-white hover:bg-[#101713]/90">
           <a href={primaryDirections} rel="noreferrer" target="_blank">
             {ride.status === "assigned" ? "Navigate to pickup" : "Navigate to drop"}
           </a>
         </Button>
       </div>
       {ride.status === "assigned" ? (
-        <div className="rounded-2xl border border-border bg-muted p-3">
+        <div className="rounded-lg border border-border bg-muted p-3">
           <Label htmlFor={`active-code-${ride.id}`}>Ask user for 4-digit code</Label>
           <div className="mt-2 grid gap-2 sm:flex">
             <Input
-              className="h-12 rounded-full bg-card text-center font-mono text-lg tracking-[0.4em]"
+              className="h-12 bg-card text-center font-mono text-lg tracking-[0.4em]"
               id={`active-code-${ride.id}`}
               inputMode="numeric"
               maxLength={4}
@@ -868,30 +904,30 @@ function ActiveRiderJob({
               placeholder="0000"
               value={code}
             />
-            <Button className="h-12 rounded-full sm:shrink-0" onClick={onStart}>
+            <Button className="h-12 sm:shrink-0" onClick={onStart}>
               Start
             </Button>
           </div>
-          <Button className="mt-3 h-11 w-full rounded-full" onClick={onCancel} variant="destructive">
+          <Button className="mt-3 h-11 w-full rounded-lg" onClick={onCancel} variant="destructive">
             Cancel accepted ride
           </Button>
         </div>
       ) : null}
       <RideChatPanel currentUserId={currentUserId} ride={ride} />
       {ride.status === "started" ? (
-        <div className="rounded-[1.5rem] bg-[#101713] p-4 text-white">
+        <div className="rounded-lg bg-[#101713] p-4 text-white">
           <p className="text-sm font-semibold text-white/60">Payment collection</p>
           <p className="mt-1 text-xl font-black">Collect fare before completing</p>
           <p className="mt-2 text-sm leading-6 text-white/65">
             Total fare {formatMoney(ride.fare_estimate)}. Company gets {formatMoney(companyCommission)} (7%); you earn {formatMoney(riderEarning)}.
           </p>
           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[#101713]">
-            <div className="rounded-2xl bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>
-            <div className="rounded-2xl bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Taxiro</p><p className="font-black">{formatMoney(companyCommission)}</p></div>
-            <div className="rounded-2xl bg-secondary p-2"><p className="text-[10px] font-bold uppercase">You</p><p className="font-black">{formatMoney(riderEarning)}</p></div>
+            <div className="rounded-lg bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>
+            <div className="rounded-lg bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Taxiro</p><p className="font-black">{formatMoney(companyCommission)}</p></div>
+            <div className="rounded-lg bg-secondary p-2"><p className="text-[10px] font-bold uppercase">You</p><p className="font-black">{formatMoney(riderEarning)}</p></div>
           </div>
           {ride.payment_status === "awaiting_payment" ? (
-            <div className="mt-4 rounded-2xl bg-white p-3 text-[#101713]">
+            <div className="mt-4 rounded-lg bg-white p-3 text-[#101713]">
               {ride.payment_method === "upi" ? (
                 <div className="grid gap-3 text-center">
                   <div>
@@ -908,12 +944,12 @@ function ActiveRiderJob({
               ) : (
                 <p className="text-center text-sm font-semibold">Collect {formatMoney(ride.fare_estimate)} in cash from the customer.</p>
               )}
-              <Button className="mt-4 h-14 w-full rounded-full bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onPaymentReceived}>
+              <Button className="mt-4 h-14 w-full rounded-lg bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onPaymentReceived}>
                 Payment received - complete ride
               </Button>
             </div>
           ) : (
-            <Button className="mt-4 h-14 w-full rounded-full bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onReachedDrop}>
+            <Button className="mt-4 h-14 w-full rounded-lg bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onReachedDrop}>
               Reached drop - collect payment
             </Button>
           )}

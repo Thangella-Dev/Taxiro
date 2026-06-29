@@ -30,8 +30,8 @@ export function CancelRideDialog({
   const [selectedReason, setSelectedReason] = useState(reasons[0]);
 
   return (
-    <div className="absolute inset-0 z-[1600] grid place-items-end bg-[#101713]/45 p-2 backdrop-blur-sm sm:place-items-center">
-      <section className="w-full max-w-md rounded-[1.75rem] bg-card p-4 shadow-2xl">
+    <div className="fixed inset-0 z-[1600] grid place-items-end bg-[#101713]/48 backdrop-blur-sm sm:place-items-center sm:p-3">
+      <section className="w-full max-w-md rounded-t-2xl bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-xl sm:p-5">
         <header className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -41,7 +41,7 @@ export function CancelRideDialog({
           </div>
           <button
             aria-label="Close cancellation"
-            className="flex size-10 items-center justify-center rounded-full bg-muted"
+            className="flex size-11 items-center justify-center rounded-lg bg-muted"
             onClick={onClose}
             type="button"
           >
@@ -61,7 +61,7 @@ export function CancelRideDialog({
         <div className="mt-4 grid gap-2">
           {reasons.map((reason) => (
             <button
-              className={selectedReason === reason ? "rounded-2xl bg-primary p-3 text-left text-sm font-bold text-primary-foreground" : "rounded-2xl bg-muted p-3 text-left text-sm font-bold"}
+              className={selectedReason === reason ? "rounded-lg bg-primary p-3 text-left text-sm font-bold text-primary-foreground" : "rounded-lg bg-muted p-3 text-left text-sm font-bold"}
               key={reason}
               onClick={() => setSelectedReason(reason)}
               type="button"
@@ -78,11 +78,10 @@ export function CancelRideDialog({
           value={customReason}
         />
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button className="rounded-full" onClick={onClose} variant="outline">
+          <Button onClick={onClose} variant="outline">
             Keep ride
           </Button>
           <Button
-            className="rounded-full"
             onClick={() => onConfirm(customReason.trim() || selectedReason)}
             variant="destructive"
           >

@@ -12,16 +12,19 @@ export function InfoSection({
   title: string;
 }) {
   return (
-    <Card className="rounded-3xl p-5">
+    <Card className="p-4 sm:p-5">
       <div className="flex items-center gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
           <Icon className="size-5" />
         </span>
         <h2 className="text-xl font-black tracking-tight">{title}</h2>
       </div>
-      <ul className="mt-4 grid gap-3 text-sm leading-6 text-muted-foreground">
+      <ul className="mt-4 divide-y divide-border text-sm leading-6 text-muted-foreground">
         {items.map((item) => (
-          <li className="rounded-2xl bg-muted p-3" key={item}>{item}</li>
+          <li className="flex gap-3 py-3 first:pt-0 last:pb-0" key={item}>
+            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
+            <span>{item}</span>
+          </li>
         ))}
       </ul>
     </Card>

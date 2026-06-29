@@ -15,7 +15,7 @@ export function DemandSignals({ rides }: { rides: RideRequest[] }) {
     .slice(0, 6);
 
   return (
-    <Card className="min-w-0 max-w-full overflow-hidden rounded-2xl p-4">
+    <Card className="min-w-0 max-w-full overflow-hidden p-4">
       <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold">Demand signals</p>
@@ -24,8 +24,8 @@ export function DemandSignals({ rides }: { rides: RideRequest[] }) {
         <Flame className="size-5 shrink-0 text-amber-500" />
       </div>
       <div className="mb-3 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-2xl bg-secondary p-3 font-black">{ready.length} ready now</div>
-        <div className="rounded-2xl bg-muted p-3 font-black">{scheduled.length} scheduled</div>
+        <div className="rounded-lg bg-secondary p-3 font-black">{ready.length} ready now</div>
+        <div className="rounded-lg bg-muted p-3 font-black">{scheduled.length} scheduled</div>
       </div>
       <div className="grid gap-3">
         {visibleSignals.length ? (
@@ -33,7 +33,7 @@ export function DemandSignals({ rides }: { rides: RideRequest[] }) {
             const earning = ride.rider_earning ?? calculateFareBreakdown(ride.fare_estimate).riderEarning;
             const readyNow = ride.status === "ready";
             return (
-              <div className={readyNow ? "min-w-0 rounded-2xl border border-secondary bg-secondary/70 p-3" : "min-w-0 rounded-2xl bg-muted p-3"} key={ride.id}>
+              <div className={readyNow ? "min-w-0 rounded-lg border border-secondary bg-secondary/70 p-3" : "min-w-0 rounded-lg bg-muted p-3"} key={ride.id}>
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
                     {readyNow ? <Radio className="mt-1 size-4 shrink-0 text-primary" /> : <MapPinned className="mt-1 size-4 shrink-0 text-primary" />}
@@ -54,7 +54,7 @@ export function DemandSignals({ rides }: { rides: RideRequest[] }) {
             );
           })
         ) : (
-          <p className="text-sm text-muted-foreground">No ready or scheduled demand signals yet.</p>
+          <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">No ready or scheduled demand signals yet.</p>
         )}
       </div>
     </Card>
