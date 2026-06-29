@@ -38,6 +38,7 @@ import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
 import { calculateFareBreakdown, estimateBikeFare, formatMoney, getUserCancellationFine } from "@/lib/fare";
 import { getSupabase } from "@/lib/supabase";
+import { useLiveResync } from "@/lib/useLiveResync";
 import type {
   LatLng,
   Profile,
@@ -426,6 +427,17 @@ export default function UserDashboard() {
     }
     await loadRides(userId);
   }
+  const resyncUserData = useCallback(async () => {
+    if (userId) {
+      await loadRides(userId);
+    }
+  }, [loadRides, userId]);
+
+  useLiveResync({
+    enabled: Boolean(userId),
+    intervalMs: 5000,
+    onResync: resyncUserData,
+  });
   async function signOut() {
     const supabase = getSupabase();
     if (supabase) {

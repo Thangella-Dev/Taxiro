@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { getCurrentUser, getProfile } from "@/lib/auth";
 import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { getSupabase } from "@/lib/supabase";
+import { useLiveResync } from "@/lib/useLiveResync";
 import type { Profile, RideRequest, RiderLocation, RiderProfile } from "@/types/database";
 
 export default function AdminDashboard() {
@@ -155,6 +156,11 @@ export default function AdminDashboard() {
     };
   }, [loadAdminData]);
 
+  useLiveResync({
+    enabled: profile?.role === "admin",
+    intervalMs: 8000,
+    onResync: loadAdminData,
+  });
   async function updateVerification(riderId: string, status: RiderProfile["verification_status"]) {
     const supabase = getSupabase();
     if (!supabase) return;

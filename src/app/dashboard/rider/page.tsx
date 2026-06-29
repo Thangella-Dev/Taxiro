@@ -33,6 +33,7 @@ import { getRoutePath, getRouteSummary } from "@/lib/maps";
 import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { watchRiderLocation, type RiderTrackingUpdate } from "@/lib/tracking";
 import { getSupabase } from "@/lib/supabase";
+import { useLiveResync } from "@/lib/useLiveResync";
 import type { LatLng, Profile, RideRequest, RiderLocation } from "@/types/database";
 
 export default function RiderDashboard() {
@@ -200,6 +201,17 @@ export default function RiderDashboard() {
       stop?.();
     };
   }, [profile, riderLocation?.is_available]);
+  const resyncRiderData = useCallback(async () => {
+    if (profile?.id) {
+      await loadRiderData(profile.id);
+    }
+  }, [loadRiderData, profile]);
+
+  useLiveResync({
+    enabled: Boolean(profile?.id),
+    intervalMs: 5000,
+    onResync: resyncRiderData,
+  });
   async function updateLocation(point: LatLng & Partial<RiderTrackingUpdate>) {
     if (!profile) {
       setMessage("Please sign in as a rider.");
