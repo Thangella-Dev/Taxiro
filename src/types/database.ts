@@ -1,4 +1,4 @@
-﻿export type UserRole = "user" | "rider" | "admin";
+export type UserRole = "user" | "rider" | "admin";
 export type RideStatus =
   | "scheduled"
   | "ready"
@@ -37,10 +37,18 @@ export type RideRequest = {
   distance_km: number | null;
   estimated_duration_min: number | null;
   fare_estimate: number | null;
+  company_commission: number | null;
+  rider_earning: number | null;
   payment_method: "cash" | "upi";
+  payment_status: "pending" | "awaiting_payment" | "paid";
+  payment_confirmed_at: string | null;
+  payment_confirmed_by: string | null;
   rider_note: string | null;
   cancellation_reason: string | null;
+  cancellation_fee: number | null;
+  cancellation_fee_reason: string | null;
   cancelled_at: string | null;
+  cancelled_by: string | null;
   passenger_count: number;
   created_at: string;
 };
@@ -87,6 +95,8 @@ export type RiderProfile = {
   vehicle_model: string | null;
   vehicle_number: string | null;
   license_number: string | null;
+  upi_id: string | null;
+  upi_qr_image_url: string | null;
   verification_status: "pending" | "verified" | "rejected";
   rating: number;
   completed_rides: number;
@@ -115,6 +125,8 @@ export type LatLng = {
   lng: number;
   address?: string;
 };
+
+
 
 
 

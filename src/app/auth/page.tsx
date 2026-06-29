@@ -19,7 +19,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<UserRole>("user");
-  const [message, setMessage] = useState("Create a real Taxidi account stored in Supabase.");
+  const [message, setMessage] = useState("Create a real Taxiro account stored in Supabase.");
   const [loading, setLoading] = useState(false);
 
   function validateForm() {
@@ -42,7 +42,7 @@ export default function AuthPage() {
     const message = error instanceof Error ? error.message : "Authentication failed.";
 
     if (status === 429 || message.toLowerCase().includes("rate")) {
-      return "Too many signup attempts. Taxidi now uses auto-confirm for new accounts, but Supabase may need a minute before accepting another signup. Please wait briefly and try once.";
+      return "Too many signup attempts. Taxiro now uses auto-confirm for new accounts, but Supabase may need a minute before accepting another signup. Please wait briefly and try once.";
     }
     if (message.toLowerCase().includes("already registered")) {
       return "This email already has an account. Switch to Sign in.";
@@ -118,7 +118,7 @@ export default function AuthPage() {
       <div className="mx-auto grid min-h-[calc(100svh-2rem)] max-w-6xl items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="hidden lg:block">
           <p className="mb-4 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/70">
-            Taxidi account
+            Taxiro account
           </p>
           <h1 className="max-w-xl text-6xl font-black tracking-tight">
             One login. Two real ride modes.
@@ -131,7 +131,7 @@ export default function AuthPage() {
         <Card className="animate-in mx-auto max-h-[calc(100svh-2rem)] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border-white/10 bg-white p-3 text-[#101713] shadow-2xl sm:rounded-[2rem] sm:p-5">
           <CardHeader>
             <CardTitle className="text-3xl font-black tracking-tight">
-              {mode === "signup" ? "Join Taxidi" : "Welcome back"}
+              {mode === "signup" ? "Join Taxiro" : "Welcome back"}
             </CardTitle>
             <CardDescription>
               Real Supabase account, no local duplicate users.

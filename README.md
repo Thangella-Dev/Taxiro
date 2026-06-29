@@ -1,12 +1,12 @@
-﻿# Taxidi - Predictive Bike Taxi MVP
+# Taxiro - Predictive Bike Taxi MVP
 
-**Taxidi** means **journey/trip** in Greek. Taxidi is a bike taxi web app MVP for India focused on scheduled demand, rider readiness, map-first booking, secure ride confirmation, and real Supabase-backed ride data.
+**Taxiro** means **journey/trip** in Greek. Taxiro is a bike taxi web app MVP for India focused on scheduled demand, rider readiness, map-first booking, secure ride confirmation, and real Supabase-backed ride data.
 
 The project is built as a free/open-stack MVP using Supabase, OpenStreetMap, Leaflet, Nominatim, and OSRM. It intentionally avoids paid map/payment APIs during this stage.
 
 ## Product Vision
 
-Taxidi is designed around a practical ride-hailing flow:
+Taxiro is designed around a practical ride-hailing flow:
 
 1. A user creates an account.
 2. The user books a ride now or schedules an advance booking.
@@ -15,7 +15,8 @@ Taxidi is designed around a practical ride-hailing flow:
 5. Riders who are online can accept ready rides.
 6. The user shares a private 4-digit confirmation code.
 7. The rider verifies the code and starts the ride.
-8. The rider completes the ride at drop-off.
+8. The rider marks drop reached and collects payment.
+9. The rider confirms payment received, then the ride is completed.
 
 This approach is intended to reduce fake demand and make scheduled ride demand more useful for riders.
 
@@ -37,13 +38,17 @@ The MVP currently includes:
 - Rider location update.
 - Rider ride acceptance.
 - Private ride confirmation code with repair fallback if the code row is missing or not returned.
-- Ride start and completion.
+- Ride start, drop-reached payment collection, and payment-confirmed completion.
 - Ride cancellation for scheduled, ready, and accepted-before-start rides with structured cancellation reasons.
+- Accepted-ride cancellation fine: from the 3rd user cancellation onward, cancelling after rider acceptance records a Rs 50 fine.
 - User menu with profile, rides, settings, about, help/support, and sign out.
-- Admin monitoring dashboard with ride search, status filters, and rider verification controls.
+- Admin monitoring dashboard with ride search, status filters, rider verification controls, and revenue split stats.
 - Assigned-ride chat between user and rider.
 - Rider map demand markers for scheduled and ready ride pickup signals.
 - Fare estimate, distance, ETA, payment preference, and pickup note capture before booking.
+- Fare locked at booking time with Taxiro 7% company commission and 93% rider earning split.
+- Rider UPI ID and UPI QR image upload in rider account settings.
+- UPI/cash payment status flow: pending, awaiting payment, and paid.
 - Completed-ride rating and feedback capture.
 - Rider vehicle identity, licence details, verification status, rating, and completed-rides foundation.
 - Mobile compatibility improvements across the main app surfaces, including corrected vertical flow and side-scroll prevention.
@@ -60,6 +65,10 @@ The MVP currently includes:
 - Accidental page zoom and iPhone input-focus zoom prevention.
 - Compact user booking flow with duplicate-label cleanup, expandable pickup note, low-GPS-accuracy warning, and sticky booking action.
 - Compact rider workflow with expandable On-The-Way route setup.
+- Supabase Realtime publication enabled for live user, rider, admin, chat, code, and tracking updates.
+- User/rider/admin dashboards now merge realtime row changes without requiring manual page refresh.
+- Ride chat now refreshes on browser reconnect and tab visibility changes.
+- GitHub push-protection cleanup completed by removing local MCP credentials from Git tracking.
 
 ## Main Routes
 
@@ -69,6 +78,7 @@ The MVP currently includes:
 - Rider app: `/dashboard/rider`
 - Admin dashboard: `/dashboard/admin`
 - Ride details: `/rides/[id]`
+- Information pages: `/about`, `/help`, `/privacy`, `/rules`
 
 ## Tech Stack
 
@@ -109,7 +119,7 @@ Not used in this MVP:
 
 - Google Maps
 - Mapbox
-- Stripe/payment flow
+- Stripe/payment gateway or online payment processing
 - Firebase paid services
 - Frontend service-role Supabase key
 
@@ -143,7 +153,7 @@ Implemented:
   - Profile
   - My rides
   - Settings
-  - About Taxidi
+  - About Taxiro
   - Help and support
   - Sign out
 
@@ -201,6 +211,9 @@ Schema files:
 - `supabase/migrations/20260622123000_daily_use_hardening.sql`
 - `supabase/migrations/20260622142000_ride_chat_and_code_repair.sql`
 - `supabase/migrations/20260623093000_live_tracking_metadata.sql`
+- `supabase/migrations/20260624093000_enable_realtime_publication.sql`
+- `supabase/migrations/20260629093000_taxiro_fare_payment_flow.sql`
+- `supabase/migrations/20260629113000_accepted_ride_cancellation_fine.sql`
 
 Main tables:
 
@@ -286,13 +299,16 @@ Project documentation:
 
 - Daily update: `docs/daily-update-2026-06-08.md`
 - Manager email update: `docs/manager-update-email-2026-06-08.md`
-- Progress report through 12 June: `docs/taxidi-progress-report-2026-06-08-to-2026-06-12.md`
-- Progress report through 22 June: `docs/taxidi-progress-report-2026-06-08-to-2026-06-22.md`
-- Latest full progress report: `docs/taxidi-progress-report-2026-06-08-to-2026-06-23.md`
+- Progress report through 12 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-12.md`
+- Progress report through 22 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-22.md`
+- Progress report through 23 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-23.md`
+- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
 - Daily update for 22 June: `docs/daily-update-2026-06-22.md`
-- Latest daily update: `docs/daily-update-2026-06-23.md`
+- Daily update for 23 June: `docs/daily-update-2026-06-23.md`
+- Latest daily update: `docs/daily-update-2026-06-24.md`
 - Manager email for 22 June: `docs/manager-update-email-2026-06-22.md`
-- Latest manager email: `docs/manager-update-email-2026-06-23.md`
+- Manager email for 23 June: `docs/manager-update-email-2026-06-23.md`
+- Latest manager email: `docs/manager-update-email-2026-06-24.md`
 
 ## Development Timeline
 
@@ -307,7 +323,7 @@ Monday - 08 June 2026:
 
 Wednesday - 10 June 2026:
 
-- App rename/branding to Taxidi.
+- App rename/branding to Taxiro.
 - Map-first UI improvements.
 - Pickup/drop UX fixes.
 - Current location support for pickup.
@@ -350,9 +366,22 @@ Tuesday - 23 June 2026:
 - Redesigned user booking and rider work sheets for cleaner small-device operation.
 - Added accidental zoom and iPhone input-focus zoom prevention.
 - Passed TypeScript, focused ESLint, production build, and route smoke checks.
+
+Wednesday - 24 June 2026:
+
+- Fixed realtime behavior that previously required manual refreshes.
+- Enabled Supabase Realtime publication for Taxiro app tables.
+- Added replica identity metadata for realtime update/delete payloads.
+- Updated user dashboard live ride/code/rider-location updates.
+- Updated rider dashboard live ready-job, active-job, availability, and location updates.
+- Added admin dashboard realtime updates for operations data.
+- Improved ride chat live updates, reconnect handling, and tab-visibility recovery.
+- Fixed GitHub push protection issue by removing `.mcp.json` from Git tracking and ignoring it.
+- Confirmed `.env.local` remains ignored and Vercel should only receive public frontend env variables.
+- Passed TypeScript, focused ESLint, production build, Supabase realtime verification, and Git tracking checks.
 ## Verification Status
 
-Latest verification completed on 23 June 2026:
+Latest verification completed on 24 June 2026:
 
 - npm run lint: passed.
 - npx tsc --noEmit: passed.
@@ -366,7 +395,7 @@ Pending manual QA:
 
 - Full browser/mobile visual QA with authenticated user and rider accounts.
 - End-to-end ride test using two real accounts and live location permissions.
-- Supabase Realtime verification across two browser sessions.
+- Supabase Realtime verification across two real authenticated browser/device sessions.
 
 ## Local Environment Status
 
@@ -384,8 +413,9 @@ High priority:
 
 - Perform full responsive browser QA.
 - Test the complete user-to-rider lifecycle with real accounts.
-- Test live rider-to-pickup and rider-to-drop tracking on two real devices.
+- Test live rider-to-pickup, rider-to-drop, chat, and status updates on two real devices without page refresh.
 - Extend admin operational ride controls beyond search/filter/verification.
+- Rotate the exposed Supabase Personal Access Token and deploy with only public Vercel frontend env variables.
 - Add loading skeletons, reconnect handling, and stronger network error recovery.
 
 Medium priority:
@@ -402,6 +432,8 @@ Future scope:
 - Payment flow.
 - Production-grade geocoding/routing provider.
 - Native mobile wrapper.
+
+
 
 
 

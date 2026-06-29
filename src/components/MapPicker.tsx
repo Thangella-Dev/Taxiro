@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Fragment, useEffect } from "react";
 import L from "leaflet";
@@ -17,28 +17,28 @@ import type { LatLng, RideRequest, RiderLocation } from "@/types/database";
 
 const pickupIcon = L.divIcon({
   className: "",
-  html: '<div class="taxidi-marker taxidi-marker-pickup"><span></span></div>',
+  html: '<div class="taxiro-marker taxiro-marker-pickup"><span></span></div>',
   iconAnchor: [18, 18],
   iconSize: [36, 36],
 });
 
 const dropIcon = L.divIcon({
   className: "",
-  html: '<div class="taxidi-marker taxidi-marker-drop"><span></span></div>',
+  html: '<div class="taxiro-marker taxiro-marker-drop"><span></span></div>',
   iconAnchor: [18, 18],
   iconSize: [36, 36],
 });
 
 const readyDemandIcon = L.divIcon({
   className: "",
-  html: '<div class="taxidi-demand-marker taxidi-demand-marker-ready"><span>!</span></div>',
+  html: '<div class="taxiro-demand-marker taxiro-demand-marker-ready"><span>!</span></div>',
   iconAnchor: [18, 18],
   iconSize: [36, 36],
 });
 
 const scheduledDemandIcon = L.divIcon({
   className: "",
-  html: '<div class="taxidi-demand-marker taxidi-demand-marker-scheduled"><span></span></div>',
+  html: '<div class="taxiro-demand-marker taxiro-demand-marker-scheduled"><span></span></div>',
   iconAnchor: [15, 15],
   iconSize: [30, 30],
 });
@@ -47,7 +47,7 @@ function riderIcon(rider: RiderLocation) {
   const heading = rider.heading ?? 0;
   return L.divIcon({
     className: "",
-    html: `<div class="taxidi-rider-marker"><span style="transform: rotate(${heading}deg)">➤</span></div>`,
+    html: `<div class="taxiro-rider-marker"><span style="transform: rotate(${heading}deg)">&rarr;</span></div>`,
     iconAnchor: [18, 18],
     iconSize: [36, 36],
   });

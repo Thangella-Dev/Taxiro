@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -104,7 +104,7 @@ export function AppShell({
             <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Bike className="size-5" />
             </span>
-            <span>Taxidi</span>
+            <span>Taxiro</span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {navigation.map(({ href, label }) => (

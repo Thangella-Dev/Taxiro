@@ -1,13 +1,13 @@
-﻿# Taxidi Daily Development Update
+# Taxiro Daily Development Update
 
 Period covered: **Monday 08 June 2026 to Friday 12 June 2026**
 
-Project: **Taxidi - Predictive Bike Taxi MVP**  
-Meaning: **Taxidi** means **journey/trip** in Greek.
+Project: **Taxiro - Predictive Bike Taxi MVP**  
+Meaning: **Taxiro** means **journey/trip** in Greek.
 
 ## Project Objective
 
-Taxidi is being developed as a bike taxi web app MVP for India. The goal is to support a realistic ride-hailing flow where users can create accounts, book rides, schedule advance trips, confirm readiness, match with riders, use a private ride confirmation code, and complete trips with real Supabase-backed data.
+Taxiro is being developed as a bike taxi web app MVP for India. The goal is to support a realistic ride-hailing flow where users can create accounts, book rides, schedule advance trips, confirm readiness, match with riders, use a private ride confirmation code, and complete trips with real Supabase-backed data.
 
 ## Technology Stack
 
@@ -49,7 +49,7 @@ Main focus: project foundation, Supabase backend, and core MVP flow.
 Completed:
 
 - Scaffolded the Next.js App Router application with TypeScript and Tailwind CSS.
-- Set up the public brand as **Taxidi** and package/application identifier as `taxidi`.
+- Set up the public brand as **Taxiro** and package/application identifier as `taxiro`.
 - Connected the app to the Supabase project.
 - Created Supabase schema and migrations.
 - Added database tables for profiles, ride requests, rider locations, rider routes, ride status events, and ride confirmation codes.
@@ -75,7 +75,7 @@ Main focus: product UX, real app feel, map booking improvements, and flow organi
 
 Completed:
 
-- Completed app rename and branding as **Taxidi**.
+- Completed app rename and branding as **Taxiro**.
 - Improved the user booking screen toward an Uber/Ola-style map-first app layout.
 - Fixed map overlay and z-index issues where the map covered app controls.
 - Improved location search behavior so selected suggestions clear and selected pickup/drop text stays in the input.
@@ -106,7 +106,7 @@ Completed application work:
 - Improved **Choose on map** behavior so the booking sheet hides and the user gets focused map-only selection mode.
 - Added a map selection cancel banner.
 - Added a user app menu toggle.
-- Added menu sections for Profile, My rides, Settings, About Taxidi, Help and support, and Sign out.
+- Added menu sections for Profile, My rides, Settings, About Taxiro, Help and support, and Sign out.
 - Connected menu **My rides** action to the ride-history panel.
 - Added mobile compatibility improvements across landing, auth, user dashboard, rider dashboard, admin dashboard, ride cards, location search, app shell, and dynamic map loading state.
 - Improved mobile layout behavior with `100svh` map surfaces, tighter bottom sheets, safer action wrapping, safer long-address handling, and better safe-area spacing.

@@ -1,8 +1,8 @@
-ï»¿# Taxidi Daily Development Update - 22 June 2026
+# Taxiro Daily Development Update - 22 June 2026
 
 ## Summary
 
-Today focused on stabilizing the Taxidi app, restoring the correct framework setup, and adding real ride-hailing features needed for daily use.
+Today focused on stabilizing the Taxiro app, restoring the correct framework setup, and adding real ride-hailing features needed for daily use.
 
 ## Completed Today
 
@@ -54,8 +54,8 @@ Today focused on stabilizing the Taxidi app, restoring the correct framework set
 ### Documentation
 
 - Updated main README.
-- Updated todayâ€™s daily development update.
-- Updated todayâ€™s manager email.
+- Updated today’s daily development update.
+- Updated today’s manager email.
 - Updated progress report through 22 June 2026.
 
 ## Verification Completed Today

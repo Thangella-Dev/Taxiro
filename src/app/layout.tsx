@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Taxidi | Predictive Bike Taxi MVP",
+  title: "Taxiro | Predictive Bike Taxi MVP",
   description:
-    "Taxidi is a free-stack predictive bike taxi MVP for advance ready rides and on-the-way ride matching in India.",
+    "Taxiro is a free-stack predictive bike taxi MVP for advance ready rides and on-the-way ride matching in India.",
 };
 
 export const viewport: Viewport = {

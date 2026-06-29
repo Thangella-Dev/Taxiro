@@ -1,18 +1,20 @@
-﻿# Taxidi Progress Report - 08 June to 23 June 2026
+# Taxiro Progress Report
 
-Reporting period: **Monday 08 June 2026 to Tuesday 23 June 2026**
+Note: This file has been updated through 22 June 2026. A correctly named copy also exists at `docs/taxiro-progress-report-2026-06-08-to-2026-06-22.md`.
+
+Reporting period: **Monday 08 June 2026 to Monday 22 June 2026**
 
 ## Executive Summary
 
-Taxidi is now a working Supabase-backed bike taxi MVP with role-based user, rider, and admin experiences. The application has moved from a basic web interface into a map-first ride-hailing web app with real authentication, ride booking, rider availability, live foreground rider tracking, phase-aware routing, ride acceptance, private ride-code verification, cancellation, completion, fare preview, rider verification foundations, demand visibility, and assigned-ride chat.
+Taxiro is now a working Supabase-backed bike taxi MVP with role-based user, rider, and admin experiences. The application has moved from a basic web interface into a map-first ride-hailing web app with real authentication, ride booking, rider availability, ride acceptance, private ride-code verification, cancellation, completion, fare preview, rider verification foundations, demand visibility, and assigned-ride chat.
 
 The current build remains a free/open-stack MVP: Supabase, OpenStreetMap, Leaflet, Nominatim, and OSRM. No Google Maps, Mapbox, Stripe, or frontend service-role keys are used.
 
 ## Brand
 
-- Public app name: **Taxidi**
+- Public app name: **Taxiro**
 - Meaning: **journey/trip** in Greek
-- Technical package name: `taxidi`
+- Technical package name: `taxiro`
 - Product category: predictive bike taxi MVP for India
 
 ## Core Technology
@@ -53,7 +55,7 @@ Foundation and backend work:
 
 Product and UX work:
 
-- Completed app rename to Taxidi.
+- Completed app rename to Taxiro.
 - Improved map-first user experience.
 - Fixed map overlay and panel layout issues.
 - Improved pickup/drop selection.
@@ -129,13 +131,10 @@ Completed:
 - Rider profile/vehicle identity settings.
 - User/rider menu and profile settings.
 - Main project documentation and manager-ready updates.
-- Foreground live rider tracking with Supabase Realtime customer updates.
-- Phase-aware rider-to-pickup and rider-to-drop routing.
-- Mobile map-first user/rider layouts with side-scroll prevention, zoom prevention, and corrected rider vertical flow.
 
 Partially complete:
 
-- Route refresh and reliability handling during long active rides.
+- Live rider-to-pickup tracking refresh.
 - Notification preferences and push notifications.
 - Admin operational controls beyond verification/search/filtering.
 - Production-grade loading/retry/offline states.
@@ -157,7 +156,6 @@ Not in MVP yet:
 - `20260608154500_explicit_rider_acceptance.sql`
 - `20260622123000_daily_use_hardening.sql`
 - `20260622142000_ride_chat_and_code_repair.sql`
-- `20260623093000_live_tracking_metadata.sql`
 
 Key tables now include:
 
@@ -173,7 +171,7 @@ Key tables now include:
 
 ## Verification Status
 
-Completed through 23 June 2026:
+Completed on 22 June 2026:
 
 - `npx tsc --noEmit`: passed.
 - Focused `npx eslint` on edited app files: passed.
@@ -181,14 +179,12 @@ Completed through 23 June 2026:
 - Supabase migration for daily-use hardening applied successfully.
 - Supabase migration for ride chat and code repair applied successfully.
 - REST verification confirmed the new `ride_chat_messages` table is accessible through Supabase API with RLS.
-- Supabase live-tracking metadata migration applied successfully.
-- User and rider dashboard routes returned HTTP `200`.
 
 Pending manual QA:
 
 - Full authenticated browser QA with separate user and rider accounts.
 - End-to-end ride test: book, ready, accept, code verify, chat, start, complete, rate.
-- Real-device mobile QA for the map-first user/rider app panels.
+- Mobile viewport QA for the map-first user/rider app panels.
 - Supabase Realtime verification across two browser sessions.
 
 ## Risks
@@ -202,47 +198,9 @@ Pending manual QA:
 
 1. Run full two-account end-to-end QA.
 2. Test on real mobile viewport/device with location permission enabled.
-3. Test live rider-to-pickup and rider-to-drop tracking on two real devices.
+3. Add live rider-to-pickup route refresh.
 4. Add loading, empty, retry, and offline states across all dashboards.
 5. Add admin operational controls for ride intervention and support workflows.
 6. Add notification preferences and eventual push notification support.
 7. Prepare Vercel deployment checklist and production environment review.
-
-## Tuesday - 23 June 2026
-
-Live tracking, ride coordination, and mobile app experience:
-
-- Added foreground rider GPS tracking using `navigator.geolocation.watchPosition`.
-- Persisted rider accuracy, heading, speed, last-seen time, latitude, and longitude to Supabase.
-- Added customer-side Supabase Realtime subscription for assigned rider location updates.
-- Added phase-aware routes: rider to pickup before code verification and rider to drop after trip start.
-- Added live ETA, distance, GPS freshness, and accuracy information.
-- Improved confirmation-code fallback and assigned-ride chat behavior.
-- Improved ready-now and scheduled-demand map signals.
-- Added and applied `20260623093000_live_tracking_metadata.sql` without destructive changes.
-- Removed horizontal page scrolling from the mobile user and rider screens.
-- Constrained map layers and application surfaces to device width.
-- Fixed the rider screen's large empty mobile area.
-- Reduced mobile map height and improved map-to-sheet balance.
-- Reworked customer booking to remove repeated information and duplicate labels.
-- Added low-GPS-accuracy feedback and an expandable pickup note.
-- Made the primary booking action easier to reach.
-- Converted On-The-Way route setup into an expandable rider tool.
-- Added accidental zoom and iPhone input-focus zoom prevention.
-- Updated shared UI primitives and map loading for small-device compatibility.
-
-Verification on 23 June 2026:
-
-- `npx tsc --noEmit`: passed.
-- Focused ESLint: passed.
-- `npm run build`: passed on Next.js `16.2.7`.
-- User and rider dashboard routes returned HTTP `200`.
-- All application routes compiled successfully.
-- Supabase live-tracking migration applied successfully.
-
-Current readiness:
-
-Taxidi is a stronger functional MVP. Public production launch still requires two-device lifecycle QA, offline/reconnect testing, responsive device coverage, automated end-to-end tests, and a focused security review.
-
-
 

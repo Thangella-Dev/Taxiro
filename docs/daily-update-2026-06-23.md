@@ -1,4 +1,4 @@
-﻿# Taxidi Daily Development Update - 23 June 2026
+# Taxiro Daily Development Update - 23 June 2026
 
 ## Summary
 
@@ -143,7 +143,7 @@ Primary areas updated today:
 
 ## Current Product Status
 
-Taxidi is now a stronger functional MVP with:
+Taxiro is now a stronger functional MVP with:
 
 - Real Supabase authentication and role separation.
 - User booking and advance booking.

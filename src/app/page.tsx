@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { ArrowRight, Bike, Clock3, KeyRound, LocateFixed, MapPin, Menu, Navigation, Radio } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function Home() {
               <span className="flex size-9 items-center justify-center rounded-full bg-[#101713] text-white">
                 <Bike className="size-4" />
               </span>
-              Taxidi
+              Taxiro
             </Link>
             <div className="flex items-center gap-2">
               <Button asChild className="h-11 rounded-full bg-[#101713] px-4 text-white hover:bg-[#101713]/90">
@@ -47,7 +47,7 @@ export default function Home() {
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#647067]">Bike taxi app</p>
               <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-5xl">Book. Track. Verify. Ride.</h1>
               <p className="mt-2 max-w-xl text-sm leading-6 text-[#647067] sm:text-base">
-                Taxidi is a real-data bike taxi MVP with live rider tracking, private ride codes, demand signals, and phase-aware pickup to drop navigation.
+                Taxiro is a real-data bike taxi MVP with live rider tracking, private ride codes, demand signals, and phase-aware pickup to drop navigation.
               </p>
             </div>
             <span className="shrink-0 rounded-full bg-secondary px-3 py-1 text-sm font-black">Live MVP</span>

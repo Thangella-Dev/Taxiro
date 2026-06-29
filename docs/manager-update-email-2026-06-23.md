@@ -1,10 +1,10 @@
-﻿# Manager Update Email - 23 June 2026
+# Manager Update Email - 23 June 2026
 
-**Subject:** Taxidi MVP Daily Update - Live Tracking and Mobile UX Upgrade - 23 June 2026
+**Subject:** Taxiro MVP Daily Update - Live Tracking and Mobile UX Upgrade - 23 June 2026
 
 Hi Manager,
 
-Today I completed a major live-tracking and mobile UX upgrade for the Taxidi bike taxi MVP.
+Today I completed a major live-tracking and mobile UX upgrade for the Taxiro bike taxi MVP.
 
 Completed today:
 
@@ -40,7 +40,7 @@ Verification completed today:
 
 Current status:
 
-Taxidi is now a stronger functional MVP with live rider tracking, phase-aware routes, secure ride confirmation, assigned-ride chat, rider demand signals, and substantially improved mobile layouts. It is not yet ready for public production use because the complete workflow still needs two-device end-to-end testing, offline/reconnect validation, security review, and automated test coverage.
+Taxiro is now a stronger functional MVP with live rider tracking, phase-aware routes, secure ride confirmation, assigned-ride chat, rider demand signals, and substantially improved mobile layouts. It is not yet ready for public production use because the complete workflow still needs two-device end-to-end testing, offline/reconnect validation, security review, and automated test coverage.
 
 Next planned work:
 

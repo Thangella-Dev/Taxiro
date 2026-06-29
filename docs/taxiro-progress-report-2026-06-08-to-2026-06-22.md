@@ -1,20 +1,18 @@
-﻿# Taxidi Progress Report
-
-Note: This file has been updated through 22 June 2026. A correctly named copy also exists at `docs/taxidi-progress-report-2026-06-08-to-2026-06-22.md`.
+# Taxiro Progress Report
 
 Reporting period: **Monday 08 June 2026 to Monday 22 June 2026**
 
 ## Executive Summary
 
-Taxidi is now a working Supabase-backed bike taxi MVP with role-based user, rider, and admin experiences. The application has moved from a basic web interface into a map-first ride-hailing web app with real authentication, ride booking, rider availability, ride acceptance, private ride-code verification, cancellation, completion, fare preview, rider verification foundations, demand visibility, and assigned-ride chat.
+Taxiro is now a working Supabase-backed bike taxi MVP with role-based user, rider, and admin experiences. The application has moved from a basic web interface into a map-first ride-hailing web app with real authentication, ride booking, rider availability, ride acceptance, private ride-code verification, cancellation, completion, fare preview, rider verification foundations, demand visibility, and assigned-ride chat.
 
 The current build remains a free/open-stack MVP: Supabase, OpenStreetMap, Leaflet, Nominatim, and OSRM. No Google Maps, Mapbox, Stripe, or frontend service-role keys are used.
 
 ## Brand
 
-- Public app name: **Taxidi**
+- Public app name: **Taxiro**
 - Meaning: **journey/trip** in Greek
-- Technical package name: `taxidi`
+- Technical package name: `taxiro`
 - Product category: predictive bike taxi MVP for India
 
 ## Core Technology
@@ -55,7 +53,7 @@ Foundation and backend work:
 
 Product and UX work:
 
-- Completed app rename to Taxidi.
+- Completed app rename to Taxiro.
 - Improved map-first user experience.
 - Fixed map overlay and panel layout issues.
 - Improved pickup/drop selection.
@@ -203,4 +201,3 @@ Pending manual QA:
 5. Add admin operational controls for ride intervention and support workflows.
 6. Add notification preferences and eventual push notification support.
 7. Prepare Vercel deployment checklist and production environment review.
-

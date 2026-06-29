@@ -1,10 +1,10 @@
-﻿# Manager Update Email
+# Manager Update Email
 
-Subject: **Taxidi MVP Development Update - 08 June to 12 June 2026**
+Subject: **Taxiro MVP Development Update - 08 June to 12 June 2026**
 
 Hi Manager,
 
-This is the progress update for **Taxidi**, the predictive bike taxi MVP being developed for India. Taxidi means **journey/trip** in Greek. The application is being built as a real ride-hailing style web app with user booking, rider operations, admin monitoring, private ride confirmation codes, cancellation, and map-based pickup/drop flows.
+This is the progress update for **Taxiro**, the predictive bike taxi MVP being developed for India. Taxiro means **journey/trip** in Greek. The application is being built as a real ride-hailing style web app with user booking, rider operations, admin monitoring, private ride confirmation codes, cancellation, and map-based pickup/drop flows.
 
 ## Overall Progress
 
@@ -63,7 +63,7 @@ Completed:
 
 Completed:
 
-- Completed app rename and branding as **Taxidi**.
+- Completed app rename and branding as **Taxiro**.
 - Improved the UI toward a real app-style map-first experience.
 - Fixed map overlay issues.
 - Improved pickup/drop search behavior.
@@ -89,7 +89,7 @@ Completed documentation work today:
 - Updated `README.md` with current app status, tech stack, completed modules, database details, verification, blockers, and next steps.
 - Updated `docs/daily-update-2026-06-08.md` with Monday, Wednesday, and Friday progress.
 - Updated `docs/manager-update-email-2026-06-08.md` as this ready-to-send email.
-- Added `docs/taxidi-progress-report-2026-06-08-to-2026-06-12.md` as a formal progress report.
+- Added `docs/taxiro-progress-report-2026-06-08-to-2026-06-12.md` as a formal progress report.
 
 ## Current Status
 
@@ -145,5 +145,5 @@ Planned improvements:
 - Prepare Vercel deployment checklist.
 
 Regards,  
-Taxidi Development Update
+Taxiro Development Update
 

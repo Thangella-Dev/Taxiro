@@ -68,7 +68,7 @@ export function ProfileSettings({
         <div className="min-w-0">
           <h3 className="font-black">Profile and settings</h3>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Update your public account details used across Taxidi.
+            Update your public account details used across Taxiro.
           </p>
         </div>
       </div>

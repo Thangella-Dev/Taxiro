@@ -39,7 +39,7 @@ export async function ensureProfile(
   const safeRole: UserRole =
     requestedRole === "rider" || requestedRole === "user" ? requestedRole : "user";
   const profile = {
-    full_name: metadata.full_name ?? user.email ?? "Taxidi user",
+    full_name: metadata.full_name ?? user.email ?? "Taxiro user",
     id: user.id,
     phone: metadata.phone ?? null,
     role: safeRole,

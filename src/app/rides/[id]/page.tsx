@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import { RideRatingForm } from "@/components/RideRatingForm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
+import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { getRoutePath } from "@/lib/maps";
 import { getSupabase } from "@/lib/supabase";
 import type { LatLng, RideRequest, RiderProfile } from "@/types/database";
@@ -134,6 +135,10 @@ export default function RideDetails({
     };
   }, [ride]);
 
+  const fareBreakdown = ride ? calculateFareBreakdown(ride.fare_estimate) : null;
+  const companyCommission = ride?.company_commission ?? fareBreakdown?.companyCommission ?? null;
+  const riderEarning = ride?.rider_earning ?? fareBreakdown?.riderEarning ?? null;
+
   return (
     <AppShell title="Ride details">
       <div className="mb-4">
@@ -167,9 +172,21 @@ export default function RideDetails({
                 <DetailLine
                   icon={IndianRupee}
                   label="Fare and payment"
-                  value={"₹" + (ride.fare_estimate ?? "--") + " estimated | " + (ride.payment_method ?? "cash").toUpperCase()}
+                  value={`${formatMoney(ride.fare_estimate)} | ${(ride.payment_method ?? "cash").toUpperCase()} | ${ride.payment_status ?? "pending"}`}
                 />
               </div>
+            </Card>
+            <Card className="rounded-2xl p-4">
+              <p className="font-black">Payment split</p>
+              <p className="mt-1 text-sm text-muted-foreground">Taxiro takes 7% from every ride; the rider receives the remaining 93%.</p>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="rounded-2xl bg-muted p-3"><p className="text-xs text-muted-foreground">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>
+                <div className="rounded-2xl bg-muted p-3"><p className="text-xs text-muted-foreground">Taxiro</p><p className="font-black">{formatMoney(companyCommission)}</p></div>
+                <div className="rounded-2xl bg-muted p-3"><p className="text-xs text-muted-foreground">Rider</p><p className="font-black">{formatMoney(riderEarning)}</p></div>
+              </div>
+              {ride.payment_status === "awaiting_payment" ? (
+                <p className="mt-3 rounded-2xl bg-secondary p-3 text-sm font-semibold">Pay the rider now. The ride completes after the rider confirms payment received.</p>
+              ) : null}
             </Card>
             {userId === ride.user_id && ["assigned", "started"].includes(ride.status) ? (
               <Card className="rounded-2xl border-primary/20 bg-secondary p-4">
@@ -199,6 +216,13 @@ export default function RideDetails({
                     value={riderProfile.vehicle_number ?? "Pending rider update"}
                   />
                 </div>
+                {ride.payment_method === "upi" && (ride.payment_status === "awaiting_payment" || ride.payment_status === "paid") ? (
+                  <div className="mt-3 rounded-2xl bg-muted p-3">
+                    <p className="text-sm font-black">Rider UPI payment</p>
+                    {riderProfile.upi_id ? <p className="mt-1 text-sm text-muted-foreground">UPI ID: {riderProfile.upi_id}</p> : null}
+                    {riderProfile.upi_qr_image_url ? <img alt="Rider UPI QR code" className="mt-3 max-h-56 rounded-xl border border-border bg-white object-contain p-2" src={riderProfile.upi_qr_image_url} /> : <p className="mt-2 text-sm text-muted-foreground">Rider has not uploaded a UPI QR image.</p>}
+                  </div>
+                ) : null}
                 <p className="mt-3 text-xs font-semibold capitalize text-muted-foreground">
                   Verification: {riderProfile.verification_status} | Rating: {riderProfile.rating}/5
                 </p>
@@ -255,5 +279,7 @@ function DetailLine({
     </div>
   );
 }
+
+
 
 

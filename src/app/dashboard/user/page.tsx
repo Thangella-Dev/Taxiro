@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -16,6 +16,7 @@ import {
   Menu,
   Radio,
   Settings,
+  ShieldCheck,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -34,7 +35,8 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
-import { estimateBikeFare, getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
+import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
+import { calculateFareBreakdown, estimateBikeFare, formatMoney, getUserCancellationFine } from "@/lib/fare";
 import { getSupabase } from "@/lib/supabase";
 import type {
   LatLng,
@@ -323,6 +325,7 @@ export default function UserDashboard() {
     setMessage("Finding route...");
     const summary = await getRouteSummary(pickup, drop);
     const fareEstimate = estimateBikeFare(summary.distanceKm, summary.durationMin);
+    const fareBreakdown = calculateFareBreakdown(fareEstimate);
     const { error } = await supabase.from("ride_requests").insert({
       assigned_rider_id: null,
       distance_km: summary.distanceKm,
@@ -331,6 +334,9 @@ export default function UserDashboard() {
       drop_lng: drop.lng,
       estimated_duration_min: summary.durationMin,
       fare_estimate: fareEstimate,
+      company_commission: fareBreakdown.companyCommission,
+      rider_earning: fareBreakdown.riderEarning,
+      payment_status: "pending",
       passenger_count: 1,
       payment_method: paymentMethod,
       pickup_address: pickup.address ?? "Selected pickup",
@@ -442,6 +448,7 @@ export default function UserDashboard() {
   const completedRides = rides.filter((ride) =>
     ["completed", "cancelled"].includes(ride.status),
   );
+  const userCancelledRideCount = rides.filter((ride) => ride.status === "cancelled" && (!ride.cancelled_by || ride.cancelled_by === userId)).length;
 
   useEffect(() => {
     let ignore = false;
@@ -471,14 +478,14 @@ export default function UserDashboard() {
 
   if (!loading && (!userId || profile?.role !== "user")) {
     return (
-      <AppShell title="Book Taxidi">
+      <AppShell title="Book Taxiro">
         <Card className="mx-auto max-w-lg text-center">
           <CardHeader>
             <CardTitle>{profile ? "User account required" : "Sign in required"}</CardTitle>
             <CardDescription>
               {profile
                 ? "This area is only for customers. Rider accounts use the driver app."
-                : "Create an account or sign in to book real Taxidi rides."}
+                : "Create an account or sign in to book real Taxiro rides."}
             </CardDescription>
           </CardHeader>
           <Button asChild>
@@ -492,7 +499,7 @@ export default function UserDashboard() {
 
 
   return (
-    <AppShell immersive title="Book Taxidi">
+    <AppShell immersive title="Book Taxiro">
       <div className="relative min-h-0 min-w-0 w-full max-w-full overflow-x-clip bg-muted sm:min-h-[100svh] [contain:inline-size] sm:overflow-hidden">
         <DynamicMapPicker
           className="h-[38svh] min-h-[16rem] overflow-hidden sm:h-[100svh] sm:min-h-[100svh]"
@@ -506,7 +513,7 @@ export default function UserDashboard() {
         {!mapPickMode ? (
         <div className="pointer-events-none absolute inset-x-2 top-2 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3 sm:gap-3">
           <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur-xl sm:p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxidi</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxiro</p>
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
               <Bike className="size-4 sm:size-5" />
               {activeRide ? rideHeadline(activeRide.status) : "Where to?"}
@@ -698,7 +705,7 @@ export default function UserDashboard() {
                   <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
                     <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">Fare</p>
-                      <p className="mt-1 font-black">Rs {estimateBikeFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null) ?? "--"}</p>
+                      <p className="mt-1 font-black">{formatMoney(estimateBikeFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null))}</p>
                     </div>
                     <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">Distance</p>
@@ -785,6 +792,7 @@ export default function UserDashboard() {
           <CancelRideDialog
             onClose={() => setCancelTarget(null)}
             onConfirm={(reason) => void cancelRide(cancelTarget, reason)}
+            penaltyAmount={getUserCancellationFine(userCancelledRideCount, Boolean(cancelTarget.assigned_rider_id))}
             ride={cancelTarget}
           />
         ) : null}
@@ -995,6 +1003,9 @@ function ActiveUserRide({
     : "Code verified. The live route now follows the trip toward your drop location.";
   const liveEta = routeSummary?.durationMin ?? ride.estimated_duration_min;
   const liveDistance = routeSummary?.distanceKm ?? ride.distance_km;
+  const fareBreakdown = calculateFareBreakdown(ride.fare_estimate);
+  const companyCommission = ride.company_commission ?? fareBreakdown.companyCommission;
+  const riderEarning = ride.rider_earning ?? fareBreakdown.riderEarning;
 
   return (
     <div className="grid gap-4">
@@ -1053,10 +1064,44 @@ function ActiveUserRide({
           <p className="mt-3 text-xs text-muted-foreground">
             {riderLocation
               ? `Rider GPS ${formatTrackingAge(riderLocation.last_seen_at ?? riderLocation.updated_at)}${riderLocation.accuracy_m ? ` - accuracy +/-${Math.round(riderLocation.accuracy_m)}m` : ""}`
-              : "Waiting for the rider app to send live GPS. Ask the rider to keep Taxidi open."}
+              : "Waiting for the rider app to send live GPS. Ask the rider to keep Taxiro open."}
           </p>
         </div>
       ) : null}
+      <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black">Fare and payment</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Final fare is fixed from the booked route. Company share is 7%; rider receives 93%.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] font-black uppercase text-secondary-foreground">
+            {ride.payment_status ?? "pending"}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
+          <div className="min-w-0 rounded-2xl bg-muted p-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Fare</p>
+            <p className="mt-1 font-black">{formatMoney(ride.fare_estimate)}</p>
+          </div>
+          <div className="min-w-0 rounded-2xl bg-muted p-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Company</p>
+            <p className="mt-1 font-black">{formatMoney(companyCommission)}</p>
+          </div>
+          <div className="min-w-0 rounded-2xl bg-muted p-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Rider</p>
+            <p className="mt-1 font-black">{formatMoney(riderEarning)}</p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {ride.payment_status === "awaiting_payment"
+            ? "Pay the rider now. The ride completes after the rider confirms payment received."
+            : ride.payment_status === "paid"
+              ? "Payment confirmed. Ride is completed."
+              : `Payment mode: ${(ride.payment_method ?? "cash").toUpperCase()}`}
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="min-w-0 rounded-2xl bg-muted p-2 sm:p-3">
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -1126,7 +1171,7 @@ function UserMenu({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-              Taxidi menu
+              Taxiro menu
             </p>
             <h2 className="mt-1 text-2xl font-black tracking-tight">
               {profile?.full_name ?? "Your account"}
@@ -1156,15 +1201,29 @@ function UserMenu({
           title="Settings"
           text="Manage account details, preferred pickup behavior, location permissions, and notification preferences."
         />
-        <MenuCard
+        <MenuLink
+          href="/about"
           icon={Info}
-          title="About Taxidi"
-          text="Taxidi means journey/trip in Greek. This MVP uses Supabase, OpenStreetMap, Nominatim, OSRM, and a free-stack ride flow."
+          title="About Taxiro"
+          text="Product vision, ride flow, live tracking, payments, and current MVP limits."
         />
-        <MenuCard
+        <MenuLink
+          href="/help"
           icon={HelpCircle}
           title="Help and support"
-          text="For booking issues: check pickup/drop, allow location permission, and confirm the private ride code only with your assigned rider."
+          text="Location, booking, private code, chat, payment, and support guidance."
+        />
+        <MenuLink
+          href="/privacy"
+          icon={ShieldCheck}
+          title="Privacy policy"
+          text="What data Taxiro stores, who can see it, and MVP privacy limits."
+        />
+        <MenuLink
+          href="/rules"
+          icon={ListChecks}
+          title="Rules and regulations"
+          text="Safety rules, misuse rules, payment rules, and accepted-ride cancellation fine policy."
         />
 
         <Button className="h-12 rounded-full" onClick={onSignOut} variant="outline">
@@ -1176,6 +1235,29 @@ function UserMenu({
   );
 }
 
+function MenuLink({
+  href,
+  icon: Icon,
+  text,
+  title,
+}: {
+  href: string;
+  icon: LucideIcon;
+  text: string;
+  title: string;
+}) {
+  return (
+    <Link className="block rounded-2xl border border-border bg-muted p-4 transition hover:bg-secondary" href={href}>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="flex size-9 items-center justify-center rounded-full bg-card">
+          <Icon className="size-4" />
+        </span>
+        <h3 className="font-black">{title}</h3>
+      </div>
+      <p className="text-sm leading-6 text-muted-foreground">{text}</p>
+    </Link>
+  );
+}
 function MenuCard({
   icon: Icon,
   text,
@@ -1232,6 +1314,8 @@ function formatTrackingAge(value: string) {
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.round(seconds / 60)}m ago`;
 }
+
+
 
 
 

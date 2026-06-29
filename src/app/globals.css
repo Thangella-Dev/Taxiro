@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
 :root {
@@ -121,8 +121,8 @@ button {
   filter: saturate(0.72) contrast(1.03);
 }
 
-.taxidi-marker,
-.taxidi-demand-marker {
+.taxiro-marker,
+.taxiro-demand-marker {
   align-items: center;
   animation: demand-pulse 1.45s ease-out infinite;
   background: #dbf86f;
@@ -138,7 +138,7 @@ button {
   width: 34px;
 }
 
-.taxidi-rider-marker {
+.taxiro-rider-marker {
   align-items: center;
   border-radius: 999px;
   box-shadow: 0 16px 38px rgb(16 23 19 / 24%);
@@ -149,7 +149,7 @@ button {
   width: 36px;
 }
 
-.taxidi-marker::after {
+.taxiro-marker::after {
   border-radius: inherit;
   content: "";
   inset: -8px;
@@ -157,7 +157,7 @@ button {
   position: absolute;
 }
 
-.taxidi-marker span {
+.taxiro-marker span {
   border: 3px solid #fff;
   border-radius: inherit;
   height: 16px;
@@ -165,27 +165,27 @@ button {
   z-index: 1;
 }
 
-.taxidi-marker-pickup {
+.taxiro-marker-pickup {
   background: #101713;
 }
 
-.taxidi-marker-pickup::after {
+.taxiro-marker-pickup::after {
   background: #101713;
 }
 
-.taxidi-marker-drop {
+.taxiro-marker-drop {
   background: #dbf86f;
 }
 
-.taxidi-marker-drop::after {
+.taxiro-marker-drop::after {
   background: #a9d931;
 }
 
-.taxidi-marker-drop span {
+.taxiro-marker-drop span {
   background: #101713;
 }
 
-.taxidi-demand-marker {
+.taxiro-demand-marker {
   align-items: center;
   animation: demand-pulse 1.45s ease-out infinite;
   background: #dbf86f;
@@ -201,7 +201,7 @@ button {
   width: 34px;
 }
 
-.taxidi-rider-marker {
+.taxiro-rider-marker {
   background: #fff;
   border: 3px solid #101713;
   color: #101713;
@@ -262,7 +262,7 @@ button {
 }
 
 
-.taxidi-demand-marker-ready {
+.taxiro-demand-marker-ready {
   animation: demand-pulse 1.15s ease-out infinite;
   background: #dbf86f;
   border: 3px solid #101713;
@@ -270,7 +270,7 @@ button {
   width: 36px;
 }
 
-.taxidi-demand-marker-scheduled {
+.taxiro-demand-marker-scheduled {
   animation: none;
   background: #fff;
   border: 2px solid #101713;
@@ -279,14 +279,14 @@ button {
   width: 30px;
 }
 
-.taxidi-demand-marker-scheduled span {
+.taxiro-demand-marker-scheduled span {
   background: #101713;
   border-radius: 999px;
   height: 9px;
   width: 9px;
 }
 
-.taxidi-rider-marker {
+.taxiro-rider-marker {
   background: #101713;
   border: 3px solid #fff;
   color: #dbf86f;
@@ -294,7 +294,7 @@ button {
   font-weight: 950;
 }
 
-.taxidi-rider-marker span {
+.taxiro-rider-marker span {
   display: block;
   line-height: 1;
 }

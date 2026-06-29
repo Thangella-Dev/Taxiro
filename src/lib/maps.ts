@@ -1,4 +1,4 @@
-﻿import type { LatLng } from "@/types/database";
+import type { LatLng } from "@/types/database";
 
 export type SearchResult = LatLng & {
   label: string;
@@ -83,16 +83,6 @@ export async function getRouteSummary(pickup: LatLng, drop: LatLng) {
   };
 }
 
-export function estimateBikeFare(distanceKm: number | null, durationMin: number | null) {
-  if (distanceKm === null || durationMin === null) {
-    return null;
-  }
-
-  const baseFare = 20;
-  const distanceFare = distanceKm * 7;
-  const timeFare = durationMin * 0.75;
-  return Math.max(35, Math.round(baseFare + distanceFare + timeFare));
-}
 export async function getRoutePath(pickup: LatLng, drop: LatLng): Promise<LatLng[]> {
   const summary = await getRouteSummary(pickup, drop);
   return summary.polyline ? decodePolyline(summary.polyline) : [];
@@ -140,5 +130,6 @@ function decodeChunk(encoded: string, startIndex: number) {
     nextIndex: index,
   };
 }
+
 
 

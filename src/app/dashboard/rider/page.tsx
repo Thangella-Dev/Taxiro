@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary } from "@/lib/maps";
+import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { watchRiderLocation, type RiderTrackingUpdate } from "@/lib/tracking";
 import { getSupabase } from "@/lib/supabase";
 import type { LatLng, Profile, RideRequest, RiderLocation } from "@/types/database";
@@ -156,7 +157,7 @@ export default function RiderDashboard() {
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          setMessage("Live rider updates are reconnecting. Keep Taxidi open for instant jobs and tracking.");
+          setMessage("Live rider updates are reconnecting. Keep Taxiro open for instant jobs and tracking.");
         }
       });
 
@@ -280,7 +281,7 @@ export default function RiderDashboard() {
     await loadRiderData(profile.id);
   }
 
-  async function completeRide(ride: RideRequest) {
+  async function markReachedDrop(ride: RideRequest) {
     if (!profile) {
       return;
     }
@@ -288,12 +289,28 @@ export default function RiderDashboard() {
     if (!supabase) {
       return;
     }
-    const { error } = await supabase.rpc("complete_ride", {
+    const { error } = await supabase.rpc("mark_ride_reached_drop", {
       p_ride_id: ride.id,
     });
-    setMessage(error ? error.message : "Ride completed. You are available again.");
+    setMessage(error ? error.message : "Drop reached. Collect payment, then confirm payment received.");
     await loadRiderData(profile.id);
   }
+
+  async function confirmPaymentAndComplete(ride: RideRequest) {
+    if (!profile) {
+      return;
+    }
+    const supabase = getSupabase();
+    if (!supabase) {
+      return;
+    }
+    const { error } = await supabase.rpc("confirm_ride_payment_and_complete", {
+      p_ride_id: ride.id,
+    });
+    setMessage(error ? error.message : "Payment received. Ride completed and you are available again.");
+    await loadRiderData(profile.id);
+  }
+
   async function signOut() {
     const supabase = getSupabase();
     if (supabase) {
@@ -396,7 +413,7 @@ export default function RiderDashboard() {
 
         <div className="pointer-events-none absolute inset-x-2 top-2 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3 sm:gap-3">
           <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur-xl sm:p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxidi rider</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxiro rider</p>
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
               <Bike className="size-4 sm:size-5" />
               {activeRide ? riderHeadline(activeRide.status) : "Find nearby work"}
@@ -469,7 +486,8 @@ export default function RiderDashboard() {
                   }))
                 }
                 onCancel={() => setCancelTarget(activeRide)}
-                onComplete={() => void completeRide(activeRide)}
+                onReachedDrop={() => void markReachedDrop(activeRide)}
+                onPaymentReceived={() => void confirmPaymentAndComplete(activeRide)}
                 onStart={() => void verifyAndStart(activeRide)}
                 ride={activeRide}
               />
@@ -532,6 +550,7 @@ export default function RiderDashboard() {
           <CancelRideDialog
             onClose={() => setCancelTarget(null)}
             onConfirm={(reason) => void cancelRide(cancelTarget, reason)}
+            penaltyAmount={0}
             ride={cancelTarget}
           />
         ) : null}
@@ -630,9 +649,10 @@ function RequestCard({
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
         <span>{ride.distance_km ?? "--"} km</span>
-        <span>₹{ride.fare_estimate ?? "--"}</span>
+        <span>{formatMoney(ride.fare_estimate)}</span>
         <span className="uppercase">{ride.payment_method ?? "cash"}</span>
         <span>{ride.estimated_duration_min ?? "--"} min</span>
+        <span>Earn {formatMoney(ride.rider_earning ?? calculateFareBreakdown(ride.fare_estimate).riderEarning)}</span>
       </div>
     </div>
   );
@@ -647,7 +667,8 @@ function ActiveRiderJob({
   riderLocation,
   routeSummary,
   onCodeChange,
-  onComplete,
+  onPaymentReceived,
+  onReachedDrop,
   onStart,
   ride,
 }: {
@@ -659,7 +680,8 @@ function ActiveRiderJob({
   riderLocation: RiderLocation | null;
   routeSummary: { distanceKm: number | null; durationMin: number | null } | null;
   onCodeChange: (value: string) => void;
-  onComplete: () => void;
+  onPaymentReceived: () => void;
+  onReachedDrop: () => void;
   onStart: () => void;
   ride: RideRequest;
 }) {
@@ -668,10 +690,13 @@ function ActiveRiderJob({
     ? "Reach pickup and verify code"
     : "Navigate to drop and complete ride";
   const taskHelp = ride.status === "assigned"
-    ? "Keep Taxidi open so the customer can see your live arrival. Ask for the 4 digit code only after reaching pickup."
+    ? "Keep Taxiro open so the customer can see your live arrival. Ask for the 4 digit code only after reaching pickup."
     : "The customer code is verified. Live tracking now follows the trip to the destination.";
   const liveEta = routeSummary?.durationMin ?? ride.estimated_duration_min;
   const liveDistance = routeSummary?.distanceKm ?? ride.distance_km;
+  const fareBreakdown = calculateFareBreakdown(ride.fare_estimate);
+  const companyCommission = ride.company_commission ?? fareBreakdown.companyCommission;
+  const riderEarning = ride.rider_earning ?? fareBreakdown.riderEarning;
   const primaryDirections = ride.status === "assigned"
     ? directionsUrl(location, { lat: ride.pickup_lat, lng: ride.pickup_lng })
     : directionsUrl(location, { lat: ride.drop_lat, lng: ride.drop_lng });
@@ -684,7 +709,8 @@ function ActiveRiderJob({
         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
           {ride.pickup_address} to {ride.drop_address}
         </p>
-      </div>      <RideProgress ride={ride} />
+      </div>
+      <RideProgress ride={ride} />
       <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -742,14 +768,25 @@ function ActiveRiderJob({
       <RideChatPanel currentUserId={currentUserId} ride={ride} />
       {ride.status === "started" ? (
         <div className="rounded-[1.5rem] bg-[#101713] p-4 text-white">
-          <p className="text-sm font-semibold text-white/60">Drop-off control</p>
-          <p className="mt-1 text-xl font-black">End the ride at destination</p>
+          <p className="text-sm font-semibold text-white/60">Payment collection</p>
+          <p className="mt-1 text-xl font-black">Collect fare before completing</p>
           <p className="mt-2 text-sm leading-6 text-white/65">
-            Tap complete only after the user reaches the drop location.
+            Total fare {formatMoney(ride.fare_estimate)}. Company gets {formatMoney(companyCommission)} (7%); you earn {formatMoney(riderEarning)}.
           </p>
-          <Button className="mt-4 h-14 w-full rounded-full bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onComplete}>
-            Complete ride
-          </Button>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[#101713]">
+            <div className="rounded-2xl bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>
+            <div className="rounded-2xl bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Taxiro</p><p className="font-black">{formatMoney(companyCommission)}</p></div>
+            <div className="rounded-2xl bg-secondary p-2"><p className="text-[10px] font-bold uppercase">You</p><p className="font-black">{formatMoney(riderEarning)}</p></div>
+          </div>
+          {ride.payment_status === "awaiting_payment" ? (
+            <Button className="mt-4 h-14 w-full rounded-full bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onPaymentReceived}>
+              Payment received - complete ride
+            </Button>
+          ) : (
+            <Button className="mt-4 h-14 w-full rounded-full bg-secondary text-base font-black text-[#101713] hover:bg-secondary/90" onClick={onReachedDrop}>
+              Reached drop - collect payment
+            </Button>
+          )}
         </div>
       ) : null}
     </div>
@@ -783,6 +820,8 @@ function formatTrackingAge(value: string) {
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.round(seconds / 60)}m ago`;
 }
+
+
 
 
 

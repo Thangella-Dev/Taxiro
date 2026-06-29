@@ -3,6 +3,7 @@ import { Clock, MapPin, Navigation } from "lucide-react";
 
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card } from "@/components/ui/card";
+import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import type { RideRequest } from "@/types/database";
 
 export function RideCard({
@@ -12,6 +13,10 @@ export function RideCard({
   action?: React.ReactNode;
   ride: RideRequest;
 }) {
+  const breakdown = calculateFareBreakdown(ride.fare_estimate);
+  const companyCommission = ride.company_commission ?? breakdown.companyCommission;
+  const riderEarning = ride.rider_earning ?? breakdown.riderEarning;
+
   return (
     <Card className="min-w-0 overflow-hidden rounded-2xl p-4">
       <div className="mb-4 grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
@@ -40,8 +45,12 @@ export function RideCard({
         {ride.estimated_duration_min ? (
           <span>{ride.estimated_duration_min} min ETA</span>
         ) : null}
-        {ride.fare_estimate ? <span>₹{ride.fare_estimate} estimated</span> : null}
+        {ride.fare_estimate ? <span>{formatMoney(ride.fare_estimate)} fare</span> : null}
+        {companyCommission ? <span>Taxiro {formatMoney(companyCommission)}</span> : null}
+        {riderEarning ? <span>Rider earns {formatMoney(riderEarning)}</span> : null}
+        <span>{ride.payment_status ?? "pending"}</span>
         <span className="uppercase">{ride.payment_method ?? "cash"}</span>
+        {ride.cancellation_fee ? <span>Fine {formatMoney(ride.cancellation_fee)}</span> : null}
         {ride.assigned_rider_id ? (
           <span>Rider {ride.assigned_rider_id.slice(0, 8)}</span>
         ) : null}
@@ -51,7 +60,7 @@ export function RideCard({
       </div>
       {ride.cancellation_reason ? (
         <p className="mt-3 rounded-2xl bg-red-50 p-3 text-sm text-red-700">
-          Cancelled: {ride.cancellation_reason}
+          Cancelled: {ride.cancellation_reason}{ride.cancellation_fee ? ` Fine: ${formatMoney(ride.cancellation_fee)}` : ""}
         </p>
       ) : null}
       <Link
@@ -63,3 +72,5 @@ export function RideCard({
     </Card>
   );
 }
+
+

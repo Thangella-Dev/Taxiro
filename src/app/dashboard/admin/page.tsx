@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bike, CalendarClock, MapPin, Search, ShieldCheck, Users } from "lucide-react";
+import { Bike, CalendarClock, IndianRupee, MapPin, Search, ShieldCheck, Users } from "lucide-react";
 
 import { AdminStatsCard } from "@/components/AdminStatsCard";
 import { AppShell } from "@/components/AppShell";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getCurrentUser, getProfile } from "@/lib/auth";
+import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { getSupabase } from "@/lib/supabase";
 import type { Profile, RideRequest, RiderLocation, RiderProfile } from "@/types/database";
 
@@ -180,6 +181,21 @@ export default function AdminDashboard() {
     });
   }, [query, rides, statusFilter]);
 
+  const moneyStats = useMemo(() => {
+    return rides.reduce(
+      (totals, ride) => {
+        const split = calculateFareBreakdown(ride.fare_estimate);
+        totals.gross += ride.fare_estimate ?? 0;
+        totals.company += ride.company_commission ?? split.companyCommission ?? 0;
+        totals.riders += ride.rider_earning ?? split.riderEarning ?? 0;
+        if (ride.payment_status === "awaiting_payment") totals.awaitingPayment += 1;
+        if (ride.payment_status === "paid") totals.paid += 1;
+        return totals;
+      },
+      { awaitingPayment: 0, company: 0, gross: 0, paid: 0, riders: 0 },
+    );
+  }, [rides]);
+
   if (!loading && !profile) {
     return (
       <AppShell title="Admin dashboard">
@@ -225,6 +241,13 @@ export default function AdminDashboard() {
           label="Active riders"
           value={riderLocations.filter((rider) => rider.is_available).length}
         />
+      </div>
+
+      <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminStatsCard icon={IndianRupee} label="Gross fares" value={formatMoney(moneyStats.gross)} />
+        <AdminStatsCard icon={IndianRupee} label="Taxiro 7%" value={formatMoney(moneyStats.company)} />
+        <AdminStatsCard icon={Bike} label="Rider earnings" value={formatMoney(moneyStats.riders)} />
+        <AdminStatsCard icon={CalendarClock} label="Awaiting payment" value={moneyStats.awaitingPayment} />
       </div>
 
       <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[0.7fr_1.3fr]">

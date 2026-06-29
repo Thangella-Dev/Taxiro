@@ -1,4 +1,4 @@
--- Taxidi core schema.
+-- Taxiro core schema.
 -- Safe to run on an existing Supabase project: creates missing objects only,
 -- enables RLS, and does not drop existing tables.
 

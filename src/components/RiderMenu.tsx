@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { HelpCircle, History, LogOut, ShieldCheck, X } from "lucide-react";
+import Link from "next/link";
+import { HelpCircle, History, Info, ListChecks, LogOut, ShieldCheck, X } from "lucide-react";
 
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { RiderIdentitySettings } from "@/components/RiderIdentitySettings";
@@ -31,7 +32,7 @@ export function RiderMenu({
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-              Taxidi rider
+              Taxiro rider
             </p>
             <h2 className="mt-1 truncate text-2xl font-black tracking-tight">
               {profile?.full_name ?? "Rider account"}
@@ -80,16 +81,12 @@ export function RiderMenu({
           </p>
         </section>
 
-        <section className="rounded-2xl border border-border bg-muted p-4">
-          <p className="flex items-center gap-2 font-black">
-            <HelpCircle className="size-4" />
-            Help and support
-          </p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            For this MVP, report account, matching, or location issues to the
-            Taxidi operations administrator.
-          </p>
-        </section>
+        <div className="grid gap-3">
+          <RiderInfoLink href="/about" icon={Info} title="About Taxiro" text="Product vision, live ride flow, and MVP limits." />
+          <RiderInfoLink href="/help" icon={HelpCircle} title="Help and support" text="Location, ride-code, chat, payment, and support guidance." />
+          <RiderInfoLink href="/privacy" icon={ShieldCheck} title="Privacy policy" text="Data visibility, rider tracking, and account privacy information." />
+          <RiderInfoLink href="/rules" icon={ListChecks} title="Rules and regulations" text="Safety, misuse, and accepted-ride cancellation fine rules." />
+        </div>
 
         <Button className="h-12 rounded-full" onClick={onSignOut} variant="outline">
           <LogOut className="size-4" />
@@ -100,3 +97,24 @@ export function RiderMenu({
   );
 }
 
+function RiderInfoLink({
+  href,
+  icon: Icon,
+  text,
+  title,
+}: {
+  href: string;
+  icon: typeof HelpCircle;
+  text: string;
+  title: string;
+}) {
+  return (
+    <Link className="rounded-2xl border border-border bg-muted p-4 transition hover:bg-secondary" href={href}>
+      <p className="flex items-center gap-2 font-black">
+        <Icon className="size-4" />
+        {title}
+      </p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+    </Link>
+  );
+}

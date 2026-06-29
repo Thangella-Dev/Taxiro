@@ -1,10 +1,10 @@
-﻿# Manager Update Email - 22 June 2026
+# Manager Update Email - 22 June 2026
 
-**Subject:** Taxidi MVP Daily Update - 22 June 2026
+**Subject:** Taxiro MVP Daily Update - 22 June 2026
 
 Hi Manager,
 
-Today I worked on making the Taxidi MVP more stable and closer to a real ride-hailing flow.
+Today I worked on making the Taxiro MVP more stable and closer to a real ride-hailing flow.
 
 Completed today:
 

@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatMoney } from "@/lib/fare";
 import type { RideRequest } from "@/types/database";
 
 const reasons = [
@@ -17,10 +18,12 @@ const reasons = [
 export function CancelRideDialog({
   onClose,
   onConfirm,
+  penaltyAmount = 0,
   ride,
 }: {
   onClose: () => void;
   onConfirm: (reason: string) => void;
+  penaltyAmount?: number;
   ride: RideRequest;
 }) {
   const [customReason, setCustomReason] = useState("");
@@ -45,6 +48,15 @@ export function CancelRideDialog({
             <X className="size-5" />
           </button>
         </header>
+
+        {penaltyAmount > 0 ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p className="font-black">Cancellation fine applies: {formatMoney(penaltyAmount)}</p>
+            <p className="mt-1 leading-5">
+              This is your 3rd or later user cancellation and a rider has already accepted this ride.
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-2">
           {reasons.map((reason) => (

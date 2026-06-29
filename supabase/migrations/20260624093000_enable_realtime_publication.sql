@@ -1,4 +1,4 @@
-﻿-- Enable Supabase Realtime for Taxidi live ride updates.
+-- Enable Supabase Realtime for Taxiro live ride updates.
 -- Additive only: no tables or rows are deleted.
 
 do $$

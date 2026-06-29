@@ -1,0 +1,49 @@
+import { Database, Eye, Lock, ShieldCheck } from "lucide-react";
+
+import { AppShell } from "@/components/AppShell";
+import { InfoSection } from "@/components/InfoSection";
+
+export default function PrivacyPage() {
+  return (
+    <AppShell title="Privacy policy">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <InfoSection
+          icon={Database}
+          title="Data collected"
+          items={[
+            "Taxiro stores account profile details, role, phone, emergency contact, ride addresses, coordinates, status, fare, payment preference, and chat messages.",
+            "Rider accounts can store vehicle details, licence number, UPI ID, and UPI QR image URL.",
+            "Rider location records can include latitude, longitude, accuracy, speed, heading, and last-seen time while the rider app is active.",
+          ]}
+        />
+        <InfoSection
+          icon={Eye}
+          title="Who can see what"
+          items={[
+            "Users can see their own rides, assigned rider tracking, assigned chat, and payment information for their rides.",
+            "Riders can see ready ride requests, assigned ride details, route information, customer chat, and payment status for their work.",
+            "Admins can view platform records needed for operations, verification, support, and safety review.",
+          ]}
+        />
+        <InfoSection
+          icon={Lock}
+          title="Protection"
+          items={[
+            "Supabase Row Level Security is used to limit access to role-appropriate records.",
+            "The frontend uses the public anon key only. Service-role credentials must never be shipped to the browser.",
+            "Secrets and local MCP tokens should stay out of Git and deployment logs.",
+          ]}
+        />
+        <InfoSection
+          icon={ShieldCheck}
+          title="MVP privacy note"
+          items={[
+            "This policy is for MVP development and internal testing, not final legal production language.",
+            "Before public launch, privacy, retention, deletion, support, and payment policies should be reviewed legally.",
+            "Users should not upload sensitive documents or unnecessary personal information beyond MVP testing needs.",
+          ]}
+        />
+      </div>
+    </AppShell>
+  );
+}
