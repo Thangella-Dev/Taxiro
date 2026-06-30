@@ -34,13 +34,13 @@ The MVP currently includes:
 - Pickup/drop map selection.
 - Focused map-only selection mode.
 - Scheduled ride creation.
-- **I'm Ready** ride activation.
+- **I'm Ready** ride activation with 15/30/60-minute signals, in-button progress, and visible error feedback.
 - Rider online/offline availability.
 - Rider location update.
 - Rider ride acceptance.
 - Private ride confirmation code with repair fallback if the code row is missing or not returned.
 - Ride start, drop-reached payment collection, and payment-confirmed completion.
-- Ride cancellation for scheduled, ready, and accepted-before-start rides with structured cancellation reasons.
+- Ride cancellation for scheduled, ready, and accepted-before-start rides with progress/error feedback and rider-specific release reasons.
 - Accepted-ride cancellation fine: from the 3rd user cancellation onward, cancelling after rider acceptance records a Rs 50 fine.
 - User menu with profile, rides, settings, about, help/support, and sign out.
 - Admin monitoring dashboard with ride search, status filters, rider verification controls, and revenue split stats.
@@ -221,6 +221,7 @@ Schema files:
 - `supabase/migrations/20260629113000_accepted_ride_cancellation_fine.sql`
 - `supabase/migrations/20260630093000_signal_expiry_and_safety_alerts.sql`
 - `supabase/migrations/20260630130000_distance_pricing_and_passenger_details.sql`
+- `supabase/migrations/20260630173000_repair_ready_and_cancel_actions.sql`
 
 Main tables:
 
@@ -468,13 +469,13 @@ Latest verification completed on 30 June 2026:
 - Fare boundary checks for standard and peak windows: passed.
 - `git diff --check`: passed after formatting cleanup.
 
-Pending database status:
+Remote database status:
 
-- `20260629093000_taxiro_fare_payment_flow.sql` is implemented locally but must still be applied to the remote Supabase project.
-- `20260629113000_accepted_ride_cancellation_fine.sql` is implemented locally but must still be applied to the remote Supabase project.
-- `20260630093000_signal_expiry_and_safety_alerts.sql` is implemented locally but must still be applied to the remote Supabase project.
-- `20260630130000_distance_pricing_and_passenger_details.sql` is implemented locally but must still be applied to the remote Supabase project.
-- The current `upi_id` schema-cache error is expected until the fare/payment migration is applied and PostgREST reloads its schema.
+- Payment/UPI and accepted-ride cancellation fields/functions are present remotely.
+- `20260630093000_signal_expiry_and_safety_alerts.sql` is applied to remote Supabase.
+- `20260630130000_distance_pricing_and_passenger_details.sql` is applied to remote Supabase.
+- `20260630173000_repair_ready_and_cancel_actions.sql` is applied to align the Ready, expiry, and rider/user cancellation RPCs with the current app.
+- Remote verification confirmed ready/fare/passenger columns, safety/notification tables, and required ride-action RPC signatures.
 
 Pending manual QA:
 

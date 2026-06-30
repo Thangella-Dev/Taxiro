@@ -39,6 +39,7 @@ Today's work focused on making Taxiro feel closer to a real daily-use ride app: 
 - `src/components/ResponsiveRideSheet.tsx`
 - `supabase/migrations/20260630093000_signal_expiry_and_safety_alerts.sql`
 - `supabase/migrations/20260630130000_distance_pricing_and_passenger_details.sql`
+- `supabase/migrations/20260630173000_repair_ready_and_cancel_actions.sql`
 - `src/app/manifest.ts`, `src/app/robots.ts`, `src/app/sitemap.ts`
 - `public/llms.txt`, `public/llms-full.txt`, `public/humans.txt`, `public/browserconfig.xml`
 - `public/icons/*`, `public/og/taxiro-og.png`, `src/app/icon.png`, `src/app/apple-icon.png`, `src/app/favicon.ico`
@@ -53,20 +54,32 @@ Today's work focused on making Taxiro feel closer to a real daily-use ride app: 
 
 ## Current Database Status
 
-The June 30 migrations are implemented locally and are additive only. They still need to be applied in Supabase before live testing the new ready-signal expiry, safety-alert, peak-pricing, booking-for, and passenger-contact fields.
+The June 30 ready-signal/safety and distance-pricing/passenger migrations are now applied to the remote Supabase project. The ride-action compatibility repair is also deployed, and PostgREST was instructed to reload its schema.
 
-If the remote Supabase project has not applied the June 29 and June 30 migrations, the app may show schema-cache errors for fields such as `upi_id`, `fare_rate_per_km`, `booking_for`, or safety/notification tables until the migrations are run and PostgREST reloads its schema.
+Remote verification confirmed the required ready, fare, and passenger fields; `safety_alerts` and `app_notifications`; and the Ready, Cancel, and expiry RPCs. Real two-account/two-device ride QA remains the release gate.
 
 ## Next Steps
 
-1. Apply the pending June 29 and June 30 migrations in Supabase SQL Editor in timestamp order.
-2. Run `notify pgrst, 'reload schema';` after migration execution.
-3. Test a complete two-account ride: book, ready signal, rider accept, live pickup tracking, code verification, destination tracking, payment, and completion.
-4. Test ready-signal expiry for 15, 30, and 60 minute choices.
-5. Test booking for someone else and confirm rider/admin views show passenger name and phone correctly.
-6. Test SOS/safety notification flow with an emergency contact account whose phone matches the saved contact number.
-7. Run mobile and desktop visual QA after the remote database is current.
+1. Test a complete two-account ride: book, ready signal, rider accept, live pickup tracking, code verification, destination tracking, payment, and completion.
+2. Test both user cancellation and rider cancellation before confirmation-code verification.
+3. Test ready-signal expiry for 15, 30, and 60 minute choices.
+4. Test booking for someone else and confirm rider/admin views show passenger name and phone correctly.
+5. Test SOS/safety notification flow with an emergency contact account whose phone matches the saved contact number.
+6. Complete iOS Safari, Android Chrome, tablet, and desktop visual QA on the deployed Vercel build.
 
 ## Overall Status
 
-Taxiro is now stronger as a real ride-hailing MVP: pricing is clearer, rider demand is more actionable, ride detail views update live, desktop/mobile panels are more app-like, and passenger/safety foundations are in place. The main blocker remains applying the pending Supabase migrations and running real two-device QA.
+Taxiro is now stronger as a real ride-hailing MVP: pricing is clearer, rider demand is more actionable, ride detail views update live, desktop/mobile panels are more app-like, and passenger/safety foundations are in place. The remaining release gate is real two-account/two-device QA and deployed-device visual validation.
+
+## Late-Day Ride Action And Mobile Repair
+
+- Investigated the live Supabase project and identified the exact **I'm Ready** failure: the remote project only exposed the older one-argument RPC while the app called the timed two-argument RPC.
+- Applied the additive timed-ready/safety migration and distance-pricing/passenger migration to the remote Supabase project.
+- Added and applied `20260630173000_repair_ready_and_cancel_actions.sql` to align Ready, expiry, and cancellation behavior.
+- Verified remotely that ready-signal fields, fare/passenger fields, `safety_alerts`, `app_notifications`, and the required Ready/Cancel/expiry RPCs now exist.
+- Added visible `Publishing...` state and clear success/error feedback to **I'm Ready**.
+- Improved cancellation UX with `Cancelling...`, disabled duplicate submission, and inline database errors inside the dialog.
+- Confirmed riders can release an accepted ride only before confirmation-code verification, and added rider-specific reasons for passenger, route, contact, vehicle, or safety issues.
+- Moved the rider location status/control to the left on mobile so it no longer competes with Online and Menu controls.
+- Added iPhone safe-area positioning to the public app header so it stays below the status bar/Dynamic Island.
+- Re-ran TypeScript and focused ESLint successfully. A 430 x 932 Chrome mobile render returned HTTP 200 without a Next.js runtime error.

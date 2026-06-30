@@ -79,6 +79,7 @@ export default function UserDashboard() {
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
   const [riderProfiles, setRiderProfiles] = useState<Record<string, RiderProfile>>({});
   const [readySignalMinutes, setReadySignalMinutes] = useState<15 | 30 | 60>(30);
+  const [readyRideId, setReadyRideId] = useState<string | null>(null);
   const [rideNote, setRideNote] = useState("");
   const [sosBusy, setSosBusy] = useState(false);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
@@ -441,36 +442,43 @@ export default function UserDashboard() {
 
   async function markReady(ride: RideRequest) {
     const supabase = getSupabase();
-    if (!supabase) {
+    if (!supabase || readyRideId === ride.id) {
       return;
     }
-    const { error } = await supabase.rpc("mark_ride_ready_and_assign", {
-      p_ride_id: ride.id,
-      p_signal_minutes: readySignalMinutes,
-    });
-    setMessage(error ? error.message : "Searching nearby riders now.");
-    if (userId) {
-      await loadRides(userId);
+    setReadyRideId(ride.id);
+    setMessage("Publishing your ready signal...");
+    try {
+      const { error } = await supabase.rpc("mark_ride_ready_and_assign", {
+        p_ride_id: ride.id,
+        p_signal_minutes: readySignalMinutes,
+      });
+      setMessage(error ? `Could not publish: ${error.message}` : "You are live. Nearby riders can accept this ride now.");
+      if (userId) {
+        await loadRides(userId);
+      }
+    } finally {
+      setReadyRideId(null);
     }
   }
 
-  async function cancelRide(ride: RideRequest, reason: string) {
+  async function cancelRide(ride: RideRequest, reason: string): Promise<string | null> {
     if (!userId) {
-      return;
+      return "Please sign in again before cancelling this ride.";
     }
     const supabase = getSupabase();
     if (!supabase) {
-      return;
+      return "Supabase is not configured.";
     }
     const { error } = await supabase.rpc("cancel_ride", {
       p_reason: reason,
       p_ride_id: ride.id,
     });
-    setMessage(error ? error.message : "Ride cancelled.");
+    setMessage(error ? `Could not cancel: ${error.message}` : "Ride cancelled.");
     if (!error) {
       setCancelTarget(null);
     }
     await loadRides(userId);
+    return error?.message ?? null;
   }
   const resyncUserData = useCallback(async () => {
     if (userId) {
@@ -686,6 +694,7 @@ export default function UserDashboard() {
                 onCancel={() => setCancelTarget(activeRide)}
                 onReady={() => void markReady(activeRide)}
                 onReadySignalMinutesChange={setReadySignalMinutes}
+                readyBusy={readyRideId === activeRide.id}
                 onSos={() => void triggerSafetyAlert("sos", "SOS button pressed by the user during a Taxiro ride.")}
                 readySignalMinutes={readySignalMinutes}
                 riderLocation={assignedRiderLocation}
@@ -1017,7 +1026,7 @@ export default function UserDashboard() {
         {cancelTarget ? (
           <CancelRideDialog
             onClose={() => setCancelTarget(null)}
-            onConfirm={(reason) => void cancelRide(cancelTarget, reason)}
+            onConfirm={(reason) => cancelRide(cancelTarget, reason)}
             penaltyAmount={getUserCancellationFine(userCancelledRideCount, Boolean(cancelTarget.assigned_rider_id))}
             ride={cancelTarget}
           />
@@ -1264,6 +1273,7 @@ function ActiveUserRide({
   onReadySignalMinutesChange,
   onSos,
   readySignalMinutes,
+  readyBusy,
   riderLocation,
   riderProfile,
   routeSummary,
@@ -1277,6 +1287,7 @@ function ActiveUserRide({
   onReadySignalMinutesChange: (minutes: 15 | 30 | 60) => void;
   onSos: () => void;
   readySignalMinutes: 15 | 30 | 60;
+  readyBusy: boolean;
   riderLocation?: RiderLocation | null;
   riderProfile?: RiderProfile | null;
   routeSummary: { distanceKm: number | null; durationMin: number | null } | null;
@@ -1308,8 +1319,8 @@ function ActiveUserRide({
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           {canPublishReady ? (
-            <Button className="rounded-lg" onClick={onReady}>
-              {readyExpired ? "Publish again" : "I'm Ready"}
+            <Button className="rounded-lg" disabled={readyBusy} onClick={onReady}>
+              {readyBusy ? "Publishing..." : readyExpired ? "Publish again" : "I'm Ready"}
             </Button>
           ) : null}
           {["scheduled", "ready", "assigned"].includes(ride.status) ? (

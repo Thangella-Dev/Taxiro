@@ -319,23 +319,24 @@ export default function RiderDashboard() {
     await loadRiderData(profile.id);
   }
 
-  async function cancelRide(ride: RideRequest, reason: string) {
+  async function cancelRide(ride: RideRequest, reason: string): Promise<string | null> {
     if (!profile) {
-      return;
+      return "Please sign in again before cancelling this ride.";
     }
     const supabase = getSupabase();
     if (!supabase) {
-      return;
+      return "Supabase is not configured.";
     }
     const { error } = await supabase.rpc("cancel_ride", {
       p_reason: reason,
       p_ride_id: ride.id,
     });
-    setMessage(error ? error.message : "Ride cancelled and released.");
+    setMessage(error ? `Could not cancel: ${error.message}` : "Ride cancelled and released.");
     if (!error) {
       setCancelTarget(null);
     }
     await loadRiderData(profile.id);
+    return error?.message ?? null;
   }
 
   async function markReachedDrop(ride: RideRequest) {
@@ -530,8 +531,8 @@ export default function RiderDashboard() {
           </div>
         </div>
 
-        <div className="absolute right-2 top-20 z-[1200] grid max-w-[calc(100%-1rem)] justify-items-end gap-2 sm:right-4 sm:top-24 lg:left-4 lg:right-auto lg:justify-items-start">
-          <div className="max-w-[14rem] rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-right text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur lg:text-left">
+        <div className="absolute left-2 top-20 z-[1200] grid max-w-[calc(100%-1rem)] justify-items-start gap-2 sm:left-4 sm:top-24">
+          <div className="max-w-[14rem] rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-left text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur">
             {gpsStatus}
           </div>
           <button
@@ -699,8 +700,9 @@ export default function RiderDashboard() {
         ) : null}
         {cancelTarget ? (
           <CancelRideDialog
+            actor="rider"
             onClose={() => setCancelTarget(null)}
-            onConfirm={(reason) => void cancelRide(cancelTarget, reason)}
+            onConfirm={(reason) => cancelRide(cancelTarget, reason)}
             penaltyAmount={0}
             ride={cancelTarget}
           />

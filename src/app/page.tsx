@@ -15,7 +15,7 @@ export default function Home() {
             pickup={{ address: "KPHB, Hyderabad", lat: 17.4933, lng: 78.3914 }}
           />
 
-          <header className="absolute inset-x-3 top-3 z-20 flex items-center justify-between gap-3 sm:inset-x-5 sm:top-5">
+          <header className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-20 flex items-center justify-between gap-3 sm:inset-x-5 sm:top-5">
             <Link href="/" className="flex items-center gap-2 rounded-xl border border-white/80 bg-white/94 px-3 py-2 font-black shadow-[var(--shadow-soft)] backdrop-blur">
               <span className="flex size-9 items-center justify-center rounded-lg bg-[#101713] text-white">
                 <Bike className="size-4" />

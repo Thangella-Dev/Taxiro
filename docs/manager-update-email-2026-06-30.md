@@ -38,14 +38,26 @@ Verification completed:
 
 Current status:
 
-The code and local SQL migrations are complete. The pending June 29 and June 30 migrations still need to be applied to remote Supabase before live testing all UPI/payment, ready-signal expiry, safety-alert, peak-pricing, and passenger-booking behavior.
+The required June 30 ready/safety and fare/passenger migrations are now deployed to remote Supabase. The Ready/Cancel compatibility repair is also deployed and verified. Real two-account/two-device QA remains before release sign-off.
 
 Next actions:
 
-- Apply pending SQL migrations in Supabase and reload the schema cache.
+- Verify the Vercel production deployment against the updated Supabase schema.
 - Run full two-device QA for user and rider flows.
 - Validate ready signal expiry, peak fare calculation, passenger booking, SOS notifications, realtime ride details, and payment completion.
-- Continue mobile/desktop visual QA after the remote database is current.
+- Complete iOS Safari, Android Chrome, tablet, and desktop visual QA on the deployed build.
+
+Late-day production repair:
+
+- Diagnosed the live I'm Ready issue as a Supabase RPC signature mismatch between the deployed database and current frontend.
+- Applied the pending additive June 30 ready/safety and fare/passenger migrations to remote Supabase.
+- Applied and verified a final Ready/Cancel compatibility migration; required columns, safety tables, and RPCs are now present remotely.
+- Added action progress and inline error feedback for Ready and cancellation instead of silent clicks.
+- Confirmed rider cancellation is available after acceptance and before code verification, with rider-specific operational/safety reasons.
+- Corrected iPhone safe-area header placement and moved rider location controls to the left so they do not obstruct Online/Menu controls.
+- TypeScript and focused ESLint pass; the 430 x 932 local mobile route returned HTTP 200 without a Next.js runtime error.
+
+Revised status: the required June 30 database changes are deployed. The next release gate is real two-account/two-device end-to-end QA, followed by Vercel deployment validation.
 
 Regards,
 
