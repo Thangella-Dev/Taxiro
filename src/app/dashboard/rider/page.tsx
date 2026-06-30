@@ -24,6 +24,7 @@ import { RideProgress } from "@/components/RideProgress";
 import { ResponsiveRideSheet } from "@/components/ResponsiveRideSheet";
 import { RiderAvailabilityToggle } from "@/components/RiderAvailabilityToggle";
 import { RiderMenu } from "@/components/RiderMenu";
+import { RiderVehicleSwitcher } from "@/components/RiderVehicleSwitcher";
 import { RouteSetupForm } from "@/components/RouteSetupForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,8 @@ import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { getPreciseCurrentLocation, watchRiderLocation, type RiderTrackingUpdate } from "@/lib/tracking";
 import { getSupabase } from "@/lib/supabase";
 import { useLiveResync } from "@/lib/useLiveResync";
-import type { LatLng, Profile, RideRequest, RiderLocation, RiderProfile } from "@/types/database";
+import { getVehicleLabel } from "@/lib/vehicles";
+import type { LatLng, Profile, RideRequest, RiderLocation, RiderProfile, RiderVehicle, VehicleType } from "@/types/database";
 
 export default function RiderDashboard() {
   const router = useRouter();
@@ -52,6 +54,8 @@ export default function RiderDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [riderLocation, setRiderLocation] = useState<RiderLocation | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
+  const [riderVehicles, setRiderVehicles] = useState<RiderVehicle[]>([]);
+  const [switchingVehicle, setSwitchingVehicle] = useState(false);
   const [riders, setRiders] = useState<RiderLocation[]>([]);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
@@ -64,7 +68,7 @@ export default function RiderDashboard() {
     }
     await supabase.rpc("expire_ready_signals");
 
-    const [rideResult, riderResult, myLocationResult, riderProfileResult] = await Promise.all([
+    const [rideResult, riderResult, myLocationResult, riderProfileResult, riderVehicleResult] = await Promise.all([
       supabase
         .from("ride_requests")
         .select("*")
@@ -73,6 +77,7 @@ export default function RiderDashboard() {
       supabase.from("rider_locations").select("*"),
       supabase.from("rider_locations").select("*").eq("rider_id", riderId).maybeSingle(),
       supabase.from("rider_profiles").select("*").eq("rider_id", riderId).maybeSingle(),
+      supabase.from("rider_vehicles").select("*").eq("rider_id", riderId).order("vehicle_type"),
     ]);
 
     if (rideResult.error) {
@@ -90,6 +95,11 @@ export default function RiderDashboard() {
       setGpsStatus(current.last_seen_at ? `Last live update ${formatTrackingAge(current.last_seen_at)}` : "Tap refresh or allow GPS tracking.");
     }
     setRiderProfile((riderProfileResult.data as RiderProfile | null) ?? null);
+    if (riderVehicleResult.error) {
+      setMessage(riderVehicleResult.error.message);
+    } else {
+      setRiderVehicles((riderVehicleResult.data as RiderVehicle[]) ?? []);
+    }
   }, []);
 
   useEffect(() => {
@@ -165,6 +175,29 @@ export default function RiderDashboard() {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rider_vehicles" },
+        (payload) => {
+          if (!riderId) return;
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old as Partial<RiderVehicle>;
+            if (deleted.id) setRiderVehicles((current) => current.filter((vehicle) => vehicle.id !== deleted.id));
+            return;
+          }
+          const incoming = payload.new as RiderVehicle;
+          if (incoming.rider_id === riderId) setRiderVehicles((current) => upsertById(current, incoming));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rider_profiles" },
+        (payload) => {
+          if (!riderId) return;
+          const incoming = payload.new as RiderProfile;
+          if (incoming.rider_id === riderId) setRiderProfile(incoming);
+        },
+      )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           setMessage("Live rider updates are reconnecting. Keep Taxiro open for instant jobs and tracking.");
@@ -182,7 +215,7 @@ export default function RiderDashboard() {
     if (!supabase || !profile || profile.role !== "rider") return;
 
     const stop = watchRiderLocation({
-      isAvailable: riderLocation?.is_available ?? true,
+      isAvailable: riderLocation?.is_available ?? false,
       onError: (trackingError) => {
         setGpsStatus(trackingError);
       },
@@ -192,7 +225,7 @@ export default function RiderDashboard() {
         setRiderLocation((current) => ({
           accuracy_m: liveLocation.accuracy_m,
           heading: liveLocation.heading,
-          is_available: current?.is_available ?? true,
+          is_available: current?.is_available ?? false,
           last_seen_at: now,
           lat: liveLocation.lat,
           lng: liveLocation.lng,
@@ -232,7 +265,7 @@ export default function RiderDashboard() {
       return;
     }
     const { error } = await supabase.from("rider_locations").upsert({
-      is_available: riderLocation?.is_available ?? true,
+      is_available: riderLocation?.is_available ?? false,
       lat: point.lat,
       lng: point.lng,
       rider_id: profile.id,
@@ -281,6 +314,26 @@ export default function RiderDashboard() {
     } finally {
       setDetectingLocation(false);
     }
+  }
+
+  async function switchVehicle(vehicleType: VehicleType) {
+    if (!profile || switchingVehicle) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    setSwitchingVehicle(true);
+    setMessage(`Switching to ${vehicleType}...`);
+    const { data, error } = await supabase.rpc("set_active_rider_vehicle", {
+      p_vehicle_type: vehicleType,
+    });
+    setSwitchingVehicle(false);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setRiderProfile(data as RiderProfile);
+    setMessage(`${vehicleType[0].toUpperCase()}${vehicleType.slice(1)} is now active for matching.`);
+    await loadRiderData(profile.id);
   }
 
   async function acceptRide(ride: RideRequest) {
@@ -382,14 +435,18 @@ export default function RiderDashboard() {
     return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${from.lat}%2C${from.lng}%3B${to.lat}%2C${to.lng}`;
   }
 
+  const activeVehicleType = riderProfile?.active_vehicle_type ?? null;
+  const hasVerifiedActiveVehicle = Boolean(
+    activeVehicleType && riderVehicles.some((vehicle) => vehicle.vehicle_type === activeVehicleType && vehicle.verification_status === "verified"),
+  );
   const readyRides = rides
-    .filter(isReadyRideVisible)
+    .filter((ride) => isReadyRideVisible(ride) && ride.vehicle_type === activeVehicleType)
     .sort((a, b) => approxDistanceKm(location, a) - approxDistanceKm(location, b));
   const scheduledRides = rides
-    .filter((ride) => ride.status === "scheduled")
+    .filter((ride) => ride.status === "scheduled" && ride.vehicle_type === activeVehicleType)
     .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
   const demandMapRides = rides
-    .filter((ride) => isReadyRideVisible(ride) || ride.status === "scheduled")
+    .filter((ride) => ride.vehicle_type === activeVehicleType && (isReadyRideVisible(ride) || ride.status === "scheduled"))
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === "ready" ? -1 : 1;
       return approxDistanceKm(location, a) - approxDistanceKm(location, b);
@@ -502,8 +559,10 @@ export default function RiderDashboard() {
             </span>
             {profile ? (
               <RiderAvailabilityToggle
+                canGoOnline={hasVerifiedActiveVehicle}
                 initial={riderLocation?.is_available ?? false}
                 location={location}
+                onError={setMessage}
                 onChanged={(isAvailable) =>
                   setRiderLocation((current) => ({
                     is_available: isAvailable,
@@ -531,8 +590,8 @@ export default function RiderDashboard() {
           </div>
         </div>
 
-        <div className="absolute left-2 top-20 z-[1200] grid max-w-[calc(100%-1rem)] justify-items-start gap-2 sm:left-4 sm:top-24">
-          <div className="max-w-[14rem] rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-left text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur">
+        <div className="absolute left-2 top-[calc(max(0.5rem,env(safe-area-inset-top))+5rem)] z-[1200] flex max-w-[calc(100%-1rem)] items-center gap-2 sm:left-4 sm:top-24">
+          <div className="max-w-[11rem] truncate rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-left text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur sm:max-w-[14rem]">
             {gpsStatus}
           </div>
           <button
@@ -586,6 +645,13 @@ export default function RiderDashboard() {
                     {riderLocation?.is_available ? "Online" : "Offline"}
                   </Badge>
                 </div>
+                <RiderVehicleSwitcher
+                  activeType={activeVehicleType}
+                  busy={switchingVehicle}
+                  disabled={Boolean(activeRide)}
+                  onSwitch={(type) => void switchVehicle(type)}
+                  vehicles={riderVehicles}
+                />
                 <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
                   <MiniStat icon={Radio} label="Ready" value={readyRides.length} />
                   <MiniStat icon={Clock3} label="Advance" value={scheduledRides.length} />
@@ -934,7 +1000,7 @@ function RequestCard({
       <div className="mt-3 grid gap-2 text-sm">
         <p className="rounded-lg bg-secondary/70 px-3 py-2 text-xs font-bold">
           {ride.booking_for === "other" ? `Picking up ${ride.passenger_name || "another passenger"}` : "Customer is riding"}
-          {ride.fare_rate_per_km ? ` - Rs ${ride.fare_rate_per_km}/km` : ""}
+          {ride.fare_rate_per_km ? ` - ${getVehicleLabel(ride.vehicle_type)} Rs ${(ride.fare_rate_per_km ?? 0) + (ride.vehicle_surcharge_per_km ?? 0)}/km` : ""}
         </p>
         <p className="flex gap-2">
           <MapPinned className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -1023,7 +1089,7 @@ function ActiveRiderJob({
   return (
     <div className="grid gap-3">
       <div className="min-w-0">
-        <Badge className="bg-primary text-primary-foreground">Active job</Badge>
+        <Badge className="bg-primary text-primary-foreground">Active {getVehicleLabel(ride.vehicle_type)} job</Badge>
         <h1 className="mt-2 text-3xl font-black tracking-tight">{riderHeadline(ride.status)}</h1>
         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
           {ride.pickup_address} to {ride.drop_address}

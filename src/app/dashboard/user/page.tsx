@@ -7,6 +7,8 @@ import {
   AlertTriangle,
   Bike,
   CalendarClock,
+  CarFront,
+  CarTaxiFront,
   ChevronDown,
   Clock3,
   HelpCircle,
@@ -39,11 +41,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
-import { calculateFareBreakdown, formatMoney, getBikeFareQuote, getUserCancellationFine } from "@/lib/fare";
+import { calculateFareBreakdown, formatMoney, getUserCancellationFine, getVehicleFareQuote } from "@/lib/fare";
 import { createSafetyAlert, usePanicTrigger, useRideSafetyMonitor } from "@/lib/safety";
 import { getSupabase } from "@/lib/supabase";
 import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M } from "@/lib/tracking";
 import { useLiveResync } from "@/lib/useLiveResync";
+import { normalizePhone, validateFullName, validatePhone } from "@/lib/validation";
+import { VEHICLE_OPTIONS, getVehicleLabel } from "@/lib/vehicles";
 import type {
   LatLng,
   Profile,
@@ -52,6 +56,7 @@ import type {
   RiderLocation,
   RiderProfile,
   SafetyAlertType,
+  VehicleType,
 } from "@/types/database";
 
 export default function UserDashboard() {
@@ -86,6 +91,7 @@ export default function UserDashboard() {
   const [routeSummary, setRouteSummary] = useState<{ distanceKm: number | null; durationMin: number | null } | null>(null);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [vehicleType, setVehicleType] = useState<VehicleType>("bike");
   const [showRideOptions, setShowRideOptions] = useState(false);
   const [scheduledTime, setScheduledTime] = useState(() =>
     toDateTimeLocalInput(new Date(Date.now() + 30 * 60 * 1000)),
@@ -373,12 +379,14 @@ export default function UserDashboard() {
       setMessage("Choose pickup and drop first.");
       return;
     }
-    const cleanPassengerName = bookingFor === "self" ? profile?.full_name?.trim() ?? "" : passengerName.trim();
-    const cleanPassengerPhone = bookingFor === "self" ? profile?.phone?.trim() ?? "" : passengerPhone.trim();
-    if (bookingFor === "other" && (cleanPassengerName.length < 2 || cleanPassengerPhone.replace(/\D/g, "").length < 10)) {
-      setMessage("Enter the passenger name and a valid phone number.");
+    const cleanPassengerName = bookingFor === "self" ? profile?.full_name?.trim() ?? "" : passengerName.trim().replace(/\s+/g, " ");
+    const rawPassengerPhone = bookingFor === "self" ? profile?.phone?.trim() ?? "" : passengerPhone.trim();
+    const passengerValidationError = validateFullName(cleanPassengerName, "Passenger name") ?? validatePhone(rawPassengerPhone, "Passenger phone");
+    if (passengerValidationError) {
+      setMessage(passengerValidationError);
       return;
     }
+    const cleanPassengerPhone = normalizePhone(rawPassengerPhone);
 
     const supabase = getSupabase();
     if (!supabase) {
@@ -398,7 +406,7 @@ export default function UserDashboard() {
 
     setMessage("Finding route...");
     const summary = await getRouteSummary(pickup, drop);
-    const fareQuote = getBikeFareQuote(summary.distanceKm, rideTime);
+    const fareQuote = getVehicleFareQuote(summary.distanceKm, rideTime, vehicleType);
     const fareBreakdown = calculateFareBreakdown(fareQuote.fare);
     const { error } = await supabase.from("ride_requests").insert({
       assigned_rider_id: null,
@@ -408,7 +416,9 @@ export default function UserDashboard() {
       drop_lng: drop.lng,
       estimated_duration_min: summary.durationMin,
       fare_estimate: fareQuote.fare,
-      fare_rate_per_km: fareQuote.ratePerKm,
+      fare_rate_per_km: fareQuote.baseRatePerKm,
+      vehicle_surcharge_per_km: fareQuote.vehicleSurchargePerKm,
+      vehicle_type: vehicleType,
       fare_pricing_period: fareQuote.period,
       company_commission: fareBreakdown.companyCommission,
       rider_earning: fareBreakdown.riderEarning,
@@ -552,9 +562,10 @@ export default function UserDashboard() {
     ["completed", "cancelled"].includes(ride.status),
   );
   const userCancelledRideCount = rides.filter((ride) => ride.status === "cancelled" && (!ride.cancelled_by || ride.cancelled_by === userId)).length;
-  const displayedFare = getBikeFareQuote(
+  const displayedFare = getVehicleFareQuote(
     routeSummary?.distanceKm ?? null,
     bookingMode === "advance" ? scheduledTime : undefined,
+    vehicleType,
   );
   const safetyLocation = useMemo(
     () =>
@@ -726,12 +737,26 @@ export default function UserDashboard() {
                   <>
                 <div className="min-w-0">
                   <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">Where are you going?</h1>
-                  <p className="text-xs text-muted-foreground sm:text-sm">Bike taxi - quick pickup</p>
+                  <p className="text-xs text-muted-foreground sm:text-sm">{getVehicleLabel(vehicleType)} ride - verified matching</p>
                 </div>
-                <div className="hidden min-w-0 grid-cols-[repeat(3,minmax(0,1fr))] gap-2 sm:grid">
-                  <ModeMetric icon={Bike} label="Bike" />
-                  <ModeMetric icon={Clock3} label="Fast" />
-                  <ModeMetric icon={Radio} label="Ready" />
+                <div className="grid grid-cols-3 gap-2" aria-label="Choose vehicle type">
+                  {VEHICLE_OPTIONS.map((option) => {
+                    const Icon = option.type === "bike" ? Bike : option.type === "auto" ? CarTaxiFront : CarFront;
+                    const quote = getVehicleFareQuote(routeSummary?.distanceKm ?? null, bookingMode === "advance" ? scheduledTime : undefined, option.type);
+                    return (
+                      <button
+                        aria-pressed={vehicleType === option.type}
+                        className={vehicleType === option.type ? "min-w-0 rounded-lg bg-primary p-3 text-primary-foreground" : "min-w-0 rounded-lg bg-muted p-3"}
+                        key={option.type}
+                        onClick={() => setVehicleType(option.type)}
+                        type="button"
+                      >
+                        <Icon className="mx-auto size-5" />
+                        <span className="mt-1 block truncate text-xs font-black">{option.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] opacity-70">{quote.fare === null ? (option.surchargePerKm ? `+ Rs ${option.surchargePerKm}/km` : "Base rate") : formatMoney(quote.fare)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
                   {(["now", "advance"] as const).map((mode) => (
@@ -790,11 +815,11 @@ export default function UserDashboard() {
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       <div>
                         <Label htmlFor="passenger-name">Passenger name</Label>
-                        <Input id="passenger-name" maxLength={80} onChange={(event) => setPassengerName(event.target.value)} placeholder="Who will ride?" value={passengerName} />
+                        <Input autoComplete="name" id="passenger-name" maxLength={80} onChange={(event) => setPassengerName(event.target.value)} placeholder="Who will ride?" value={passengerName} />
                       </div>
                       <div>
                         <Label htmlFor="passenger-phone">Passenger phone</Label>
-                        <Input id="passenger-phone" inputMode="tel" maxLength={16} onChange={(event) => setPassengerPhone(event.target.value)} placeholder="Mobile number" value={passengerPhone} />
+                        <Input autoComplete="tel" id="passenger-phone" inputMode="tel" maxLength={16} onChange={(event) => setPassengerPhone(event.target.value)} placeholder="Mobile number" value={passengerPhone} />
                       </div>
                       <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">Current-location detection is off for this booking. Search or pin the passenger&apos;s actual pickup.</p>
                     </div>
@@ -932,7 +957,7 @@ export default function UserDashboard() {
                   <div className="rounded-lg bg-secondary/70 px-3 py-2 text-xs">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-black">{displayedFare.periodLabel}</span>
-                      <span className="font-semibold">Rs {displayedFare.ratePerKm}/km{displayedFare.isPeak ? " peak rate" : ""}</span>
+                      <span className="font-semibold">Rs {displayedFare.ratePerKm}/km {getVehicleLabel(vehicleType)}{displayedFare.isPeak ? " peak" : ""}</span>
                     </div>
                     <p className="mt-1 leading-5 text-muted-foreground">Peak: 9:00-10:30 AM, 5:00-6:00 PM, and 10:00 PM-midnight.</p>
                   </div>
@@ -1084,14 +1109,6 @@ function LoadingRideShell({ label, title }: { label: string; title: string }) {
         </section>
       </div>
     </AppShell>
-  );
-}
-function ModeMetric({ icon: Icon, label }: { icon: typeof Bike; label: string }) {
-  return (
-    <div className="min-w-0 rounded-lg bg-muted p-2 text-center sm:p-3">
-      <Icon className="mx-auto mb-1.5 size-4 text-primary sm:mb-2" />
-      <p className="truncate text-xs font-black">{label}</p>
-    </div>
   );
 }
 
@@ -1435,7 +1452,7 @@ function ActiveUserRide({
         </div>
         {ride.fare_rate_per_km ? (
           <p className="mt-3 rounded-lg bg-secondary/70 px-3 py-2 text-xs font-semibold">
-            {ride.fare_pricing_period === "standard" ? "Standard fare" : "Peak fare"}: Rs {ride.fare_rate_per_km}/km
+            {getVehicleLabel(ride.vehicle_type)} {ride.fare_pricing_period === "standard" ? "standard fare" : "peak fare"}: Rs {(ride.fare_rate_per_km ?? 0) + (ride.vehicle_surcharge_per_km ?? 0)}/km
           </p>
         ) : null}
         <p className="mt-3 text-xs text-muted-foreground">

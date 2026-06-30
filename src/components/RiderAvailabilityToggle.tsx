@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -6,20 +6,25 @@ import { Button } from "@/components/ui/button";
 import { getSupabase } from "@/lib/supabase";
 
 export function RiderAvailabilityToggle({
+  canGoOnline = true,
   initial = false,
   location,
   onChanged,
+  onError,
   riderId,
 }: {
+  canGoOnline?: boolean;
   initial?: boolean;
   location?: { lat: number; lng: number };
   onChanged?: (available: boolean) => void;
+  onError?: (message: string) => void;
   riderId: string;
 }) {
   const [saving, setSaving] = useState(false);
 
   async function toggle() {
     const next = !initial;
+    if (next && !canGoOnline) return;
     const supabase = getSupabase();
     if (!supabase) {
       return;
@@ -35,20 +40,22 @@ export function RiderAvailabilityToggle({
     });
     setSaving(false);
 
-    if (!error) {
-      onChanged?.(next);
+    if (error) {
+      onError?.(error.message);
+      return;
     }
+    onChanged?.(next);
   }
 
   return (
     <Button
       className="max-w-[6.5rem] min-w-0 rounded-full px-2 text-xs sm:max-w-full sm:px-3 sm:text-sm"
-      disabled={saving}
+      disabled={saving || (!initial && !canGoOnline)}
       onClick={() => void toggle()}
       size="sm"
       variant={initial ? "secondary" : "default"}
     >
-      <span className="truncate">{saving ? "Updating" : initial ? "Online" : "Go online"}</span>
+      <span className="truncate">{saving ? "Updating" : initial ? "Online" : canGoOnline ? "Go online" : "Verify vehicle"}</span>
     </Button>
   );
 }

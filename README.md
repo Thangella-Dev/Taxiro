@@ -36,6 +36,7 @@ The MVP currently includes:
 - Scheduled ride creation.
 - **I'm Ready** ride activation with 15/30/60-minute signals, in-button progress, and visible error feedback.
 - Rider online/offline availability.
+- Verified active vehicle switcher for Bike, Auto, and Car.
 - Rider location update.
 - Rider ride acceptance.
 - Private ride confirmation code with repair fallback if the code row is missing or not returned.
@@ -49,6 +50,12 @@ The MVP currently includes:
 - Fare estimate, distance, ETA, payment preference, and pickup note capture before booking.
 - Fare locked at booking time with Taxiro 7% company commission and 93% rider earning split.
 - Exact distance pricing: Rs 7/km normally and Rs 8/km during configured IST peak windows.
+- Vehicle-based ride selection and fare uplift:
+  - Bike: base rate.
+  - Auto: base rate + Rs 1/km.
+  - Car: base rate + Rs 2/km.
+- Rider matching now respects the requested vehicle type and the rider's currently active verified vehicle.
+- Rider multi-vehicle profile setup for Bike, Auto, and Car with verification-controlled switching.
 - Rider UPI ID and UPI QR image upload in rider account settings.
 - UPI/cash payment status flow: pending, awaiting payment, and paid.
 - Completed-ride rating and feedback capture.
@@ -74,6 +81,8 @@ The MVP currently includes:
 - Ride chat now refreshes on browser reconnect and tab visibility changes.
 - GitHub push-protection cleanup completed by removing local MCP credentials from Git tracking.
 - Production SEO metadata, sitemap, robots, PWA manifest, app icons, Open Graph image, `llms.txt`, `llms-full.txt`, and `humans.txt`.
+- Ready/cancel action schema repair applied remotely by adding `ride_status_events.actor_id` and compatible Ready/Cancel RPC behavior.
+- Shared validation helpers now reject invalid names, phone numbers, email/password inputs, UPI IDs, driving licence values, and vehicle registration/details before saving.
 
 ## Main Routes
 
@@ -137,6 +146,7 @@ Implemented:
 - Role-protected user dashboard.
 - Map-first booking screen.
 - Ride now and advance booking modes.
+- Bike, Auto, and Car selection before booking.
 - Pickup via search, current location, or map selection.
 - Drop via search or map selection.
 - Focused map-only choose-on-map mode.
@@ -152,6 +162,7 @@ Implemented:
   - Upcoming / advance bookings
   - Completed / cancelled history
 - Fare estimate, payment preference, and rider pickup note before confirming.
+- Vehicle-based fare quote shown before booking and saved with the ride.
 - Completed ride rating from the ride detail screen.
 - Ride detail screen also shows private code and chat for assigned/started rides.
 - User menu:
@@ -170,6 +181,7 @@ Implemented:
 
 - Role-protected rider dashboard.
 - Rider online/offline availability.
+- Verified active vehicle switcher for Bike, Auto, and Car.
 - Foreground rider GPS tracking with map-click/manual refresh fallback.
 - Ready ride request queue.
 - Map demand signals for scheduled and ready pickups.
@@ -182,6 +194,7 @@ Implemented:
 - Assigned-ride chat with the user.
 - Fare/payment/pickup-note visibility on ready ride cards.
 - Rider vehicle identity form and verification status inside the account menu.
+- Multi-vehicle registration/profile setup with validation and admin-controlled verification.
 - Demand signal and route setup sections.
 - Mobile map-first layout with corrected vertical flow, compact active-job controls, and request cards.
 - Rider account menu with editable profile and recent job history.
@@ -201,6 +214,7 @@ Implemented:
 - All rides list with search and status filters.
 - Demand overview card.
 - Rider verification review for submitted vehicle and licence details.
+- Per-vehicle verification review for Bike, Auto, and Car.
 - Responsive layout improvements.
 
 ## Database
@@ -222,6 +236,7 @@ Schema files:
 - `supabase/migrations/20260630093000_signal_expiry_and_safety_alerts.sql`
 - `supabase/migrations/20260630130000_distance_pricing_and_passenger_details.sql`
 - `supabase/migrations/20260630173000_repair_ready_and_cancel_actions.sql`
+- `supabase/migrations/20260630190000_vehicle_matching_and_action_schema_repair.sql`
 
 Main tables:
 
@@ -232,6 +247,7 @@ Main tables:
 - `ride_status_events`
 - `ride_confirmation_codes`
 - `rider_profiles`
+- `rider_vehicles`
 - `ride_ratings`
 - `ride_chat_messages`
 - `safety_alerts`
@@ -244,6 +260,7 @@ Important RPC/functions:
 - `verify_ride_code`
 - `complete_ride`
 - `cancel_ride`
+- `set_active_rider_vehicle`
 - `mark_ride_reached_drop`
 - `confirm_ride_payment_and_complete`
 - `expire_ready_signals`
@@ -262,6 +279,7 @@ Security:
 - Admin access is role controlled.
 - Ride ratings are restricted to the relevant ride participants.
 - Rider profile verification is admin-controlled.
+- Rider vehicle verification is admin-controlled, and riders can only go online/match rides with a verified active vehicle.
 - Ride chat messages are restricted to the assigned user/rider pair and admins.
 
 ## Environment Variables
@@ -346,17 +364,17 @@ Project documentation:
 - Progress report through 22 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-22.md`
 - Progress report through 23 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-23.md`
 - Progress report through 24 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
-- Progress report through 29 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md
+- Progress report through 29 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md`
 - Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-30.md`
 - Daily update for 22 June: `docs/daily-update-2026-06-22.md`
 - Daily update for 23 June: `docs/daily-update-2026-06-23.md`
 - Daily update for 24 June: `docs/daily-update-2026-06-24.md`
-- Daily update for 29 June: `docs/daily-update-2026-06-29.md
+- Daily update for 29 June: `docs/daily-update-2026-06-29.md`
 - Latest daily update: `docs/daily-update-2026-06-30.md`
 - Manager email for 22 June: `docs/manager-update-email-2026-06-22.md`
 - Manager email for 23 June: `docs/manager-update-email-2026-06-23.md`
 - Manager email for 24 June: `docs/manager-update-email-2026-06-24.md`
-- Manager email for 29 June: `docs/manager-update-email-2026-06-29.md
+- Manager email for 29 June: `docs/manager-update-email-2026-06-29.md`
 - Latest manager email: `docs/manager-update-email-2026-06-30.md`
 
 ## Development Timeline
@@ -440,7 +458,7 @@ Monday - 29 June 2026:
 - Added About, Help and Support, Privacy Policy, and Rules and Regulations pages and linked them from app menus.
 - Improved booking search, map selection, rider demand/request cards, and realtime recovery behavior.
 - Hardened location detection with accuracy thresholds, weak-fix rejection, progress states, movement filtering, and rider GPS heartbeats.
-- Created additive SQL migrations for fare/payment/UPI and cancellation-fine support. Remote Supabase application and live two-account verification remain pending.
+- Created additive SQL migrations for fare/payment/UPI and cancellation-fine support; these were followed by later remote Supabase application and verification work.
 
 Tuesday - 30 June 2026:
 
@@ -456,6 +474,12 @@ Tuesday - 30 June 2026:
 - Added additive Supabase migrations for ready-signal expiry, safety alerts, peak pricing, and passenger details.
 - Passed TypeScript, focused ESLint, production build, fare boundary checks, and Git whitespace checks.
 - Added production SEO/app-icon/PWA/LLM discovery setup using the app icon from `public/App Icon.jpeg`.
+- Repaired the live Ready/Cancel database issue by adding `ride_status_events.actor_id` and redeploying compatible Ready/Cancel RPCs.
+- Added Bike/Auto/Car user vehicle selection with matching fare differences for standard and peak pricing.
+- Added `rider_vehicles`, per-vehicle verification, and rider active-vehicle switching for verified vehicles only.
+- Updated rider matching so riders receive only rides for their currently active verified vehicle.
+- Added rider signup/profile vehicle inputs for Bike, Auto, and Car with stronger client and database validation.
+- Fixed the rider live GPS status label spacing so it no longer overlaps the Taxiro Rider header/control area.
 
 ## Verification Status
 
@@ -475,7 +499,8 @@ Remote database status:
 - `20260630093000_signal_expiry_and_safety_alerts.sql` is applied to remote Supabase.
 - `20260630130000_distance_pricing_and_passenger_details.sql` is applied to remote Supabase.
 - `20260630173000_repair_ready_and_cancel_actions.sql` is applied to align the Ready, expiry, and rider/user cancellation RPCs with the current app.
-- Remote verification confirmed ready/fare/passenger columns, safety/notification tables, and required ride-action RPC signatures.
+- `20260630190000_vehicle_matching_and_action_schema_repair.sql` is applied to add vehicle-aware matching, per-vehicle rider verification, active-vehicle switching, and the `ride_status_events.actor_id` repair.
+- Remote verification confirmed ready/fare/passenger columns, `ride_status_events.actor_id`, `rider_vehicles`, vehicle columns, safety/notification tables, and required ride-action RPC signatures.
 
 Pending manual QA:
 

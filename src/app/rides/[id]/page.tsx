@@ -31,7 +31,8 @@ import {
 } from "@/lib/fare";
 import { getRoutePath } from "@/lib/maps";
 import { getSupabase } from "@/lib/supabase";
-import type { LatLng, RideRequest, RiderProfile } from "@/types/database";
+import { getVehicleLabel } from "@/lib/vehicles";
+import type { LatLng, RideRequest, RiderProfile, RiderVehicle } from "@/types/database";
 
 export default function RideDetails({
   params,
@@ -43,6 +44,7 @@ export default function RideDetails({
   const [ride, setRide] = useState<RideRequest | null>(null);
   const [rideId, setRideId] = useState<string | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
+  const [riderVehicle, setRiderVehicle] = useState<RiderVehicle | null>(null);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -132,25 +134,28 @@ export default function RideDetails({
 
     if (!ride?.assigned_rider_id) {
       queueMicrotask(() => {
-        if (!ignore) setRiderProfile(null);
+        if (!ignore) {
+          setRiderProfile(null);
+          setRiderVehicle(null);
+        }
       });
       return () => {
         ignore = true;
       };
     }
 
-    void supabase
-      .from("rider_profiles")
-      .select("*")
-      .eq("rider_id", ride.assigned_rider_id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!ignore) setRiderProfile((data as RiderProfile | null) ?? null);
-      });
+    void Promise.all([
+      supabase.from("rider_profiles").select("*").eq("rider_id", ride.assigned_rider_id).maybeSingle(),
+      supabase.from("rider_vehicles").select("*").eq("rider_id", ride.assigned_rider_id).eq("vehicle_type", ride.vehicle_type).maybeSingle(),
+    ]).then(([profileResult, vehicleResult]) => {
+      if (ignore) return;
+      setRiderProfile((profileResult.data as RiderProfile | null) ?? null);
+      setRiderVehicle((vehicleResult.data as RiderVehicle | null) ?? null);
+    });
     return () => {
       ignore = true;
     };
-  }, [ride?.assigned_rider_id]);
+  }, [ride?.assigned_rider_id, ride?.vehicle_type]);
 
   useEffect(() => {
     let ignore = false;
@@ -227,8 +232,9 @@ export default function RideDetails({
   const passengerContact = ride?.passenger_phone
     ? ` | ${ride.passenger_phone}`
     : "";
-  const fareRateLabel = ride?.fare_rate_per_km
-    ? `${getFarePricingLabel(ride.fare_pricing_period)}: Rs ${ride.fare_rate_per_km}/km`
+  const effectiveFareRate = (ride?.fare_rate_per_km ?? 0) + (ride?.vehicle_surcharge_per_km ?? 0);
+  const fareRateLabel = effectiveFareRate
+    ? `${getVehicleLabel(ride?.vehicle_type)} ${getFarePricingLabel(ride?.fare_pricing_period)}: Rs ${effectiveFareRate}/km`
     : "Rate not locked";
 
   return (
@@ -351,7 +357,7 @@ export default function RideDetails({
             {["assigned", "started"].includes(ride.status) ? (
               <RideChatPanel currentUserId={userId} ride={ride} />
             ) : null}
-            {riderProfile ? (
+            {riderProfile && riderVehicle ? (
               <Card>
                 <p className="flex items-center gap-2 font-black">
                   <Bike className="size-4" />
@@ -362,16 +368,16 @@ export default function RideDetails({
                     icon={Bike}
                     label="Vehicle"
                     value={(
-                      (riderProfile.vehicle_make ?? "") +
+                      riderVehicle.make +
                       " " +
-                      (riderProfile.vehicle_model ?? "Bike")
+                      riderVehicle.model
                     ).trim()}
                   />
                   <DetailLine
                     icon={ShieldCheck}
                     label="Registration"
                     value={
-                      riderProfile.vehicle_number ?? "Pending rider update"
+                      riderVehicle.registration_number
                     }
                   />
                 </div>
@@ -404,7 +410,7 @@ export default function RideDetails({
                   </div>
                 ) : null}
                 <p className="mt-3 text-xs font-semibold capitalize text-muted-foreground">
-                  Verification: {riderProfile.verification_status} | Rating:{" "}
+                  {getVehicleLabel(riderVehicle.vehicle_type)} verification: {riderVehicle.verification_status} | Rating:{" "}
                   {riderProfile.rating}/5
                 </p>
               </Card>

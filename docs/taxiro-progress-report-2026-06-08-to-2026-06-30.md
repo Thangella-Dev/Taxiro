@@ -12,12 +12,14 @@ As of 30 June 2026, the local application supports authentication and role separ
 
 - Supabase-backed signup, sign-in, profile, and role protection.
 - Ride-now and advance-booking flows.
+- Bike, Auto, and Car vehicle selection with vehicle-specific pricing.
 - Booking-for selection: customer can book for themselves or another passenger.
 - Passenger name/phone capture for someone-else bookings.
 - Pickup using GPS detection, search, or map selection; drop using search or map selection.
 - Current-device detect is disabled for someone-else bookings to avoid incorrect pickup location.
 - Route distance, ETA, fare estimate, fare rate, payment preference, and rider note before booking.
 - Standard fare at Rs 7/km and peak fare at Rs 8/km for configured IST peak windows.
+- Vehicle fare uplift: Bike base, Auto + Rs 1/km, and Car + Rs 2/km for both standard and peak rides.
 - Timed I'm Ready activation with 15, 30, and 60 minute signal duration choices.
 - Rider assignment, private 4-digit code, live rider tracking, and assigned chat.
 - Rider-to-pickup tracking before code verification and destination tracking after trip start.
@@ -29,6 +31,7 @@ As of 30 June 2026, the local application supports authentication and role separ
 ### Rider Experience
 
 - Online/offline availability and persisted foreground GPS tracking.
+- Verified active vehicle switching across Bike, Auto, and Car.
 - Desktop rider home with Ready Jobs, Demand Signals, and On-The-Way route visible together.
 - Mobile rider work panels with map-first collapsed/expanded behavior.
 - Ready and scheduled demand signals with map markers and request summaries.
@@ -38,7 +41,7 @@ As of 30 June 2026, the local application supports authentication and role separ
 - Fare, 7% Taxiro share, 93% rider earning, payment method, and pickup-note visibility.
 - Reached-drop and payment-confirmation controls before ride completion.
 - UPI ID and QR image profile settings plus cash collection guidance.
-- Vehicle/licence verification foundation, job history, support, rules, and account settings.
+- Per-vehicle Bike/Auto/Car licence and registration verification, job history, support, rules, and account settings.
 
 ### Admin And Operations
 
@@ -95,6 +98,9 @@ As of 30 June 2026, the local application supports authentication and role separ
 - Added admin search for passenger name/phone plus guest-booking and peak-rate stats.
 - Updated Help and Privacy content for peak pricing and passenger data handling.
 - Added production SEO, PWA icon, social sharing, geo metadata, and LLM discovery files.
+- Repaired Ready/Cancel action failures by adding `ride_status_events.actor_id` and redeploying compatible RPCs.
+- Added `rider_vehicles`, active verified vehicle switching, and vehicle-aware rider matching.
+- Added signup/profile validation for user, rider, passenger, UPI, licence, and vehicle details.
 
 ## June 30 Database Additions
 
@@ -108,14 +114,20 @@ As of 30 June 2026, the local application supports authentication and role separ
   - Booking-for and passenger contact fields.
   - Additive constraints and comments.
   - Backfill for self bookings from profiles where possible.
+- `20260630190000_vehicle_matching_and_action_schema_repair.sql`
+  - Missing `ride_status_events.actor_id` repair.
+  - Bike/Auto/Car ride vehicle fields and validation.
+  - `rider_vehicles` table and per-vehicle verification policies.
+  - Verified-only active rider vehicle switching.
+  - Vehicle-aware ready ride acceptance.
 
-Both migrations are additive and preserve existing tables and data.
+All June 30 migrations are additive and preserve existing tables and data.
 
 ## Current Status And Known Blocker
 
-The June 29 and June 30 application code and migrations are present locally. They still need to be applied to remote Supabase before the newest payment, UPI, ready-signal expiry, safety-alert, peak-pricing, and passenger-booking behavior can be live-verified.
+The June 29 and June 30 application code and migrations are present locally, and the June 30 ready/safety, fare/passenger, Ready/Cancel repair, and vehicle-matching migrations have been applied to remote Supabase. Remote verification confirmed the required fields, `ride_status_events.actor_id`, `rider_vehicles`, and key RPCs.
 
-The application is stronger as a realistic MVP, but it is not yet ready for unrestricted daily production use. Remote migration, multi-device lifecycle testing, security review, automated E2E coverage, production notifications, support operations, and payment/legal compliance work remain necessary.
+The application is stronger as a realistic MVP, but it is not yet ready for unrestricted daily production use. Multi-device lifecycle testing, security review, automated E2E coverage, production notifications, support operations, and payment/legal compliance work remain necessary.
 
 ## Verification
 
@@ -132,7 +144,7 @@ Completed through 30 June 2026:
 
 Pending for the June 30 release candidate:
 
-- Apply pending migrations remotely and reload PostgREST schema.
+- Complete deployed two-account/two-device QA with the remote schema now applied.
 - Verify UPI Storage upload and access policies.
 - Run a complete ride on separate authenticated user and rider devices.
 - Verify ready signal expiry, passenger booking, realtime tracking, chat, code, payment, completion, cancellation fines, and SOS alerts without manual refresh.
@@ -140,9 +152,8 @@ Pending for the June 30 release candidate:
 
 ## Immediate Next Steps
 
-1. Apply the June 29 and June 30 migrations to remote Supabase in timestamp order.
-2. Resolve and verify schema-cache access for `upi_id`, `fare_rate_per_km`, `booking_for`, safety alerts, and app notifications.
-3. Complete two-device user/rider lifecycle testing.
-4. Validate fare rate boundaries and admin financial totals.
-5. Run final responsive browser QA across small mobile, tablet, laptop, and desktop sizes.
-6. Add automated E2E coverage and production monitoring before public launch.
+1. Complete two-device user/rider lifecycle testing against the updated remote Supabase schema.
+2. Verify Ready, Cancel, rider pre-code cancellation, Bike/Auto/Car matching, and vehicle verification from real accounts.
+3. Validate fare rate boundaries and admin financial totals on live data.
+4. Run final responsive browser QA across small mobile, tablet, laptop, and desktop sizes.
+5. Add automated E2E coverage and production monitoring before public launch.

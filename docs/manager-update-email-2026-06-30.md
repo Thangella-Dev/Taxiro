@@ -62,3 +62,17 @@ Revised status: the required June 30 database changes are deployed. The next rel
 Regards,
 
 THANGELLA
+
+Final vehicle and action repair completed:
+
+- Fixed the live Ready/Cancel schema issue by adding the missing `ride_status_events.actor_id` column in Supabase.
+- Added Bike, Auto, and Car ride selection for users with correct fare differences: Bike base, Auto + Rs 1/km, and Car + Rs 2/km, including peak pricing.
+- Added per-vehicle rider verification with a new `rider_vehicles` table.
+- Added verified-only rider active-vehicle switching so a rider can receive only the ride types they are verified for.
+- Updated rider matching so accepted jobs must match the rider's currently active verified vehicle.
+- Added rider signup/profile vehicle fields and stronger validation for auth, profile, passenger, UPI, licence, and vehicle data.
+- Updated admin review so each rider vehicle can be verified/rejected separately.
+- Corrected rider GPS status UI alignment to prevent overlap with the Taxiro Rider header/control area.
+- Verified TypeScript, focused ESLint, production build, and remote Supabase schema after the repair.
+
+Final status for today: the Ready/Cancel schema blocker and vehicle-based booking/matching foundation are implemented and verified. The next release gate remains a real two-account/two-device ride test on the deployed app.

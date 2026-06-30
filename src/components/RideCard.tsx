@@ -5,6 +5,7 @@ import { Clock, MapPin, Navigation, UserRound } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card } from "@/components/ui/card";
 import { formatMoney, getFarePricingLabel } from "@/lib/fare";
+import { getVehicleLabel } from "@/lib/vehicles";
 import type { RideRequest } from "@/types/database";
 
 export function RideCard({
@@ -21,8 +22,9 @@ export function RideCard({
     ride.booking_for === "other"
       ? "Booked for someone else"
       : "Booked for customer";
-  const fareRate = ride.fare_rate_per_km
-    ? `${getFarePricingLabel(ride.fare_pricing_period)}: Rs ${ride.fare_rate_per_km}/km`
+  const effectiveRate = (ride.fare_rate_per_km ?? 0) + (ride.vehicle_surcharge_per_km ?? 0);
+  const fareRate = effectiveRate
+    ? `${getFarePricingLabel(ride.fare_pricing_period)}: Rs ${effectiveRate}/km ${getVehicleLabel(ride.vehicle_type)}`
     : null;
 
   return (

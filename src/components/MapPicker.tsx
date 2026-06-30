@@ -19,6 +19,7 @@ import {
   formatMoney,
   getFarePricingLabel,
 } from "@/lib/fare";
+import { getVehicleLabel } from "@/lib/vehicles";
 import type { LatLng, RideRequest, RiderLocation } from "@/types/database";
 
 const pickupIcon = L.divIcon({
@@ -250,8 +251,9 @@ export function MapPicker({
           const earning =
             ride.rider_earning ??
             calculateFareBreakdown(ride.fare_estimate).riderEarning;
-          const rateLabel = ride.fare_rate_per_km
-            ? `${getFarePricingLabel(ride.fare_pricing_period)} Rs ${ride.fare_rate_per_km}/km`
+          const effectiveRate = (ride.fare_rate_per_km ?? 0) + (ride.vehicle_surcharge_per_km ?? 0);
+          const rateLabel = effectiveRate
+            ? `${getVehicleLabel(ride.vehicle_type)} ${getFarePricingLabel(ride.fare_pricing_period)} Rs ${effectiveRate}/km`
             : "Rate pending";
           const passengerLabel =
             ride.booking_for === "other"

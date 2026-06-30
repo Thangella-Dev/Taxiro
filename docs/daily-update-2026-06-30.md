@@ -83,3 +83,28 @@ Taxiro is now stronger as a real ride-hailing MVP: pricing is clearer, rider dem
 - Moved the rider location status/control to the left on mobile so it no longer competes with Online and Menu controls.
 - Added iPhone safe-area positioning to the public app header so it stays below the status bar/Dynamic Island.
 - Re-ran TypeScript and focused ESLint successfully. A 430 x 932 Chrome mobile render returned HTTP 200 without a Next.js runtime error.
+
+## Final Vehicle, Validation, And Ready/Cancel Repair
+
+- Fixed the underlying Ready/Cancel database issue by adding the missing `ride_status_events.actor_id` column to the remote Supabase schema.
+- Applied the additive vehicle matching migration to remote Supabase and verified the required columns, table, and RPCs are present.
+- Added Bike, Auto, and Car selection for users before booking.
+- Updated fare calculation so vehicle type changes the effective per-kilometre rate:
+  - Bike: base rate.
+  - Auto: base rate + Rs 1/km.
+  - Car: base rate + Rs 2/km.
+- Kept the same vehicle uplift during peak windows, so peak Bike is Rs 8/km, peak Auto is Rs 9/km, and peak Car is Rs 10/km.
+- Added `rider_vehicles` for per-vehicle rider verification across Bike, Auto, and Car.
+- Added rider active-vehicle switching, restricted to verified vehicles only.
+- Updated ready-ride acceptance so riders can receive only rides that match their currently active verified vehicle.
+- Added rider signup/profile vehicle fields for vehicle type, make, model, registration number, and driving licence.
+- Added validation helpers for signup, signin, profile setup, passenger contact, UPI ID, vehicle details, and licence input.
+- Updated admin vehicle verification so each rider vehicle can be verified or rejected separately.
+- Fixed the rider GPS status UI spacing so the live GPS text no longer overlaps the Taxiro Rider header area.
+
+Verification after this final pass:
+
+- `npx tsc --noEmit`: passed.
+- Focused ESLint across changed auth, user, rider, admin, ride-detail, component, validation, fare, and type files: passed.
+- `npm run build`: passed.
+- Remote Supabase check confirmed `ride_status_events.actor_id`, vehicle ride fields, `rider_profiles.active_vehicle_type`, `rider_vehicles`, and key Ready/Cancel/Accept/vehicle RPCs.

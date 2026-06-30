@@ -33,6 +33,7 @@ import type {
   RideRequest,
   RiderLocation,
   RiderProfile,
+  RiderVehicle,
 } from "@/types/database";
 
 export default function AdminDashboard() {
@@ -43,6 +44,7 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
   const [riderProfiles, setRiderProfiles] = useState<RiderProfile[]>([]);
+  const [riderVehicles, setRiderVehicles] = useState<RiderVehicle[]>([]);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<
     "all" | RideRequest["status"]
@@ -53,7 +55,7 @@ export default function AdminDashboard() {
     if (!supabase) {
       return;
     }
-    const [profileResult, riderResult, riderProfileResult, rideResult] =
+    const [profileResult, riderResult, riderProfileResult, riderVehicleResult, rideResult] =
       await Promise.all([
         supabase
           .from("profiles")
@@ -62,6 +64,10 @@ export default function AdminDashboard() {
         supabase.from("rider_locations").select("*"),
         supabase
           .from("rider_profiles")
+          .select("*")
+          .order("updated_at", { ascending: false }),
+        supabase
+          .from("rider_vehicles")
           .select("*")
           .order("updated_at", { ascending: false }),
         supabase
@@ -74,12 +80,14 @@ export default function AdminDashboard() {
       profileResult.error ||
       riderResult.error ||
       riderProfileResult.error ||
+      riderVehicleResult.error ||
       rideResult.error
     ) {
       setMessage(
         profileResult.error?.message ??
           riderResult.error?.message ??
           riderProfileResult.error?.message ??
+          riderVehicleResult.error?.message ??
           rideResult.error?.message ??
           "Could not load admin data.",
       );
@@ -89,6 +97,7 @@ export default function AdminDashboard() {
     setProfiles((profileResult.data as Profile[]) ?? []);
     setRiderLocations((riderResult.data as RiderLocation[]) ?? []);
     setRiderProfiles((riderProfileResult.data as RiderProfile[]) ?? []);
+    setRiderVehicles((riderVehicleResult.data as RiderVehicle[]) ?? []);
     setRides((rideResult.data as RideRequest[]) ?? []);
   }, []);
 
@@ -197,6 +206,19 @@ export default function AdminDashboard() {
           );
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rider_vehicles" },
+        (payload) => {
+          if (!isAdmin) return;
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old as Partial<RiderVehicle>;
+            if (deleted.id) setRiderVehicles((current) => current.filter((vehicle) => vehicle.id !== deleted.id));
+            return;
+          }
+          setRiderVehicles((current) => upsertById(current, payload.new as RiderVehicle));
+        },
+      )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           setMessage(
@@ -215,22 +237,24 @@ export default function AdminDashboard() {
     intervalMs: 8000,
     onResync: loadAdminData,
   });
-  async function updateVerification(
-    riderId: string,
-    status: RiderProfile["verification_status"],
+
+  async function updateVehicleVerification(
+    vehicleId: string,
+    status: RiderVehicle["verification_status"],
   ) {
     const supabase = getSupabase();
     if (!supabase) return;
 
     const { error } = await supabase
-      .from("rider_profiles")
+      .from("rider_vehicles")
       .update({
+        rejection_reason: status === "rejected" ? "Vehicle details require correction or manual review." : null,
         verification_status: status,
         updated_at: new Date().toISOString(),
       })
-      .eq("rider_id", riderId);
+      .eq("id", vehicleId);
 
-    setMessage(error ? error.message : "Rider verification updated.");
+    setMessage(error ? error.message : `Vehicle marked ${status}.`);
     if (!error) await loadAdminData();
   }
 
@@ -245,7 +269,8 @@ export default function AdminDashboard() {
         ride.pickup_address.toLowerCase().includes(normalized) ||
         ride.drop_address.toLowerCase().includes(normalized) ||
         (ride.passenger_name ?? "").toLowerCase().includes(normalized) ||
-        (ride.passenger_phone ?? "").toLowerCase().includes(normalized);
+        (ride.passenger_phone ?? "").toLowerCase().includes(normalized) ||
+        ride.vehicle_type.toLowerCase().includes(normalized);
       return matchesStatus && matchesQuery;
     });
   }, [query, rides, statusFilter]);
@@ -401,45 +426,30 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <div className="grid gap-3">
-              {riderProfiles.length ? (
-                riderProfiles.map((item) => (
-                  <div className="rounded-lg bg-muted p-3" key={item.rider_id}>
-                    <p className="font-black">
-                      {item.vehicle_number ?? "No registration"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.vehicle_make ?? "Unknown"}{" "}
-                      {item.vehicle_model ?? "vehicle"} |{" "}
-                      {item.license_number ?? "No licence"}
-                    </p>
-                    <p className="mt-1 text-xs font-bold uppercase text-muted-foreground">
-                      {item.verification_status}
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <Button
-                        onClick={() =>
-                          void updateVerification(item.rider_id, "verified")
-                        }
-                        size="sm"
-                      >
-                        Verify
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          void updateVerification(item.rider_id, "rejected")
-                        }
-                        size="sm"
-                        variant="outline"
-                      >
-                        Reject
-                      </Button>
+              {riderVehicles.length ? (
+                riderVehicles.map((vehicle) => {
+                  const rider = riderProfiles.find((item) => item.rider_id === vehicle.rider_id);
+                  const person = profiles.find((item) => item.id === vehicle.rider_id);
+                  return (
+                    <div className="rounded-lg bg-muted p-3" key={vehicle.id}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-black capitalize">{vehicle.vehicle_type} - {vehicle.registration_number}</p>
+                          <p className="truncate text-sm text-muted-foreground">{vehicle.make} {vehicle.model}</p>
+                          <p className="truncate text-xs text-muted-foreground">{person?.full_name ?? vehicle.rider_id.slice(0, 8)} | {rider?.license_number ?? "No licence"}</p>
+                        </div>
+                        <span className="rounded-full bg-card px-2 py-1 text-[10px] font-black uppercase">{vehicle.verification_status}</span>
+                      </div>
+                      {rider?.active_vehicle_type === vehicle.vehicle_type ? <p className="mt-2 text-xs font-black text-primary">Currently active for matching</p> : null}
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button onClick={() => void updateVehicleVerification(vehicle.id, "verified")} size="sm">Verify</Button>
+                        <Button onClick={() => void updateVehicleVerification(vehicle.id, "rejected")} size="sm" variant="outline">Reject</Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No rider details submitted yet.
-                </p>
+                <p className="text-sm text-muted-foreground">No vehicles submitted yet.</p>
               )}
             </div>
           </Card>
@@ -453,7 +463,7 @@ export default function AdminDashboard() {
               <Input
                 className="pl-9"
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search ride ID, pickup, or drop"
+                placeholder="Search ride, passenger, vehicle, pickup, or drop"
                 value={query}
               />
             </label>

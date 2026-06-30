@@ -1,4 +1,5 @@
 export type UserRole = "user" | "rider" | "admin";
+export type VehicleType = "bike" | "auto" | "car";
 export type RideStatus =
   | "scheduled"
   | "ready"
@@ -38,6 +39,8 @@ export type RideRequest = {
   estimated_duration_min: number | null;
   fare_estimate: number | null;
   fare_rate_per_km: number | null;
+  vehicle_surcharge_per_km: number;
+  vehicle_type: VehicleType;
   fare_pricing_period: "standard" | "morning_peak" | "evening_peak" | "night_peak" | null;
   company_commission: number | null;
   rider_earning: number | null;
@@ -99,6 +102,7 @@ export type RiderRoute = {
 
 export type RiderProfile = {
   rider_id: string;
+  active_vehicle_type: VehicleType | null;
   vehicle_make: string | null;
   vehicle_model: string | null;
   vehicle_number: string | null;
@@ -112,6 +116,18 @@ export type RiderProfile = {
 };
 
 
+export type RiderVehicle = {
+  id: string;
+  rider_id: string;
+  vehicle_type: VehicleType;
+  make: string;
+  model: string;
+  registration_number: string;
+  verification_status: "pending" | "verified" | "rejected";
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type RideChatMessage = {
   id: string;
   ride_id: string;

@@ -1,3 +1,6 @@
+import { getVehicleSurcharge } from "@/lib/vehicles";
+import type { VehicleType } from "@/types/database";
+
 export const COMPANY_COMMISSION_RATE = 0.07;
 export const ACCEPTED_RIDE_CANCELLATION_FINE = 50;
 export const STANDARD_RATE_PER_KM = 7;
@@ -7,12 +10,15 @@ export const FARE_TIME_ZONE = "Asia/Kolkata";
 export type FarePricingPeriod =
   "standard" | "morning_peak" | "evening_peak" | "night_peak";
 
-export type BikeFareQuote = {
+export type VehicleFareQuote = {
   fare: number | null;
   isPeak: boolean;
   period: FarePricingPeriod;
   periodLabel: string;
   ratePerKm: number;
+  baseRatePerKm: number;
+  vehicleSurchargePerKm: number;
+  vehicleType: VehicleType;
 };
 
 export type FareBreakdown = {
@@ -21,24 +27,36 @@ export type FareBreakdown = {
   riderEarning: number | null;
 };
 
-export function getBikeFareQuote(
+export function getVehicleFareQuote(
   distanceKm: number | null,
   departureAt: Date | string = new Date(),
-): BikeFareQuote {
+  vehicleType: VehicleType = "bike",
+): VehicleFareQuote {
   const minutes = getIndiaMinutesOfDay(departureAt);
   const period = getPricingPeriod(minutes);
   const isPeak = period !== "standard";
-  const ratePerKm = isPeak ? PEAK_RATE_PER_KM : STANDARD_RATE_PER_KM;
+  const baseRatePerKm = isPeak ? PEAK_RATE_PER_KM : STANDARD_RATE_PER_KM;
+  const vehicleSurchargePerKm = getVehicleSurcharge(vehicleType);
+  const ratePerKm = baseRatePerKm + vehicleSurchargePerKm;
 
   return {
     fare: distanceKm === null ? null : Math.round(distanceKm * ratePerKm),
+    baseRatePerKm,
     isPeak,
     period,
     periodLabel: getPricingPeriodLabel(period),
     ratePerKm,
+    vehicleSurchargePerKm,
+    vehicleType,
   };
 }
 
+export function getBikeFareQuote(
+  distanceKm: number | null,
+  departureAt: Date | string = new Date(),
+) {
+  return getVehicleFareQuote(distanceKm, departureAt, "bike");
+}
 export function estimateBikeFare(
   distanceKm: number | null,
   departureAt?: Date | string,
