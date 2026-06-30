@@ -27,6 +27,7 @@ The MVP currently includes:
 - Real Supabase sign up and sign in.
 - User/rider/admin role separation.
 - User ride booking.
+- Booking for self or another passenger with passenger name/phone capture.
 - Ride now and advance booking modes.
 - Pickup/drop search with Nominatim.
 - Pickup current-location detection.
@@ -47,6 +48,7 @@ The MVP currently includes:
 - Rider map demand markers for scheduled and ready ride pickup signals.
 - Fare estimate, distance, ETA, payment preference, and pickup note capture before booking.
 - Fare locked at booking time with Taxiro 7% company commission and 93% rider earning split.
+- Exact distance pricing: Rs 7/km normally and Rs 8/km during configured IST peak windows.
 - Rider UPI ID and UPI QR image upload in rider account settings.
 - UPI/cash payment status flow: pending, awaiting payment, and paid.
 - Completed-ride rating and feedback capture.
@@ -62,11 +64,12 @@ The MVP currently includes:
 - Role-aware and ride-phase-aware user/rider chat quick messages.
 - Urgency-based rider demand signals for ready-now and scheduled rides.
 - Mobile map-first layouts with vertical-only document scrolling, device-width-safe sheets, and corrected rider empty-space behavior.
-- Accidental page zoom and iPhone input-focus zoom prevention.
+- Desktop hide/show side panels and mobile pull-down/pull-up ride sheets for stronger app-like map interaction.
+- Accidental page zoom, iPhone input-focus zoom prevention, and Leaflet scroll-wheel zoom prevention.
 - Compact user booking flow with duplicate-label cleanup, expandable pickup note, low-GPS-accuracy warning, and sticky booking action.
 - Compact rider workflow with expandable On-The-Way route setup.
 - Improved high-accuracy GPS acquisition with weak-fix rejection, progress feedback, movement filtering, and rider location heartbeats.
-- Supabase Realtime publication enabled for live user, rider, admin, chat, code, and tracking updates.
+- Supabase Realtime publication enabled for live user, rider, admin, chat, code, ride-detail, and tracking updates.
 - User/rider/admin dashboards now merge realtime row changes without requiring manual page refresh.
 - Ride chat now refreshes on browser reconnect and tab visibility changes.
 - GitHub push-protection cleanup completed by removing local MCP credentials from Git tracking.
@@ -214,7 +217,9 @@ Schema files:
 - `supabase/migrations/20260623093000_live_tracking_metadata.sql`
 - `supabase/migrations/20260624093000_enable_realtime_publication.sql`
 - `supabase/migrations/20260629093000_taxiro_fare_payment_flow.sql`
-- `supabase/migrations/20260629113000_accepted_ride_cancellation_fine.sql`
+- `supabase/migrations/20260629113000_accepted_ride_cancellation_fine.sql`r
+- `supabase/migrations/20260630093000_signal_expiry_and_safety_alerts.sql`r
+- `supabase/migrations/20260630130000_distance_pricing_and_passenger_details.sql`
 
 Main tables:
 
@@ -226,7 +231,9 @@ Main tables:
 - `ride_confirmation_codes`
 - `rider_profiles`
 - `ride_ratings`
-- `ride_chat_messages`
+- `ride_chat_messages`r
+- `safety_alerts`r
+- `app_notifications`
 
 Important RPC/functions:
 
@@ -236,7 +243,9 @@ Important RPC/functions:
 - `complete_ride`
 - `cancel_ride`
 - `mark_ride_reached_drop`
-- `confirm_ride_payment_and_complete`
+- `confirm_ride_payment_and_complete`r
+- `expire_ready_signals`r
+- `create_safety_alert`
 - `get_or_create_ride_confirmation_code`
 - `is_admin`
 - `is_rider`
@@ -306,15 +315,18 @@ Project documentation:
 - Progress report through 22 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-22.md`
 - Progress report through 23 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-23.md`
 - Progress report through 24 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
-- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md`
+- Progress report through 29 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md`r
+- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-30.md`
 - Daily update for 22 June: `docs/daily-update-2026-06-22.md`
 - Daily update for 23 June: `docs/daily-update-2026-06-23.md`
 - Daily update for 24 June: `docs/daily-update-2026-06-24.md`
-- Latest daily update: `docs/daily-update-2026-06-29.md`
+- Daily update for 29 June: `docs/daily-update-2026-06-29.md`r
+- Latest daily update: `docs/daily-update-2026-06-30.md`
 - Manager email for 22 June: `docs/manager-update-email-2026-06-22.md`
 - Manager email for 23 June: `docs/manager-update-email-2026-06-23.md`
 - Manager email for 24 June: `docs/manager-update-email-2026-06-24.md`
-- Latest manager email: `docs/manager-update-email-2026-06-29.md`
+- Manager email for 29 June: `docs/manager-update-email-2026-06-29.md`r
+- Latest manager email: `docs/manager-update-email-2026-06-30.md`
 
 ## Development Timeline
 
@@ -398,20 +410,39 @@ Monday - 29 June 2026:
 - Improved booking search, map selection, rider demand/request cards, and realtime recovery behavior.
 - Hardened location detection with accuracy thresholds, weak-fix rejection, progress states, movement filtering, and rider GPS heartbeats.
 - Created additive SQL migrations for fare/payment/UPI and cancellation-fine support. Remote Supabase application and live two-account verification remain pending.
+
+Tuesday - 30 June 2026:
+
+- Added timed ready signals with 15, 30, and 60 minute choices plus expiry support.
+- Added safety-alert and app-notification foundations for SOS, late-trip, and route-change scenarios.
+- Added exact fare rules: Rs 7/km standard and Rs 8/km during morning, evening, and night peak windows.
+- Added booking-for selection so users choose whether a ride is for themselves or someone else.
+- Added passenger name/phone capture for someone-else bookings and disabled current-device detect for those pickups.
+- Added responsive desktop side panels and mobile pull-down/pull-up ride sheets.
+- Added realtime ride-detail updates for `/rides/[id]`.
+- Added passenger/fare-rate context to ride details, shared ride cards, rider demand cards, map popups, and admin operations.
+- Added admin stats for guest bookings and peak-rate rides.
+- Added additive Supabase migrations for ready-signal expiry, safety alerts, peak pricing, and passenger details.
+- Passed TypeScript, focused ESLint, production build, fare boundary checks, and Git whitespace checks.
+
 ## Verification Status
 
-Latest verification completed on 29 June 2026:
+Latest verification completed on 30 June 2026:
 
 - `npx tsc --noEmit`: passed against the current code.
-- Focused ESLint for user dashboard, rider dashboard, and tracking helpers: passed.
+- Focused ESLint for changed user/rider/admin/ride-detail/map/demand/fare files: passed.
 - `npm run build`: passed on Next.js 16.2.7.
 - All 12 application routes compiled/generated successfully, including user, rider, admin, policy, auth, and ride-detail routes.
 - Earlier Supabase live-tracking and Realtime publication verification passed.
+- Fare boundary checks for standard and peak windows: passed.
+- `git diff --check`: passed after formatting cleanup.
 
-June 29 database status:
+Pending database status:
 
 - `20260629093000_taxiro_fare_payment_flow.sql` is implemented locally but must still be applied to the remote Supabase project.
 - `20260629113000_accepted_ride_cancellation_fine.sql` is implemented locally but must still be applied to the remote Supabase project.
+- `20260630093000_signal_expiry_and_safety_alerts.sql` is implemented locally but must still be applied to the remote Supabase project.
+- `20260630130000_distance_pricing_and_passenger_details.sql` is implemented locally but must still be applied to the remote Supabase project.
 - The current `upi_id` schema-cache error is expected until the fare/payment migration is applied and PostgREST reloads its schema.
 
 Pending manual QA:
@@ -455,15 +486,3 @@ Future scope:
 - Integrated payment gateway and automated payment verification.
 - Production-grade geocoding/routing provider.
 - Native mobile wrapper.
-
-
-
-
-
-
-
-
-
-
-
-

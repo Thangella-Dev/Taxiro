@@ -37,8 +37,13 @@ export type RideRequest = {
   distance_km: number | null;
   estimated_duration_min: number | null;
   fare_estimate: number | null;
+  fare_rate_per_km: number | null;
+  fare_pricing_period: "standard" | "morning_peak" | "evening_peak" | "night_peak" | null;
   company_commission: number | null;
   rider_earning: number | null;
+  booking_for: "self" | "other";
+  passenger_name: string | null;
+  passenger_phone: string | null;
   payment_method: "cash" | "upi";
   payment_status: "pending" | "awaiting_payment" | "paid";
   payment_confirmed_at: string | null;

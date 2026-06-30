@@ -12,12 +12,12 @@ import {
   HelpCircle,
   Info,
   ListChecks,
-  LocateFixed,
   LogOut,
   Menu,
   Radio,
   Settings,
   ShieldCheck,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +29,7 @@ import { DynamicMapPicker } from "@/components/DynamicMapPicker";
 import { RideChatPanel } from "@/components/RideChatPanel";
 import { LocationSearch } from "@/components/LocationSearch";
 import { ProfileSettings } from "@/components/ProfileSettings";
+import { ResponsiveRideSheet } from "@/components/ResponsiveRideSheet";
 import { RideCard } from "@/components/RideCard";
 import { RideProgress } from "@/components/RideProgress";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
-import { calculateFareBreakdown, estimateBikeFare, formatMoney, getUserCancellationFine } from "@/lib/fare";
+import { calculateFareBreakdown, formatMoney, getBikeFareQuote, getUserCancellationFine } from "@/lib/fare";
 import { createSafetyAlert, usePanicTrigger, useRideSafetyMonitor } from "@/lib/safety";
 import { getSupabase } from "@/lib/supabase";
 import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M } from "@/lib/tracking";
@@ -56,6 +57,7 @@ import type {
 export default function UserDashboard() {
   const router = useRouter();
   const [bookingMode, setBookingMode] = useState<"now" | "advance">("now");
+  const [bookingFor, setBookingFor] = useState<"self" | "other" | null>(null);
   const [cancelTarget, setCancelTarget] = useState<RideRequest | null>(null);
   const [clickTarget, setClickTarget] = useState<"pickup" | "drop">("pickup");
   const [confirmationCodes, setConfirmationCodes] = useState<Record<string, string>>({});
@@ -68,6 +70,8 @@ export default function UserDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [panelView, setPanelView] = useState<"book" | "rides">("book");
+  const [passengerName, setPassengerName] = useState("");
+  const [passengerPhone, setPassengerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi">("cash");
   const [pickup, setPickup] = useState<LatLng | null>(null);
   const [pickupAccuracy, setPickupAccuracy] = useState<number | null>(null);
@@ -83,7 +87,7 @@ export default function UserDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showRideOptions, setShowRideOptions] = useState(false);
   const [scheduledTime, setScheduledTime] = useState(() =>
-    new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16),
+    toDateTimeLocalInput(new Date(Date.now() + 30 * 60 * 1000)),
   );
 
   const loadRides = useCallback(async (currentUserId: string) => {
@@ -315,6 +319,10 @@ export default function UserDashboard() {
     setMessage(`${clickTarget === "pickup" ? "Pickup" : "Drop"} pinned on the map.`);
   }
   async function detectPickupLocation() {
+    if (bookingFor === "other") {
+      setMessage("For another passenger, search their pickup or pin it on the map.");
+      return;
+    }
     if (!navigator.geolocation) {
       setMessage("Location detection is not supported in this browser.");
       return;
@@ -356,8 +364,18 @@ export default function UserDashboard() {
       setMessage("Please sign in before creating a ride.");
       return;
     }
+    if (!bookingFor) {
+      setMessage("Choose whether this ride is for you or another passenger.");
+      return;
+    }
     if (!pickup || !drop) {
       setMessage("Choose pickup and drop first.");
+      return;
+    }
+    const cleanPassengerName = bookingFor === "self" ? profile?.full_name?.trim() ?? "" : passengerName.trim();
+    const cleanPassengerPhone = bookingFor === "self" ? profile?.phone?.trim() ?? "" : passengerPhone.trim();
+    if (bookingFor === "other" && (cleanPassengerName.length < 2 || cleanPassengerPhone.replace(/\D/g, "").length < 10)) {
+      setMessage("Enter the passenger name and a valid phone number.");
       return;
     }
 
@@ -379,8 +397,8 @@ export default function UserDashboard() {
 
     setMessage("Finding route...");
     const summary = await getRouteSummary(pickup, drop);
-    const fareEstimate = estimateBikeFare(summary.distanceKm, summary.durationMin);
-    const fareBreakdown = calculateFareBreakdown(fareEstimate);
+    const fareQuote = getBikeFareQuote(summary.distanceKm, rideTime);
+    const fareBreakdown = calculateFareBreakdown(fareQuote.fare);
     const { error } = await supabase.from("ride_requests").insert({
       assigned_rider_id: null,
       distance_km: summary.distanceKm,
@@ -388,9 +406,14 @@ export default function UserDashboard() {
       drop_lat: drop.lat,
       drop_lng: drop.lng,
       estimated_duration_min: summary.durationMin,
-      fare_estimate: fareEstimate,
+      fare_estimate: fareQuote.fare,
+      fare_rate_per_km: fareQuote.ratePerKm,
+      fare_pricing_period: fareQuote.period,
       company_commission: fareBreakdown.companyCommission,
       rider_earning: fareBreakdown.riderEarning,
+      booking_for: bookingFor,
+      passenger_name: cleanPassengerName || null,
+      passenger_phone: cleanPassengerPhone || null,
       payment_status: "pending",
       passenger_count: 1,
       payment_method: paymentMethod,
@@ -521,6 +544,10 @@ export default function UserDashboard() {
     ["completed", "cancelled"].includes(ride.status),
   );
   const userCancelledRideCount = rides.filter((ride) => ride.status === "cancelled" && (!ride.cancelled_by || ride.cancelled_by === userId)).length;
+  const displayedFare = getBikeFareQuote(
+    routeSummary?.distanceKm ?? null,
+    bookingMode === "advance" ? scheduledTime : undefined,
+  );
   const safetyLocation = useMemo(
     () =>
       assignedRiderLocation
@@ -616,7 +643,7 @@ export default function UserDashboard() {
 
   return (
     <AppShell immersive title="Book Taxiro">
-      <div className="taxiro-immersive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
+      <div className="taxiro-immersive-stage taxiro-responsive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
         <DynamicMapPicker
           className="taxiro-map-canvas overflow-hidden"
           drop={mapDrop}
@@ -640,16 +667,6 @@ export default function UserDashboard() {
           </div>
           <div className="pointer-events-auto flex items-center gap-2">
             <button
-              aria-label="Detect pickup location"
-              aria-busy={detectingPickup}
-              className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur disabled:cursor-wait disabled:opacity-70"
-              disabled={detectingPickup}
-              onClick={detectPickupLocation}
-              type="button"
-            >
-              <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingPickup ? "animate-pulse" : ""}`} />
-            </button>
-            <button
               aria-label="Open menu"
               className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur"
               onClick={() => setMenuOpen(true)}
@@ -662,9 +679,7 @@ export default function UserDashboard() {
         ) : null}
 
         {!mapPickMode ? (
-        <section className="taxiro-sheet-shell min-w-0 max-w-full overflow-x-clip">
-          <div className="taxiro-sheet-surface min-w-0 max-w-full">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
+        <ResponsiveRideSheet desktopSide="left" mobileLabel="booking and rides">
             {activeRide ? (
               <ActiveUserRide
                 code={confirmationCodes[activeRide.id]}
@@ -725,6 +740,57 @@ export default function UserDashboard() {
                     </button>
                   ))}
                 </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                      <UserRound className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black">Who is riding?</p>
+                      <p className="text-xs leading-5 text-muted-foreground">Tell the rider who they should meet at pickup.</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {(["self", "other"] as const).map((passengerType) => (
+                      <button
+                        className={bookingFor === passengerType ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground" : "rounded-lg bg-muted px-3 py-3 text-sm font-black"}
+                        key={passengerType}
+                        onClick={() => {
+                          setBookingFor(passengerType);
+                          if (passengerType === "other") {
+                            setPickup(null);
+                            setPickupAccuracy(null);
+                            setMessage("Choose the passenger's pickup using search or the map.");
+                          }
+                        }}
+                        type="button"
+                      >
+                        {passengerType === "self" ? "Myself" : "Someone else"}
+                      </button>
+                    ))}
+                  </div>
+                  {!bookingFor ? (
+                    <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">Select one option before choosing pickup.</p>
+                  ) : null}
+                  {bookingFor === "self" ? (
+                    <p className="mt-3 rounded-lg bg-secondary/70 px-3 py-2 text-xs font-semibold">
+                      Passenger: {profile?.full_name || "Your Taxiro profile"}{profile?.phone ? ` - ${profile.phone}` : ""}
+                    </p>
+                  ) : null}
+                  {bookingFor === "other" ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="passenger-name">Passenger name</Label>
+                        <Input id="passenger-name" maxLength={80} onChange={(event) => setPassengerName(event.target.value)} placeholder="Who will ride?" value={passengerName} />
+                      </div>
+                      <div>
+                        <Label htmlFor="passenger-phone">Passenger phone</Label>
+                        <Input id="passenger-phone" inputMode="tel" maxLength={16} onChange={(event) => setPassengerPhone(event.target.value)} placeholder="Mobile number" value={passengerPhone} />
+                      </div>
+                      <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">Current-location detection is off for this booking. Search or pin the passenger&apos;s actual pickup.</p>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="grid gap-3">
                   <div className="min-w-0 rounded-lg border border-border bg-card p-3">
                     <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
@@ -732,15 +798,19 @@ export default function UserDashboard() {
                         From
                       </p>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <Button
-                          className="h-8 min-w-0 rounded-lg px-3 text-xs"
-                          disabled={detectingPickup}
-                          onClick={detectPickupLocation}
-                          size="sm"
-                          variant="outline"
-                        >
-                          {detectingPickup ? "Detecting..." : "Detect"}
-                        </Button>
+                        {bookingFor !== "other" ? (
+                          <Button
+                            className="h-8 min-w-0 rounded-lg px-3 text-xs"
+                            disabled={detectingPickup || bookingFor !== "self"}
+                            onClick={detectPickupLocation}
+                            size="sm"
+                            variant="outline"
+                          >
+                            {detectingPickup ? "Detecting..." : "Detect me"}
+                          </Button>
+                        ) : (
+                          <span className="rounded-lg bg-muted px-2 py-1.5 text-[10px] font-bold text-muted-foreground">Passenger pickup</span>
+                        )}
                         <Button
                           className="h-8 min-w-0 rounded-lg px-3 text-xs"
                           onClick={() => startMapPick("pickup")}
@@ -809,7 +879,7 @@ export default function UserDashboard() {
                       <Input
                         className="mt-1 h-12 bg-card"
                         id="scheduled"
-                        min={new Date().toISOString().slice(0, 16)}
+                        min={toDateTimeLocalInput(new Date())}
                         onChange={(event) => setScheduledTime(event.target.value)}
                         type="datetime-local"
                         value={scheduledTime}
@@ -839,7 +909,7 @@ export default function UserDashboard() {
                   <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
                     <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">Fare</p>
-                      <p className="mt-1 font-black">{formatMoney(estimateBikeFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null))}</p>
+                      <p className="mt-1 font-black">{formatMoney(displayedFare.fare)}</p>
                     </div>
                     <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
                       <p className="text-xs text-muted-foreground">Distance</p>
@@ -849,6 +919,13 @@ export default function UserDashboard() {
                       <p className="text-xs text-muted-foreground">ETA</p>
                       <p className="mt-1 font-black">{routeSummary?.durationMin ?? "--"} min</p>
                     </div>
+                  </div>
+                  <div className="rounded-lg bg-secondary/70 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-black">{displayedFare.periodLabel}</span>
+                      <span className="font-semibold">Rs {displayedFare.ratePerKm}/km{displayedFare.isPeak ? " peak rate" : ""}</span>
+                    </div>
+                    <p className="mt-1 leading-5 text-muted-foreground">Peak: 9:00-10:30 AM, 5:00-6:00 PM, and 10:00 PM-midnight.</p>
                   </div>
                   <div>
                     <Label>Payment preference</Label>
@@ -903,8 +980,7 @@ export default function UserDashboard() {
               </div>
             )}
             {message ? <p className="mt-3 text-center text-sm text-muted-foreground">{message}</p> : null}
-          </div>
-        </section>
+        </ResponsiveRideSheet>
         ) : null}
         {activeRide ? (
           <div className="absolute left-2 right-2 top-20 z-[1200] mx-auto hidden max-w-xl grid-cols-3 gap-1.5 sm:left-3 sm:right-3 sm:top-24 sm:grid sm:gap-2">
@@ -1010,15 +1086,20 @@ function ModeMetric({ icon: Icon, label }: { icon: typeof Bike; label: string })
   );
 }
 
+function toDateTimeLocalInput(date: Date) {
+  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localTime.toISOString().slice(0, 16);
+}
+
 function offsetDateTime(minutes: number) {
-  return new Date(Date.now() + minutes * 60 * 1000).toISOString().slice(0, 16);
+  return toDateTimeLocalInput(new Date(Date.now() + minutes * 60 * 1000));
 }
 
 function tomorrowMorning() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
   date.setHours(9, 0, 0, 0);
-  return date.toISOString().slice(0, 16);
+  return toDateTimeLocalInput(date);
 }
 
 function TimePreset({ label, onClick }: { label: string; onClick: () => void }) {
@@ -1238,6 +1319,14 @@ function ActiveUserRide({
           ) : null}
         </div>
       </div>
+      <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-secondary/60 p-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">Passenger</p>
+          <p className="truncate font-black">{ride.passenger_name || (ride.booking_for === "other" ? "Guest passenger" : "You")}</p>
+          <p className="text-xs text-muted-foreground">{ride.booking_for === "other" ? "Ride booked for someone else" : "Ride booked for yourself"}</p>
+        </div>
+        {ride.passenger_phone ? <span className="shrink-0 rounded-lg bg-card px-3 py-2 text-xs font-bold">{ride.passenger_phone}</span> : null}
+      </div>
       {ride.status === "started" ? (
         <div className="rounded-lg bg-[#101713] p-4 text-white">
           <p className="text-sm font-semibold text-white/60">Trip live</p>
@@ -1333,6 +1422,11 @@ function ActiveUserRide({
             <p className="mt-1 font-black uppercase">{ride.payment_method ?? "cash"}</p>
           </div>
         </div>
+        {ride.fare_rate_per_km ? (
+          <p className="mt-3 rounded-lg bg-secondary/70 px-3 py-2 text-xs font-semibold">
+            {ride.fare_pricing_period === "standard" ? "Standard fare" : "Peak fare"}: Rs {ride.fare_rate_per_km}/km
+          </p>
+        ) : null}
         <p className="mt-3 text-xs text-muted-foreground">
           {ride.payment_status === "awaiting_payment"
             ? "Pay the rider at drop. The ride completes after the rider confirms payment received."

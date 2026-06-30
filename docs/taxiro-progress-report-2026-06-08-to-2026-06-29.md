@@ -1,5 +1,7 @@
 # Taxiro Progress Report - 08 June 2026 to 29 June 2026
 
+> Note: This report is preserved as the 29 June snapshot. The latest full progress report is `docs/taxiro-progress-report-2026-06-08-to-2026-06-30.md`.
+
 ## Executive Summary
 
 Taxiro is a map-first bike taxi web MVP for India built with Next.js, React, TypeScript, Tailwind CSS, Supabase, PostGIS, Leaflet, OpenStreetMap, Nominatim, and OSRM.

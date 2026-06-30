@@ -21,6 +21,7 @@ import { DemandSignals } from "@/components/DemandSignals";
 import { DynamicMapPicker } from "@/components/DynamicMapPicker";
 import { RideChatPanel } from "@/components/RideChatPanel";
 import { RideProgress } from "@/components/RideProgress";
+import { ResponsiveRideSheet } from "@/components/ResponsiveRideSheet";
 import { RiderAvailabilityToggle } from "@/components/RiderAvailabilityToggle";
 import { RiderMenu } from "@/components/RiderMenu";
 import { RouteSetupForm } from "@/components/RouteSetupForm";
@@ -474,7 +475,7 @@ export default function RiderDashboard() {
 
   return (
     <AppShell immersive title="Rider app">
-      <div className="taxiro-immersive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
+      <div className="taxiro-immersive-stage taxiro-responsive-stage relative min-w-0 w-full max-w-full overflow-x-clip bg-muted [contain:inline-size]">
         <DynamicMapPicker
           className="taxiro-map-canvas overflow-hidden"
           demandRides={activeRide ? [] : demandMapRides}
@@ -545,9 +546,11 @@ export default function RiderDashboard() {
           </button>
         </div>
 
-        <section className={`taxiro-sheet-shell taxiro-rider-sheet min-w-0 max-w-full overflow-x-clip ${activeRide ? "" : "taxiro-rider-workbench"}`}>
-          <div className="taxiro-sheet-surface min-w-0 max-w-full">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
+        <ResponsiveRideSheet
+          className={`taxiro-rider-sheet ${activeRide ? "" : "taxiro-rider-workbench"}`}
+          desktopSide="right"
+          mobileLabel={activeRide ? "active ride" : "rider work"}
+        >
             {activeRide ? (
               <ActiveRiderJob
                 code={codes[activeRide.id] ?? ""}
@@ -686,8 +689,7 @@ export default function RiderDashboard() {
               </div>
             )}
             {message ? <p className="mt-3 text-center text-sm text-muted-foreground">{message}</p> : null}
-          </div>
-        </section>
+        </ResponsiveRideSheet>
         {activeRide ? (
           <div className="absolute left-2 right-2 top-20 z-[1200] mx-auto hidden max-w-xl grid-cols-3 gap-1.5 sm:left-3 sm:right-3 sm:top-24 sm:grid sm:gap-2">
             <FloatingStat label="Job" value={activeRide.status} />
@@ -928,6 +930,10 @@ function RequestCard({
         </div>
       </div>
       <div className="mt-3 grid gap-2 text-sm">
+        <p className="rounded-lg bg-secondary/70 px-3 py-2 text-xs font-bold">
+          {ride.booking_for === "other" ? `Picking up ${ride.passenger_name || "another passenger"}` : "Customer is riding"}
+          {ride.fare_rate_per_km ? ` - Rs ${ride.fare_rate_per_km}/km` : ""}
+        </p>
         <p className="flex gap-2">
           <MapPinned className="mt-0.5 size-4 shrink-0 text-primary" />
           <span className="line-clamp-2">{ride.pickup_address}</span>
@@ -1022,6 +1028,18 @@ function ActiveRiderJob({
         </p>
       </div>
       <RideProgress ride={ride} />
+      <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-secondary/60 p-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">Passenger</p>
+          <p className="truncate font-black">{ride.passenger_name || (ride.booking_for === "other" ? "Guest passenger" : "Customer")}</p>
+          <p className="text-xs text-muted-foreground">{ride.booking_for === "other" ? "Booked by someone else" : "Self booking"}</p>
+        </div>
+        {ride.passenger_phone ? (
+          <Button asChild className="shrink-0" size="sm" variant="outline">
+            <a href={`tel:${ride.passenger_phone}`}>Call passenger</a>
+          </Button>
+        ) : null}
+      </div>
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

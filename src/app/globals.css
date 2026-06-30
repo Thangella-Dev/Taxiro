@@ -355,6 +355,133 @@ button {
   }
 }
 
+.taxiro-responsive-stage {
+  height: 100svh;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.taxiro-responsive-stage .taxiro-map-canvas {
+  height: 100%;
+  min-height: 100%;
+}
+
+.taxiro-responsive-sheet {
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  padding: 0 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+  position: absolute;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  width: 100%;
+  will-change: transform;
+}
+
+.taxiro-responsive-sheet[data-mobile-open="true"] {
+  transform: translateY(max(0px, var(--taxiro-sheet-drag-y, 0px)));
+}
+
+.taxiro-responsive-sheet[data-mobile-open="false"] {
+  transform: translateY(calc(100% - 3.5rem + var(--taxiro-sheet-drag-y, 0px)));
+}
+
+.taxiro-responsive-sheet .taxiro-sheet-surface {
+  max-height: min(72svh, 44rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 2.75rem;
+  scrollbar-width: thin;
+}
+
+.taxiro-sheet-drag-handle {
+  align-items: center;
+  color: var(--muted-foreground);
+  display: flex;
+  gap: 0.35rem;
+  height: 2.5rem;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  touch-action: none;
+  top: 0.2rem;
+  transform: translateX(-50%);
+  width: 5.5rem;
+  z-index: 2;
+}
+
+.taxiro-sheet-grabber {
+  background: var(--border);
+  border-radius: 999px;
+  display: block;
+  height: 0.3rem;
+  width: 2.5rem;
+}
+
+.taxiro-sheet-side-toggle {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .taxiro-responsive-sheet {
+    left: 50%;
+    translate: -50% 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .taxiro-responsive-sheet {
+    overflow: visible;
+    translate: 0 0;
+    transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .taxiro-responsive-sheet[data-mobile-open] {
+    transform: none;
+  }
+
+  .taxiro-responsive-sheet.taxiro-sheet-side-left[data-desktop-open="false"] {
+    transform: translateX(calc(-100% + 3.25rem));
+  }
+
+  .taxiro-responsive-sheet.taxiro-sheet-side-right[data-desktop-open="false"] {
+    transform: translateX(calc(100% - 3.25rem));
+  }
+
+  .taxiro-responsive-sheet .taxiro-sheet-surface {
+    max-height: none;
+    padding-top: 1.125rem;
+  }
+
+  .taxiro-sheet-drag-handle {
+    display: none;
+  }
+
+  .taxiro-sheet-side-toggle {
+    align-items: center;
+    background: #101713;
+    border: 1px solid rgb(255 255 255 / 70%);
+    box-shadow: var(--shadow-soft);
+    color: white;
+    display: flex;
+    height: 4rem;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.75rem;
+    z-index: 3;
+  }
+
+  .taxiro-sheet-side-left .taxiro-sheet-side-toggle {
+    border-radius: 0 0.9rem 0.9rem 0;
+    right: -2.7rem;
+  }
+
+  .taxiro-sheet-side-right .taxiro-sheet-side-toggle {
+    border-radius: 0.9rem 0 0 0.9rem;
+    left: -2.7rem;
+  }
+}
 .app-surface {
   background:
     linear-gradient(180deg, rgb(255 255 255 / 78%), rgb(255 255 255 / 92%)),

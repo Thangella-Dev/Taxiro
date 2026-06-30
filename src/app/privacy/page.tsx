@@ -11,7 +11,7 @@ export default function PrivacyPage() {
           icon={Database}
           title="Data collected"
           items={[
-            "Taxiro stores account profile details, role, phone, emergency contact, ride addresses, coordinates, status, fare, payment preference, chat messages, and notification records.",
+            "Taxiro stores account profile details, role, phone, emergency contact, ride addresses, coordinates, passenger name/phone when booking for someone else, status, fare, payment preference, chat messages, and notification records.",
             "Rider accounts can store vehicle details, licence number, UPI ID, and UPI QR image URL.",
             "Rider location records can include latitude, longitude, accuracy, speed, heading, last-seen time, and updated time while the rider app is active.",
           ]}

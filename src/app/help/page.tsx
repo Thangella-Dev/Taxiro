@@ -47,7 +47,7 @@ export default function HelpPage() {
           icon={ShieldCheck}
           title="Payments"
           items={[
-            "Fare is estimated and saved when the ride is booked based on route distance and ETA.",
+            "Fare is distance based: Rs 7/km normally and Rs 8/km during 9:00-10:30 AM, 5:00-6:00 PM, and 10:00 PM-midnight (India time).",
             "Taxiro records a 7% company share and 93% rider earning split for every ride fare.",
             "For UPI rides, pay using the rider UPI details shown after drop, then the rider confirms payment received.",
           ]}

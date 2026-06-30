@@ -14,7 +14,11 @@ import {
   useMapEvents,
 } from "react-leaflet";
 
-import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
+import {
+  calculateFareBreakdown,
+  formatMoney,
+  getFarePricingLabel,
+} from "@/lib/fare";
 import type { LatLng, RideRequest, RiderLocation } from "@/types/database";
 
 const pickupIcon = L.divIcon({
@@ -88,7 +92,11 @@ function CenterSelection({
   useEffect(() => {
     if (!active) return;
     if (initialCenter) {
-      map.setView([initialCenter.lat, initialCenter.lng], Math.max(map.getZoom(), 16), { animate: true });
+      map.setView(
+        [initialCenter.lat, initialCenter.lng],
+        Math.max(map.getZoom(), 16),
+        { animate: true },
+      );
     } else {
       const center = map.getCenter();
       onChangeRef.current?.({ lat: center.lat, lng: center.lng });
@@ -121,25 +129,41 @@ function FitMap({
     if (disabled) return;
 
     if (route.length < 2 && focusPoint) {
-      map.setView([focusPoint.lat, focusPoint.lng], Math.max(map.getZoom(), 16), { animate: true });
+      map.setView(
+        [focusPoint.lat, focusPoint.lng],
+        Math.max(map.getZoom(), 16),
+        { animate: true },
+      );
       return;
     }
 
     const points = [...route];
     if (pickup) points.push(pickup);
     if (drop) points.push(drop);
-    demandRides.forEach((ride) => points.push({ lat: ride.pickup_lat, lng: ride.pickup_lng }));
+    demandRides.forEach((ride) =>
+      points.push({ lat: ride.pickup_lat, lng: ride.pickup_lng }),
+    );
     riders.forEach((rider) => points.push({ lat: rider.lat, lng: rider.lng }));
 
     if (points.length >= 2) {
-      const bounds = L.latLngBounds(points.map((point) => [point.lat, point.lng]));
+      const bounds = L.latLngBounds(
+        points.map((point) => [point.lat, point.lng]),
+      );
       map.fitBounds(bounds, { animate: true, maxZoom: 16, padding: [56, 56] });
       return;
     }
 
-    const center = pickup ?? drop ?? (demandRides[0] ? { lat: demandRides[0].pickup_lat, lng: demandRides[0].pickup_lng } : null) ?? (riders[0] ? { lat: riders[0].lat, lng: riders[0].lng } : null);
+    const center =
+      pickup ??
+      drop ??
+      (demandRides[0]
+        ? { lat: demandRides[0].pickup_lat, lng: demandRides[0].pickup_lng }
+        : null) ??
+      (riders[0] ? { lat: riders[0].lat, lng: riders[0].lng } : null);
     if (center) {
-      map.setView([center.lat, center.lng], Math.max(map.getZoom(), 13), { animate: true });
+      map.setView([center.lat, center.lng], Math.max(map.getZoom(), 13), {
+        animate: true,
+      });
     }
   }, [demandRides, disabled, drop, focusPoint, map, pickup, riders, route]);
 
@@ -148,7 +172,10 @@ function FitMap({
 
 function formatLastSeen(value: string | null) {
   if (!value) return "No live update yet";
-  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  const seconds = Math.max(
+    0,
+    Math.round((Date.now() - new Date(value).getTime()) / 1000),
+  );
   if (seconds < 10) return "Live now";
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.round(seconds / 60)}m ago`;
@@ -190,16 +217,28 @@ export function MapPicker({
       <MapContainer
         center={[center.lat, center.lng]}
         className="h-full min-w-0 w-full max-w-full overflow-hidden"
-        scrollWheelZoom
+        scrollWheelZoom={false}
         zoom={12}
       >
-        <FitMap demandRides={demandRides} disabled={Boolean(selectionMode)} drop={drop} focusPoint={focusPoint} pickup={pickup} riders={riders} route={route} />
+        <FitMap
+          demandRides={demandRides}
+          disabled={Boolean(selectionMode)}
+          drop={drop}
+          focusPoint={focusPoint}
+          pickup={pickup}
+          riders={riders}
+          route={route}
+        />
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ClickHandler onPick={selectionMode ? undefined : onPick} />
-        <CenterSelection active={Boolean(selectionMode)} initialCenter={selectionCenter} onChange={onSelectionChange} />
+        <CenterSelection
+          active={Boolean(selectionMode)}
+          initialCenter={selectionCenter}
+          onChange={onSelectionChange}
+        />
         {route.length ? (
           <Polyline
             pathOptions={{ color: "#101713", opacity: 0.88, weight: 6 }}
@@ -208,7 +247,16 @@ export function MapPicker({
         ) : null}
         {demandRides.map((ride) => {
           const ready = ride.status === "ready";
-          const earning = ride.rider_earning ?? calculateFareBreakdown(ride.fare_estimate).riderEarning;
+          const earning =
+            ride.rider_earning ??
+            calculateFareBreakdown(ride.fare_estimate).riderEarning;
+          const rateLabel = ride.fare_rate_per_km
+            ? `${getFarePricingLabel(ride.fare_pricing_period)} Rs ${ride.fare_rate_per_km}/km`
+            : "Rate pending";
+          const passengerLabel =
+            ride.booking_for === "other"
+              ? `Passenger: ${ride.passenger_name || "guest"}`
+              : "Customer ride";
           return (
             <Fragment key={ride.id}>
               <Circle
@@ -222,15 +270,32 @@ export function MapPicker({
                 }}
                 radius={ready ? 950 : 420}
               />
-              <Marker icon={ready ? readyDemandIcon : scheduledDemandIcon} position={[ride.pickup_lat, ride.pickup_lng]}>
+              <Marker
+                icon={ready ? readyDemandIcon : scheduledDemandIcon}
+                position={[ride.pickup_lat, ride.pickup_lng]}
+              >
                 <Popup>
                   <div className="grid gap-1 text-sm">
-                    <strong>{ready ? "Ready ride - accept now" : "Scheduled demand"}</strong>
-                    <span>Fare: {formatMoney(ride.fare_estimate)} | Earn: {formatMoney(earning)}</span>
-                    <span>{ride.distance_km ?? "--"} km | {ride.estimated_duration_min ?? "--"} min | {(ride.payment_method ?? "cash").toUpperCase()}</span>
+                    <strong>
+                      {ready ? "Ready ride - accept now" : "Scheduled demand"}
+                    </strong>
+                    <span>
+                      Fare: {formatMoney(ride.fare_estimate)} | Earn:{" "}
+                      {formatMoney(earning)}
+                    </span>
+                    <span>
+                      {rateLabel} | {passengerLabel}
+                    </span>
+                    <span>
+                      {ride.distance_km ?? "--"} km |{" "}
+                      {ride.estimated_duration_min ?? "--"} min |{" "}
+                      {(ride.payment_method ?? "cash").toUpperCase()}
+                    </span>
                     <span>Pickup: {ride.pickup_address}</span>
                     <span>Drop: {ride.drop_address}</span>
-                    <span>{new Date(ride.scheduled_time).toLocaleString()}</span>
+                    <span>
+                      {new Date(ride.scheduled_time).toLocaleString()}
+                    </span>
                   </div>
                 </Popup>
               </Marker>
@@ -252,7 +317,13 @@ export function MapPicker({
             {rider.accuracy_m ? (
               <Circle
                 center={[rider.lat, rider.lng]}
-                pathOptions={{ color: "#101713", fillColor: "#101713", fillOpacity: 0.06, opacity: 0.18, weight: 1 }}
+                pathOptions={{
+                  color: "#101713",
+                  fillColor: "#101713",
+                  fillOpacity: 0.06,
+                  opacity: 0.18,
+                  weight: 1,
+                }}
                 radius={Math.min(Math.max(rider.accuracy_m, 20), 250)}
               />
             ) : null}
@@ -261,14 +332,22 @@ export function MapPicker({
                 {rider.is_available ? "Available rider" : "Assigned rider"}
                 <br />
                 {formatLastSeen(rider.last_seen_at ?? rider.updated_at)}
-                {rider.accuracy_m ? <><br />Accuracy: {Math.round(rider.accuracy_m)}m</> : null}
+                {rider.accuracy_m ? (
+                  <>
+                    <br />
+                    Accuracy: {Math.round(rider.accuracy_m)}m
+                  </>
+                ) : null}
               </Popup>
             </Marker>
           </Fragment>
         ))}
       </MapContainer>
       {selectionMode ? (
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center"
+        >
           <div className="taxiro-center-pin">
             <MapPin className="size-12 fill-[#dbf86f] stroke-[#101713] stroke-[2.5]" />
             <span />
@@ -278,6 +357,3 @@ export function MapPicker({
     </div>
   );
 }
-
-
-
