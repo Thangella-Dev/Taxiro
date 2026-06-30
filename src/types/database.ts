@@ -107,6 +107,9 @@ export type RiderProfile = {
   vehicle_model: string | null;
   vehicle_number: string | null;
   license_number: string | null;
+  live_selfie_path: string | null;
+  live_selfie_captured_at: string | null;
+  identity_rejection_reason: string | null;
   upi_id: string | null;
   upi_qr_image_url: string | null;
   verification_status: "pending" | "verified" | "rejected";

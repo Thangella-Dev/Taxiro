@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Bike, CarFront, CarTaxiFront, CheckCircle2, ImageUp, ShieldCheck } from "lucide-react";
 
+import { RiderLivePhotoCapture } from "@/components/RiderLivePhotoCapture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { uploadRiderLivePhoto } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import { normalizeRegistration, validateDrivingLicence, validateUpiId, validateVehicleInput } from "@/lib/validation";
 import { VEHICLE_OPTIONS, getVehicleLabel } from "@/lib/vehicles";
@@ -31,6 +33,7 @@ const emptyDraft: VehicleDraft = {
 export function RiderIdentitySettings({ riderId }: { riderId: string }) {
   const [details, setDetails] = useState<RiderProfile | null>(null);
   const [licenseNumber, setLicenseNumber] = useState("");
+  const [livePhotoUrl, setLivePhotoUrl] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedType, setSelectedType] = useState<VehicleType>("bike");
@@ -59,6 +62,10 @@ export function RiderIdentitySettings({ riderId }: { riderId: string }) {
         setLicenseNumber(profile.license_number ?? "");
         setUpiId(profile.upi_id ?? "");
         setUpiQrImageUrl(profile.upi_qr_image_url ?? "");
+        if (profile.live_selfie_path) {
+          void supabase.storage.from("rider-verification").createSignedUrl(profile.live_selfie_path, 600)
+            .then(({ data }) => setLivePhotoUrl(data?.signedUrl ?? ""));
+        }
       }
       if (vehicleResult.data) {
         setVehicles((current) => {
@@ -92,6 +99,30 @@ export function RiderIdentitySettings({ riderId }: { riderId: string }) {
     }));
   }
 
+  async function captureLivePhoto(photo: Blob | null) {
+    if (!photo) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    setUploading(true);
+    setMessage("Uploading live identity photo...");
+    try {
+      const path = await uploadRiderLivePhoto(supabase, riderId, photo);
+      const { data } = await supabase.storage.from("rider-verification").createSignedUrl(path, 600);
+      setLivePhotoUrl(data?.signedUrl ?? "");
+      setDetails((current) => current ? {
+        ...current,
+        identity_rejection_reason: null,
+        live_selfie_captured_at: new Date().toISOString(),
+        live_selfie_path: path,
+        verification_status: "pending",
+      } : current);
+      setMessage("Live photo submitted. Identity approval is pending admin review.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Live photo upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
   async function uploadUpiQr(file: File | null) {
     if (!file) return;
     if (!file.type.match(/^image\/(png|jpeg|webp)$/) || file.size > 2 * 1024 * 1024) {
@@ -194,6 +225,15 @@ export function RiderIdentitySettings({ riderId }: { riderId: string }) {
         </div>
       </div>
 
+      <div className="mb-4 grid gap-3">
+        <RiderLivePhotoCapture disabled={uploading || saving} onCapture={(photo) => void captureLivePhoto(photo)} />
+        <div className="rounded-lg bg-card p-3 text-sm">
+          <p className="font-black">Identity status: <span className="capitalize">{details?.verification_status ?? "pending"}</span></p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">An admin reviews your live selfie and licence separately from each vehicle.</p>
+          {details?.identity_rejection_reason ? <p className="mt-2 text-xs font-semibold text-red-700">Admin note: {details.identity_rejection_reason}</p> : null}
+          {livePhotoUrl ? <Image alt="Submitted live rider identity" className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" height={480} src={livePhotoUrl} unoptimized width={640} /> : null}
+        </div>
+      </div>
       <div className="grid grid-cols-3 gap-2">
         {VEHICLE_OPTIONS.map((option) => {
           const Icon = option.type === "bike" ? Bike : option.type === "auto" ? CarTaxiFront : CarFront;

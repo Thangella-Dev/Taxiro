@@ -4,11 +4,12 @@ import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bike, BriefcaseBusiness, CarFront, CarTaxiFront, UserRound } from "lucide-react";
 
+import { RiderLivePhotoCapture } from "@/components/RiderLivePhotoCapture";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ensureInitialRiderVehicle, ensureProfile } from "@/lib/auth";
+import { ensureInitialRiderVehicle, ensureProfile, uploadRiderLivePhoto } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import { normalizeEmail, normalizePhone, normalizeRegistration, validateDrivingLicence, validateEmail, validateFullName, validatePassword, validatePhone, validateVehicleInput } from "@/lib/validation";
 import { VEHICLE_OPTIONS } from "@/lib/vehicles";
@@ -28,6 +29,7 @@ export default function AuthPage() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleType, setVehicleType] = useState<VehicleType>("bike");
   const [licenseNumber, setLicenseNumber] = useState("");
+  const [livePhoto, setLivePhoto] = useState<Blob | null>(null);
   const [message, setMessage] = useState("Create a real Taxiro account stored in Supabase.");
   const [loading, setLoading] = useState(false);
 
@@ -53,6 +55,7 @@ export default function AuthPage() {
       if (vehicleError) return vehicleError;
       const licenceError = validateDrivingLicence(licenseNumber);
       if (licenceError) return licenceError;
+      if (!livePhoto) return "Capture a live identity photo before creating a rider account.";
     }
     return null;
   }
@@ -119,7 +122,10 @@ export default function AuthPage() {
         if (data.user) {
           const profile = await ensureProfile(supabase, data.user, role);
           await ensureInitialRiderVehicle(supabase, data.user);
-          router.push(profile.role === "rider" ? "/dashboard/rider" : "/dashboard/user");
+          if (profile.role === "rider" && livePhoto) {
+            await uploadRiderLivePhoto(supabase, data.user.id, livePhoto);
+          }
+          router.push(dashboardForRole(profile.role));
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -132,7 +138,7 @@ export default function AuthPage() {
         }
         const profile = await ensureProfile(supabase, data.user, role);
         await ensureInitialRiderVehicle(supabase, data.user);
-        router.push(profile.role === "rider" ? "/dashboard/rider" : "/dashboard/user");
+        router.push(dashboardForRole(profile.role));
       }
       router.refresh();
     } catch (error) {
@@ -273,6 +279,7 @@ export default function AuthPage() {
                       <div><Label htmlFor="vehicle-number">Registration</Label><Input autoCapitalize="characters" id="vehicle-number" maxLength={18} onChange={(event) => setVehicleNumber(event.target.value.toUpperCase())} placeholder="TS09AB1234" value={vehicleNumber} /></div>
                       <div><Label htmlFor="licence-number">Driving licence</Label><Input autoCapitalize="characters" id="licence-number" maxLength={20} onChange={(event) => setLicenseNumber(event.target.value.toUpperCase())} placeholder="TS0120260001234" value={licenseNumber} /></div>
                     </div>
+                    <RiderLivePhotoCapture disabled={loading} onCapture={setLivePhoto} />
                   </div>
                 ) : null}
               </div>
@@ -317,4 +324,8 @@ export default function AuthPage() {
       </div>
     </main>
   );
+}
+function dashboardForRole(role: UserRole) {
+  if (role === "admin") return "/dashboard/admin";
+  return role === "rider" ? "/dashboard/rider" : "/dashboard/user";
 }

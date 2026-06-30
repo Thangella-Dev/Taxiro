@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Bike,
+  Camera,
   CalendarClock,
   IndianRupee,
   MapPin,
@@ -44,6 +46,7 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
   const [riderProfiles, setRiderProfiles] = useState<RiderProfile[]>([]);
+  const [riderSelfieUrls, setRiderSelfieUrls] = useState<Record<string, string>>({});
   const [riderVehicles, setRiderVehicles] = useState<RiderVehicle[]>([]);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<
@@ -96,8 +99,16 @@ export default function AdminDashboard() {
 
     setProfiles((profileResult.data as Profile[]) ?? []);
     setRiderLocations((riderResult.data as RiderLocation[]) ?? []);
-    setRiderProfiles((riderProfileResult.data as RiderProfile[]) ?? []);
+    const loadedRiderProfiles = (riderProfileResult.data as RiderProfile[]) ?? [];
+    setRiderProfiles(loadedRiderProfiles);
     setRiderVehicles((riderVehicleResult.data as RiderVehicle[]) ?? []);
+    const signedSelfies = await Promise.all(
+      loadedRiderProfiles.filter((item) => item.live_selfie_path).map(async (item) => {
+        const { data } = await supabase.storage.from("rider-verification").createSignedUrl(item.live_selfie_path as string, 600);
+        return [item.rider_id, data?.signedUrl ?? ""] as const;
+      }),
+    );
+    setRiderSelfieUrls(Object.fromEntries(signedSelfies));
     setRides((rideResult.data as RideRequest[]) ?? []);
   }, []);
 
@@ -238,6 +249,17 @@ export default function AdminDashboard() {
     onResync: loadAdminData,
   });
 
+  async function updateIdentityVerification(riderId: string, status: RiderProfile["verification_status"]) {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const { error } = await supabase.from("rider_profiles").update({
+      identity_rejection_reason: status === "rejected" ? "Live identity photo or licence requires correction." : null,
+      updated_at: new Date().toISOString(),
+      verification_status: status,
+    }).eq("rider_id", riderId);
+    setMessage(error ? error.message : "Rider identity marked " + status + ".");
+    if (!error) await loadAdminData();
+  }
   async function updateVehicleVerification(
     vehicleId: string,
     status: RiderVehicle["verification_status"],
@@ -422,11 +444,32 @@ export default function AdminDashboard() {
                 Rider verification
               </CardTitle>
               <CardDescription>
-                Review real vehicle details before marking a rider verified.
+                Approve a live identity photo first, then verify each submitted vehicle.
               </CardDescription>
             </CardHeader>
             <div className="grid gap-3">
-              {riderVehicles.length ? (
+              <div className="mb-4">
+                <p className="mb-2 flex items-center gap-2 text-sm font-black"><Camera className="size-4" /> Identity review</p>
+                <div className="grid gap-3">
+                  {riderProfiles.length ? riderProfiles.map((rider) => {
+                    const person = profiles.find((item) => item.id === rider.rider_id);
+                    return (
+                      <div className="rounded-lg border border-border bg-muted p-3" key={rider.rider_id}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0"><p className="truncate font-black">{person?.full_name ?? rider.rider_id.slice(0, 8)}</p><p className="truncate text-xs text-muted-foreground">{rider.license_number ?? "No licence submitted"}</p></div>
+                          <span className="rounded-full bg-card px-2 py-1 text-[10px] font-black uppercase">{rider.verification_status}</span>
+                        </div>
+                        {riderSelfieUrls[rider.rider_id] ? <Image alt={"Live identity capture for " + (person?.full_name ?? "rider")} className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" height={480} src={riderSelfieUrls[rider.rider_id]} unoptimized width={640} /> : <p className="mt-3 rounded-md bg-card p-3 text-xs font-semibold text-amber-800">No live photo submitted.</p>}
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <Button disabled={!rider.live_selfie_path} onClick={() => void updateIdentityVerification(rider.rider_id, "verified")} size="sm">Approve identity</Button>
+                          <Button onClick={() => void updateIdentityVerification(rider.rider_id, "rejected")} size="sm" variant="outline">Reject</Button>
+                        </div>
+                      </div>
+                    );
+                  }) : <p className="text-sm text-muted-foreground">No rider identities submitted yet.</p>}
+                </div>
+              </div>
+              <p className="mb-2 text-sm font-black">Vehicle review</p>              {riderVehicles.length ? (
                 riderVehicles.map((vehicle) => {
                   const rider = riderProfiles.find((item) => item.rider_id === vehicle.rider_id);
                   const person = profiles.find((item) => item.id === vehicle.rider_id);
@@ -442,7 +485,7 @@ export default function AdminDashboard() {
                       </div>
                       {rider?.active_vehicle_type === vehicle.vehicle_type ? <p className="mt-2 text-xs font-black text-primary">Currently active for matching</p> : null}
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        <Button onClick={() => void updateVehicleVerification(vehicle.id, "verified")} size="sm">Verify</Button>
+                        <Button disabled={!rider?.live_selfie_path || rider.verification_status !== "verified"} onClick={() => void updateVehicleVerification(vehicle.id, "verified")} size="sm">Verify vehicle</Button>
                         <Button onClick={() => void updateVehicleVerification(vehicle.id, "rejected")} size="sm" variant="outline">Reject</Button>
                       </div>
                     </div>

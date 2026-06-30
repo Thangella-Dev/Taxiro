@@ -214,9 +214,24 @@ Implemented:
 - All rides list with search and status filters.
 - Demand overview card.
 - Rider verification review for submitted vehicle and licence details.
-- Per-vehicle verification review for Bike, Auto, and Car.
+- Live rider selfie and licence identity review with private, short-lived image previews.
+- Identity approval must happen before per-vehicle verification for Bike, Auto, and Car.
 - Responsive layout improvements.
 
+### Creating the first admin account
+
+Admin signup is intentionally not exposed in the public app. Create a normal account first, then run this once in the Supabase SQL Editor with the trusted admin email:
+
+```sql
+update public.profiles
+set role = 'admin'
+where id = (
+  select id from auth.users
+  where lower(email) = lower('manager@example.com')
+);
+```
+
+Sign out and sign in again. Admin accounts now route directly to `/dashboard/admin`. Admins approve the live identity photo and licence before approving Bike, Auto, or Car separately.
 ## Database
 
 Schema files:
@@ -237,6 +252,7 @@ Schema files:
 - `supabase/migrations/20260630130000_distance_pricing_and_passenger_details.sql`
 - `supabase/migrations/20260630173000_repair_ready_and_cancel_actions.sql`
 - `supabase/migrations/20260630190000_vehicle_matching_and_action_schema_repair.sql`
+- `supabase/migrations/20260701103000_rider_live_identity_and_admin_verification.sql`
 
 Main tables:
 

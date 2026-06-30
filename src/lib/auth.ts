@@ -109,3 +109,24 @@ export async function ensureInitialRiderVehicle(
     if (error) throw error;
   }
 }
+export async function uploadRiderLivePhoto(
+  supabase: SupabaseClient,
+  riderId: string,
+  photo: Blob,
+) {
+  const path = riderId + "/live-selfie-" + Date.now() + ".jpg";
+  const { error: uploadError } = await supabase.storage.from("rider-verification").upload(path, photo, {
+    cacheControl: "3600",
+    contentType: "image/jpeg",
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+  const { error } = await supabase.from("rider_profiles").upsert({
+    live_selfie_captured_at: new Date().toISOString(),
+    live_selfie_path: path,
+    rider_id: riderId,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  return path;
+}

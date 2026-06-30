@@ -1337,7 +1337,7 @@ function ActiveUserRide({
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           {canPublishReady ? (
             <Button className="rounded-lg" disabled={readyBusy} onClick={onReady}>
-              {readyBusy ? "Publishing..." : readyExpired ? "Publish again" : "I'm Ready"}
+              {readyBusy ? "Publishing..." : readyExpired ? "Publish again - " + readySignalMinutes + " min" : "I'm Ready - " + readySignalMinutes + " min"}
             </Button>
           ) : null}
           {["scheduled", "ready", "assigned"].includes(ride.status) ? (
