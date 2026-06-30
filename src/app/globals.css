@@ -435,21 +435,52 @@ button {
     transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  .taxiro-responsive-sheet.taxiro-sheet-side-left {
+    left: 1rem;
+    right: auto;
+  }
+
+  .taxiro-responsive-sheet.taxiro-sheet-side-right {
+    left: auto;
+    right: 1rem;
+  }
+
   .taxiro-responsive-sheet[data-mobile-open] {
     transform: none;
   }
 
+  .taxiro-responsive-sheet.taxiro-sheet-side-left[data-desktop-open="false"],
+  .taxiro-responsive-sheet.taxiro-sheet-side-right[data-desktop-open="false"] {
+    bottom: auto;
+    height: 5.5rem;
+    max-width: 4.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4.25rem;
+  }
+
   .taxiro-responsive-sheet.taxiro-sheet-side-left[data-desktop-open="false"] {
-    transform: translateX(calc(-100% + 3.25rem));
+    left: 0.75rem;
+    right: auto;
   }
 
   .taxiro-responsive-sheet.taxiro-sheet-side-right[data-desktop-open="false"] {
-    transform: translateX(calc(100% - 3.25rem));
+    left: auto;
+    right: 0.75rem;
   }
 
   .taxiro-responsive-sheet .taxiro-sheet-surface {
     max-height: none;
     padding-top: 1.125rem;
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .taxiro-responsive-sheet[data-desktop-open="false"] .taxiro-sheet-surface {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
   }
 
   .taxiro-sheet-drag-handle {
@@ -463,23 +494,42 @@ button {
     box-shadow: var(--shadow-soft);
     color: white;
     display: flex;
-    height: 4rem;
+    flex-direction: column;
+    gap: 0.15rem;
+    height: 4.75rem;
     justify-content: center;
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 2.75rem;
+    width: 3.15rem;
     z-index: 3;
   }
 
+  .taxiro-sheet-side-toggle-label {
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
   .taxiro-sheet-side-left .taxiro-sheet-side-toggle {
-    border-radius: 0 0.9rem 0.9rem 0;
-    right: -2.7rem;
+    border-radius: 0 1rem 1rem 0;
+    right: -3rem;
   }
 
   .taxiro-sheet-side-right .taxiro-sheet-side-toggle {
-    border-radius: 0.9rem 0 0 0.9rem;
-    left: -2.7rem;
+    border-radius: 1rem 0 0 1rem;
+    left: -3rem;
+  }
+
+  .taxiro-responsive-sheet[data-desktop-open="false"]
+    .taxiro-sheet-side-toggle {
+    border-radius: 1rem;
+    inset: 0;
+    height: 100%;
+    transform: none;
+    width: 100%;
   }
 }
 .app-surface {
@@ -540,7 +590,6 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
-
 
 .taxiro-demand-marker-ready {
   animation: demand-pulse 1.15s ease-out infinite;
@@ -637,6 +686,3 @@ aside {
     touch-action: manipulation;
   }
 }
-
-
-

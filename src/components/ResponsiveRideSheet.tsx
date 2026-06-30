@@ -120,6 +120,9 @@ export function ResponsiveRideSheet({
         ) : (
           <ChevronRight className="size-5" />
         )}
+        <span className="taxiro-sheet-side-toggle-label">
+          {desktopOpen ? "Hide" : "Open"}
+        </span>
       </button>
 
       <div className="taxiro-sheet-surface min-w-0 max-w-full">{children}</div>
