@@ -322,6 +322,13 @@ button {
     right: 1rem;
   }
 
+  .taxiro-rider-workbench {
+    left: auto;
+    max-width: min(68rem, calc(100vw - 2rem));
+    right: 1rem;
+    width: min(68rem, calc(100vw - 2rem));
+  }
+
   .taxiro-sheet-surface {
     height: 100%;
     max-height: none;
@@ -339,6 +346,12 @@ button {
     left: auto;
     max-width: 32rem;
     right: max(1.5rem, calc((100vw - 100rem) / 2));
+  }
+
+  .taxiro-rider-workbench {
+    max-width: min(72rem, calc(100vw - 3rem));
+    right: max(1.5rem, calc((100vw - 100rem) / 2));
+    width: min(72rem, calc(100vw - 3rem));
   }
 }
 

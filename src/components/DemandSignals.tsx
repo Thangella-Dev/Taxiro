@@ -1,11 +1,38 @@
+import { useEffect, useState } from "react";
 import { Clock3, Flame, MapPinned, Radio } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import type { RideRequest } from "@/types/database";
 
+function isReadySignalVisible(ride: RideRequest, now: number) {
+  if (ride.status !== "ready") return false;
+  if (!ride.ready_expires_at) return true;
+  return new Date(ride.ready_expires_at).getTime() > now;
+}
+
+function readySignalLabel(ride: RideRequest, now: number) {
+  if (ride.status !== "ready") {
+    return new Date(ride.scheduled_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  if (!ride.ready_expires_at) return "ready now";
+  const minutes = Math.max(0, Math.ceil((new Date(ride.ready_expires_at).getTime() - now) / 60_000));
+  return minutes <= 1 ? "ready, under 1 min left" : `ready, ${minutes} min left`;
+}
+
 export function DemandSignals({ compact = false, rides }: { compact?: boolean; rides: RideRequest[] }) {
-  const ready = rides.filter((ride) => ride.status === "ready");
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    const updateNow = () => setNow(Date.now());
+    const initialTimer = window.setTimeout(updateNow, 0);
+    const interval = window.setInterval(updateNow, 60_000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
+  }, []);
+  const ready = rides.filter((ride) => isReadySignalVisible(ride, now));
   const scheduled = rides.filter((ride) => ride.status === "scheduled");
   const visibleSignals = [...ready, ...scheduled]
     .sort((a, b) => {
@@ -40,7 +67,7 @@ export function DemandSignals({ compact = false, rides }: { compact?: boolean; r
                     <div className="min-w-0">
                       <p className="truncate text-sm font-black">{ride.pickup_address.split(",")[0] || "Pickup area"}</p>
                       <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock3 className="size-3" /> {readyNow ? "ready now" : new Date(ride.scheduled_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        <Clock3 className="size-3" /> {readySignalLabel(ride, now)}
                       </p>
                     </div>
                   </div>

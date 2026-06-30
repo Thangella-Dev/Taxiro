@@ -364,6 +364,7 @@ end;
 $$;
 
 grant execute on function public.mark_ride_ready_and_assign(uuid, integer) to authenticated;
+grant execute on function public.accept_ready_ride(uuid) to authenticated;
 grant execute on function public.expire_ready_signals() to authenticated;
 grant execute on function public.create_safety_alert(uuid, text, text, double precision, double precision, numeric) to authenticated;
 

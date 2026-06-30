@@ -1,4 +1,4 @@
-import { AlertTriangle, BadgeIndianRupee, Ban, ShieldCheck } from "lucide-react";
+import { AlertTriangle, BadgeIndianRupee, Ban, Clock3, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { InfoSection } from "@/components/InfoSection";
@@ -13,7 +13,16 @@ export default function RulesPage() {
           items={[
             "The rider must verify the user's 4-digit ride code before starting the trip.",
             "The user should confirm the rider and vehicle details before sharing the code.",
-            "The ride should follow the selected pickup and drop locations unless both sides agree to update the plan outside the MVP.",
+            "After code verification, the ride should follow the destination route unless both sides agree to a change outside the MVP.",
+          ]}
+        />
+        <InfoSection
+          icon={Clock3}
+          title="Ready signal rules"
+          items={[
+            "Users can publish a ready signal for 15, 30, or 60 minutes, with 30 minutes as the default.",
+            "Riders can accept only active, unexpired ready signals.",
+            "Expired ready signals return to scheduled state and must be published again if the user still wants the ride.",
           ]}
         />
         <InfoSection
@@ -29,9 +38,9 @@ export default function RulesPage() {
           icon={Ban}
           title="Misuse rules"
           items={[
-            "Do not create fake rides, repeatedly cancel accepted rides, spam chat, or share false pickup/drop information.",
+            "Do not create fake rides, repeatedly cancel accepted rides, spam chat, misuse SOS, or share false pickup/drop information.",
             "Riders should not start a ride without the private code or mark payment received before collecting payment.",
-            "Admins may review ride history, cancellation reasons, chat, and payment status for support and safety handling.",
+            "Admins may review ride history, cancellation reasons, chat, payment status, safety alerts, and notifications for support and safety handling.",
           ]}
         />
         <InfoSection
@@ -39,8 +48,8 @@ export default function RulesPage() {
           title="MVP legal note"
           items={[
             "These are product rules for MVP testing and are not final legal terms for public launch.",
-            "Actual deployment may require transport, tax, consumer protection, payment, and local operating compliance review.",
-            "The fine amount and enforcement workflow can be adjusted before production based on business and legal approval.",
+            "Actual deployment may require transport, tax, consumer protection, payment, emergency response, and local operating compliance review.",
+            "The fine amount, notification handling, and enforcement workflow can be adjusted before production based on business and legal approval.",
           ]}
         />
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,6 +61,8 @@ export default function RiderDashboard() {
     if (!supabase) {
       return;
     }
+    await supabase.rpc("expire_ready_signals");
+
     const [rideResult, riderResult, myLocationResult, riderProfileResult] = await Promise.all([
       supabase
         .from("ride_requests")
@@ -379,13 +381,13 @@ export default function RiderDashboard() {
   }
 
   const readyRides = rides
-    .filter((ride) => ride.status === "ready")
+    .filter(isReadyRideVisible)
     .sort((a, b) => approxDistanceKm(location, a) - approxDistanceKm(location, b));
   const scheduledRides = rides
     .filter((ride) => ride.status === "scheduled")
     .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
   const demandMapRides = rides
-    .filter((ride) => ["ready", "scheduled"].includes(ride.status))
+    .filter((ride) => isReadyRideVisible(ride) || ride.status === "scheduled")
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === "ready" ? -1 : 1;
       return approxDistanceKm(location, a) - approxDistanceKm(location, b);
@@ -543,7 +545,7 @@ export default function RiderDashboard() {
           </button>
         </div>
 
-        <section className="taxiro-sheet-shell taxiro-rider-sheet min-w-0 max-w-full overflow-x-clip">
+        <section className={`taxiro-sheet-shell taxiro-rider-sheet min-w-0 max-w-full overflow-x-clip ${activeRide ? "" : "taxiro-rider-workbench"}`}>
           <div className="taxiro-sheet-surface min-w-0 max-w-full">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border lg:hidden" />
             {activeRide ? (
@@ -585,7 +587,7 @@ export default function RiderDashboard() {
                   <MiniStat icon={Clock3} label="Advance" value={scheduledRides.length} />
                   <MiniStat icon={Gauge} label="Riders" value={riders.filter((rider) => rider.is_available).length} />
                 </div>
-                <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
+                <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 lg:hidden">
                   {(["ready", "advance", "route"] as const).map((view) => (
                     <button
                       className={`rounded-md px-2 py-2.5 text-xs font-black transition sm:text-sm ${riderHomeView === view ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
@@ -593,11 +595,11 @@ export default function RiderDashboard() {
                       onClick={() => setRiderHomeView(view)}
                       type="button"
                     >
-                      {view === "ready" ? "Ready" : view === "advance" ? "Advance" : "Route"}
+                      {view === "ready" ? `Ready (${readyRides.length})` : view === "advance" ? `Demand (${scheduledRides.length})` : "Route"}
                     </button>
                   ))}
                 </div>
-                <div className="max-h-[42svh] overflow-y-auto overflow-x-hidden pr-1 lg:max-h-none lg:overflow-visible">
+                <div className="max-h-[42svh] overflow-y-auto overflow-x-hidden pr-1 lg:hidden">
                   {riderHomeView === "ready" ? (
                     <div className="grid gap-3">
                       {readyRides.length ? (
@@ -619,7 +621,7 @@ export default function RiderDashboard() {
                   ) : null}
                   {riderHomeView === "advance" ? (
                     <div className="grid gap-3">
-                      <DemandSignals compact rides={rides} />
+                      <DemandSignals compact rides={demandMapRides} />
                       {scheduledRides.length ? (
                         scheduledRides.map((ride) => (
                           <ScheduledRequestCard currentLocation={location} key={ride.id} ride={ride} />
@@ -638,6 +640,48 @@ export default function RiderDashboard() {
                       {profile ? <RouteSetupForm defaultExpanded riderId={profile.id} /> : null}
                     </div>
                   ) : null}
+                </div>
+                <div className="hidden gap-3 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,1fr)] xl:grid-cols-3">
+                  <RiderWorkbenchPanel badge={`${readyRides.length} live`} title="Ready jobs">
+                    <div className="grid max-h-[calc(100dvh-19rem)] gap-3 overflow-y-auto overflow-x-hidden pr-1">
+                      {readyRides.length ? (
+                        readyRides.map((ride) => (
+                          <RequestCard
+                            currentLocation={location}
+                            key={ride.id}
+                            onAccept={() => void acceptRide(ride)}
+                            ride={ride}
+                          />
+                        ))
+                      ) : (
+                        <RiderEmptyState
+                          title="No ready jobs right now"
+                          text="Keep live GPS on. Timed ready signals appear here and pulse on the map until they expire."
+                        />
+                      )}
+                    </div>
+                  </RiderWorkbenchPanel>
+                  <RiderWorkbenchPanel badge={`${scheduledRides.length} advance`} title="Demand signals">
+                    <div className="grid max-h-[calc(100dvh-19rem)] gap-3 overflow-y-auto overflow-x-hidden pr-1">
+                      <DemandSignals rides={demandMapRides} />
+                      {scheduledRides.length ? (
+                        scheduledRides.slice(0, 2).map((ride) => (
+                          <ScheduledRequestCard currentLocation={location} key={ride.id} ride={ride} />
+                        ))
+                      ) : (
+                        <RiderEmptyState
+                          title="No advance demand yet"
+                          text="Scheduled pickup demand will appear here before riders can accept it."
+                        />
+                      )}
+                    </div>
+                  </RiderWorkbenchPanel>
+                  <RiderWorkbenchPanel badge="Route" title="On-The-Way">
+                    <div className="grid max-h-[calc(100dvh-19rem)] gap-3 overflow-y-auto overflow-x-hidden pr-1">
+                      <RiderRouteIntro />
+                      {profile ? <RouteSetupForm defaultExpanded riderId={profile.id} /> : null}
+                    </div>
+                  </RiderWorkbenchPanel>
                 </div>
               </div>
             )}
@@ -675,6 +719,42 @@ export default function RiderDashboard() {
   );
 }
 
+function isReadyRideVisible(ride: RideRequest) {
+  if (ride.status !== "ready") return false;
+  if (!ride.ready_expires_at) return true;
+  return new Date(ride.ready_expires_at).getTime() > Date.now();
+}
+
+function formatReadySignalTimeLeft(value: string | null) {
+  if (!value) return "live now";
+  const milliseconds = new Date(value).getTime() - Date.now();
+  if (milliseconds <= 0) return "expired";
+  const minutes = Math.ceil(milliseconds / 60_000);
+  if (minutes <= 1) return "under 1 min left";
+  return `${minutes} min left`;
+}
+
+function RiderWorkbenchPanel({
+  badge,
+  children,
+  title,
+}: {
+  badge: string;
+  children: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+        <h2 className="truncate text-sm font-black uppercase tracking-[0.12em]">{title}</h2>
+        <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-[11px] font-black text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
 function RiderEmptyState({ text, title }: { text: string; title: string }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-muted p-4 text-sm">
@@ -826,6 +906,7 @@ function RequestCard({
   const riderEarning = ride.rider_earning ?? fareBreakdown.riderEarning;
   const companyCommission = ride.company_commission ?? fareBreakdown.companyCommission;
   const pickupDistance = approxDistanceKm(currentLocation, ride);
+  const readyTimeLeft = formatReadySignalTimeLeft(ride.ready_expires_at);
 
   return (
     <div className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -833,7 +914,7 @@ function RequestCard({
         <div className="min-w-0">
           <Badge className="bg-secondary text-secondary-foreground">Ready now</Badge>
           <p className="mt-2 font-black">Ride #{ride.id.slice(0, 8)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{pickupDistance} km away from you</p>
+          <p className="mt-1 text-xs text-muted-foreground">{pickupDistance} km away from you - {readyTimeLeft}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 text-center sm:min-w-48">
           <div className="rounded-lg bg-muted p-2">

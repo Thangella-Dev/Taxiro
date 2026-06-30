@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { AppNotifications } from "@/components/AppNotifications";
 import { CancelRideDialog } from "@/components/CancelRideDialog";
 import { DynamicMapPicker } from "@/components/DynamicMapPicker";
 import { RideChatPanel } from "@/components/RideChatPanel";
@@ -49,6 +50,7 @@ import type {
   RideRequest,
   RiderLocation,
   RiderProfile,
+  SafetyAlertType,
 } from "@/types/database";
 
 export default function UserDashboard() {
@@ -668,10 +670,14 @@ export default function UserDashboard() {
                 code={confirmationCodes[activeRide.id]}
                 onCancel={() => setCancelTarget(activeRide)}
                 onReady={() => void markReady(activeRide)}
+                onReadySignalMinutesChange={setReadySignalMinutes}
+                onSos={() => void triggerSafetyAlert("sos", "SOS button pressed by the user during a Taxiro ride.")}
+                readySignalMinutes={readySignalMinutes}
                 riderLocation={assignedRiderLocation}
                 riderProfile={assignedRiderProfile}
                 routeSummary={routeSummary}
                 ride={activeRide}
+                sosBusy={sosBusy}
                 userId={userId}
               />
             ) : (
@@ -1222,7 +1228,7 @@ function ActiveUserRide({
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           {canPublishReady ? (
             <Button className="rounded-lg" onClick={onReady}>
-              {readyExpired ? "Publish again" : "I&apos;m Ready"}
+              {readyExpired ? "Publish again" : "I'm Ready"}
             </Button>
           ) : null}
           {["scheduled", "ready", "assigned"].includes(ride.status) ? (
@@ -1457,6 +1463,8 @@ function UserMenu({
         </div>
 
         <ProfileSettings onSaved={onProfileSaved} profile={profile} />
+
+        <AppNotifications profileId={profile?.id ?? null} />
 
         <button className="text-left" onClick={onOpenRides} type="button">
           <MenuCard

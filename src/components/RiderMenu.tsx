@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { HelpCircle, History, Info, ListChecks, LogOut, ShieldCheck, X } from "lucide-react";
 
+import { AppNotifications } from "@/components/AppNotifications";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { RiderIdentitySettings } from "@/components/RiderIdentitySettings";
 import { RideCard } from "@/components/RideCard";
@@ -50,6 +51,8 @@ export function RiderMenu({
 
         <ProfileSettings onSaved={onProfileSaved} profile={profile} />
         {profile ? <RiderIdentitySettings riderId={profile.id} /> : null}
+
+        <AppNotifications profileId={profile?.id ?? null} />
 
         <section className="rounded-lg border border-border bg-muted p-4">
           <p className="flex items-center gap-2 font-black">
