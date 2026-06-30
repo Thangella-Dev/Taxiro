@@ -1,20 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Route } from "lucide-react";
+import { ChevronDown, LoaderCircle, Route } from "lucide-react";
 
 import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getRouteSummary } from "@/lib/maps";
+import { getRoutePath, getRouteSummary } from "@/lib/maps";
 import { getSupabase } from "@/lib/supabase";
 import type { LatLng } from "@/types/database";
 
-export function RouteSetupForm({ riderId }: { riderId: string }) {
-  const [expanded, setExpanded] = useState(false);
+type RoutePreview = {
+  distanceKm: number | null;
+  durationMin: number | null;
+  from: LatLng;
+  path: LatLng[];
+  to: LatLng;
+};
+
+export function RouteSetupForm({
+  defaultExpanded = false,
+  onRoutePreview,
+  riderId,
+}: {
+  defaultExpanded?: boolean;
+  onRoutePreview?: (preview: RoutePreview) => void;
+  riderId: string;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [from, setFrom] = useState<LatLng | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState<RoutePreview | null>(null);
   const [to, setTo] = useState<LatLng | null>(null);
+
+  async function previewRoute(nextFrom: LatLng | null, nextTo: LatLng | null) {
+    if (!nextFrom || !nextTo) return;
+    setLoadingPreview(true);
+    setMessage("Drawing your route on the map...");
+    const [summary, path] = await Promise.all([
+      getRouteSummary(nextFrom, nextTo),
+      getRoutePath(nextFrom, nextTo),
+    ]);
+    const nextPreview = {
+      distanceKm: summary.distanceKm,
+      durationMin: summary.durationMin,
+      from: nextFrom,
+      path,
+      to: nextTo,
+    };
+    setPreview(nextPreview);
+    onRoutePreview?.(nextPreview);
+    setMessage(path.length ? "Route preview is visible on the map." : "Route saved points selected. Map route preview is unavailable right now.");
+    setLoadingPreview(false);
+  }
 
   async function saveRoute() {
     if (!from || !to) {
@@ -42,7 +81,7 @@ export function RouteSetupForm({ riderId }: { riderId: string }) {
       to_lat: to.lat,
       to_lng: to.lng,
     });
-    setMessage(error ? error.message : "On-The-Way route saved.");
+    setMessage(error ? error.message : "On-The-Way route saved. Keep Taxiro open for matching jobs.");
   }
 
   return (
@@ -59,16 +98,43 @@ export function RouteSetupForm({ riderId }: { riderId: string }) {
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">On-The-Way route</span>
           <span className="block truncate text-sm text-muted-foreground">
-            Find trips along your planned direction
+            Preview a route line, then save your direction
           </span>
         </span>
         <ChevronDown className={`size-5 shrink-0 transition ${expanded ? "rotate-180" : ""}`} />
       </button>
       {expanded ? (
         <div className="animate-in mt-4 grid min-w-0 max-w-full gap-3 border-t border-border pt-4">
-          <LocationSearch label="From" onSelect={setFrom} />
-          <LocationSearch label="To" onSelect={setTo} />
-          <Button className="h-12" onClick={() => void saveRoute()}>
+          <LocationSearch
+            label="From"
+            onSelect={(selected) => {
+              setFrom(selected);
+              void previewRoute(selected, to);
+            }}
+            selectedValue={from?.address}
+          />
+          <LocationSearch
+            label="To"
+            onSelect={(selected) => {
+              setTo(selected);
+              void previewRoute(from, selected);
+            }}
+            selectedValue={to?.address}
+          />
+          {preview ? (
+            <div className="grid grid-cols-2 gap-2 text-center text-sm">
+              <div className="rounded-lg bg-muted p-3">
+                <p className="text-xs text-muted-foreground">Route</p>
+                <p className="mt-1 font-black">{preview.distanceKm ?? "--"} km</p>
+              </div>
+              <div className="rounded-lg bg-muted p-3">
+                <p className="text-xs text-muted-foreground">ETA</p>
+                <p className="mt-1 font-black">{preview.durationMin ?? "--"} min</p>
+              </div>
+            </div>
+          ) : null}
+          <Button className="h-12" disabled={loadingPreview} onClick={() => void saveRoute()}>
+            {loadingPreview ? <LoaderCircle className="size-4 animate-spin" /> : null}
             Save route
           </Button>
           {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}

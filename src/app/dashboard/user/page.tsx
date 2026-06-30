@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Bike,
   CalendarClock,
   ChevronDown,
@@ -37,8 +38,9 @@ import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
 import { calculateFareBreakdown, estimateBikeFare, formatMoney, getUserCancellationFine } from "@/lib/fare";
+import { createSafetyAlert, usePanicTrigger, useRideSafetyMonitor } from "@/lib/safety";
 import { getSupabase } from "@/lib/supabase";
-import { getPreciseCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M } from "@/lib/tracking";
+import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M } from "@/lib/tracking";
 import { useLiveResync } from "@/lib/useLiveResync";
 import type {
   LatLng,
@@ -70,7 +72,9 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
   const [riderProfiles, setRiderProfiles] = useState<Record<string, RiderProfile>>({});
+  const [readySignalMinutes, setReadySignalMinutes] = useState<15 | 30 | 60>(30);
   const [rideNote, setRideNote] = useState("");
+  const [sosBusy, setSosBusy] = useState(false);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
   const [routeSummary, setRouteSummary] = useState<{ distanceKm: number | null; durationMin: number | null } | null>(null);
   const [rides, setRides] = useState<RideRequest[]>([]);
@@ -85,6 +89,8 @@ export default function UserDashboard() {
     if (!supabase) {
       return;
     }
+    await supabase.rpc("expire_ready_signals");
+
     const { data, error } = await supabase
       .from("ride_requests")
       .select("*")
@@ -316,7 +322,7 @@ export default function UserDashboard() {
     setPickupAccuracy(null);
     setMessage("Finding your precise GPS location...");
     try {
-      const position = await getPreciseCurrentLocation((accuracy) => {
+      const position = await getPromptedCurrentLocation((accuracy) => {
         setPickupAccuracy(accuracy);
         setMessage(`Improving GPS accuracy... currently +/-${accuracy}m`);
       });
@@ -415,6 +421,7 @@ export default function UserDashboard() {
     }
     const { error } = await supabase.rpc("mark_ride_ready_and_assign", {
       p_ride_id: ride.id,
+      p_signal_minutes: readySignalMinutes,
     });
     setMessage(error ? error.message : "Searching nearby riders now.");
     if (userId) {
@@ -512,6 +519,17 @@ export default function UserDashboard() {
     ["completed", "cancelled"].includes(ride.status),
   );
   const userCancelledRideCount = rides.filter((ride) => ride.status === "cancelled" && (!ride.cancelled_by || ride.cancelled_by === userId)).length;
+  const safetyLocation = useMemo(
+    () =>
+      assignedRiderLocation
+        ? {
+            accuracy_m: assignedRiderLocation.accuracy_m,
+            lat: assignedRiderLocation.lat,
+            lng: assignedRiderLocation.lng,
+          }
+        : mapPickup,
+    [assignedRiderLocation, mapPickup],
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -538,6 +556,36 @@ export default function UserDashboard() {
       ignore = true;
     };
   }, [routeFrom, routeTo]);
+
+  const triggerSafetyAlert = useCallback(async (alertType: SafetyAlertType, alertMessage: string) => {
+    if (!activeRide || !["assigned", "started"].includes(activeRide.status)) {
+      setMessage("Safety alerts are available after a rider is assigned.");
+      return;
+    }
+
+    setSosBusy(alertType === "sos");
+    const { error } = await createSafetyAlert({
+      alertType,
+      location: safetyLocation,
+      message: alertMessage,
+      rideId: activeRide.id,
+    });
+    setSosBusy(false);
+    setMessage(error ?? "Safety alert saved. Emergency contact notified in Taxiro if they have an account.");
+  }, [activeRide, safetyLocation]);
+
+  usePanicTrigger({
+    enabled: Boolean(activeRide && ["assigned", "started"].includes(activeRide.status)),
+    onPanic: () => void triggerSafetyAlert("sos", "SOS triggered by triple volume-up while Taxiro was open."),
+  });
+
+  useRideSafetyMonitor({
+    enabled: Boolean(activeRide && activeRide.status === "started"),
+    location: safetyLocation,
+    onStatus: setMessage,
+    ride: activeRide ?? null,
+    routeSummary,
+  });
 
   if (loading) {
     return <LoadingRideShell label="Taxiro" title="Preparing your ride app" />;
@@ -1109,23 +1157,44 @@ function rideHeadline(status: RideRequest["status"]) {
   return "Ride scheduled";
 }
 
+function isReadySignalExpired(ride: RideRequest) {
+  return ride.status === "ready" && Boolean(ride.ready_expires_at) && new Date(ride.ready_expires_at as string).getTime() <= Date.now();
+}
+
+function formatReadySignalTimeLeft(value: string | null) {
+  if (!value) return "no expiry set";
+  const milliseconds = new Date(value).getTime() - Date.now();
+  if (milliseconds <= 0) return "expired";
+  const minutes = Math.ceil(milliseconds / 60_000);
+  if (minutes <= 1) return "under 1 min left";
+  return `${minutes} min left`;
+}
+
 function ActiveUserRide({
   code,
   onCancel,
   onReady,
+  onReadySignalMinutesChange,
+  onSos,
+  readySignalMinutes,
   riderLocation,
   riderProfile,
   routeSummary,
   ride,
+  sosBusy,
   userId,
 }: {
   code?: string;
   onCancel: () => void;
   onReady: () => void;
+  onReadySignalMinutesChange: (minutes: 15 | 30 | 60) => void;
+  onSos: () => void;
+  readySignalMinutes: 15 | 30 | 60;
   riderLocation?: RiderLocation | null;
   riderProfile?: RiderProfile | null;
   routeSummary: { distanceKm: number | null; durationMin: number | null } | null;
   ride: RideRequest;
+  sosBusy: boolean;
   userId: string | null;
 }) {
   const hasLivePhase = ["assigned", "started"].includes(ride.status);
@@ -1135,6 +1204,10 @@ function ActiveUserRide({
     : "Code verified. The live route now follows the trip toward your drop location.";
   const liveEta = routeSummary?.durationMin ?? ride.estimated_duration_min;
   const liveDistance = routeSummary?.distanceKm ?? ride.distance_km;
+  const readyExpired = isReadySignalExpired(ride);
+  const canPublishReady = ride.status === "scheduled" || readyExpired;
+  const readyLocked = ride.status === "ready" && !readyExpired;
+  const readyTimeLeft = formatReadySignalTimeLeft(ride.ready_expires_at);
 
   return (
     <div className="grid gap-4">
@@ -1147,9 +1220,9 @@ function ActiveUserRide({
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          {ride.status === "scheduled" ? (
+          {canPublishReady ? (
             <Button className="rounded-lg" onClick={onReady}>
-              I&apos;m Ready
+              {readyExpired ? "Publish again" : "I&apos;m Ready"}
             </Button>
           ) : null}
           {["scheduled", "ready", "assigned"].includes(ride.status) ? (
@@ -1165,6 +1238,41 @@ function ActiveUserRide({
           <p className="mt-1 text-xl font-black">You are on your way</p>
           <p className="mt-2 text-sm leading-6 text-white/65">
             The ride can be completed from the rider app after reaching the drop point.
+          </p>
+        </div>
+      ) : null}
+      {ride.status === "scheduled" || ride.status === "ready" ? (
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-black">Ready signal duration</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Choose how long nearby riders can see this request after you publish it.
+              </p>
+            </div>
+            <Badge className="shrink-0 bg-secondary text-secondary-foreground">
+              {ride.status === "ready" ? (readyExpired ? "Expired" : readyTimeLeft) : `${readySignalMinutes} min`}
+            </Badge>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {([15, 30, 60] as const).map((minutes) => (
+              <button
+                className={`rounded-lg px-3 py-2 text-sm font-black transition ${readySignalMinutes === minutes ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"} ${readyLocked ? "cursor-not-allowed opacity-70" : ""}`}
+                disabled={readyLocked}
+                key={minutes}
+                onClick={() => onReadySignalMinutesChange(minutes)}
+                type="button"
+              >
+                {minutes} min
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            {ride.status === "ready"
+              ? readyExpired
+                ? "Signal expired. Publish again when you still need the ride."
+                : `Visible to riders now, ${readyTimeLeft}.`
+              : "Default is 30 minutes. Use 15 for urgent pickup, 60 when you can wait longer."}
           </p>
         </div>
       ) : null}
@@ -1283,6 +1391,25 @@ function ActiveUserRide({
           </p>
         </div>
       )}
+      {hasLivePhase ? (
+        <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-1 size-5 shrink-0 text-destructive" />
+            <div className="min-w-0">
+              <p className="text-sm font-black">Safety alert</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Use SOS if you feel unsafe. Taxiro saves your current ride location and notifies your emergency contact in-app if that phone number has a Taxiro account.
+              </p>
+            </div>
+          </div>
+          <Button className="mt-3 h-12 w-full rounded-lg" disabled={sosBusy} onClick={onSos} variant="destructive">
+            {sosBusy ? "Sending SOS..." : "SOS - notify emergency contact"}
+          </Button>
+          <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+            Triple volume-up is best-effort only in browsers. Keep the visible SOS button as the reliable safety action.
+          </p>
+        </div>
+      ) : null}
       <RideChatPanel currentUserId={userId} ride={ride} />
     </div>
   );

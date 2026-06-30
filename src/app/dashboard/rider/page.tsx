@@ -47,6 +47,7 @@ export default function RiderDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [gpsStatus, setGpsStatus] = useState("GPS starting...");
   const [message, setMessage] = useState("");
+  const [riderHomeView, setRiderHomeView] = useState<"ready" | "advance" | "route">("ready");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [riderLocation, setRiderLocation] = useState<RiderLocation | null>(null);
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
@@ -380,6 +381,9 @@ export default function RiderDashboard() {
   const readyRides = rides
     .filter((ride) => ride.status === "ready")
     .sort((a, b) => approxDistanceKm(location, a) - approxDistanceKm(location, b));
+  const scheduledRides = rides
+    .filter((ride) => ride.status === "scheduled")
+    .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
   const demandMapRides = rides
     .filter((ride) => ["ready", "scheduled"].includes(ride.status))
     .sort((a, b) => {
@@ -567,45 +571,73 @@ export default function RiderDashboard() {
               <div className="grid gap-3">
                 <div className="grid gap-3 sm:flex sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <h1 className="text-xl font-black tracking-tight sm:text-3xl">Ready ride requests</h1>
+                    <h1 className="text-xl font-black tracking-tight sm:text-3xl">Rider home</h1>
                     <p className="text-sm leading-6 text-muted-foreground">
-                      Nearby requests update live while you are online.
+                      Accept ready jobs, watch advance demand, or set an On-The-Way route.
                     </p>
                   </div>
                   <Badge className="bg-secondary text-secondary-foreground">
-                    {readyRides.length} ready
+                    {riderLocation?.is_available ? "Online" : "Offline"}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
                   <MiniStat icon={Radio} label="Ready" value={readyRides.length} />
-                  <MiniStat
-                    icon={Clock3}
-                    label="Scheduled"
-                    value={rides.filter((ride) => ride.status === "scheduled").length}
-                  />
-                  <MiniStat
-                    icon={Gauge}
-                    label="Riders"
-                    value={riders.filter((rider) => rider.is_available).length}
-                  />
+                  <MiniStat icon={Clock3} label="Advance" value={scheduledRides.length} />
+                  <MiniStat icon={Gauge} label="Riders" value={riders.filter((rider) => rider.is_available).length} />
                 </div>
-                <div className="max-h-[36svh] overflow-y-auto overflow-x-hidden lg:max-h-none lg:overflow-visible">
-                  <div className="grid gap-3">
-                    {readyRides.length ? (
-                      readyRides.map((ride) => (
-                        <RequestCard
-                          currentLocation={location}
-                          key={ride.id}
-                          onAccept={() => void acceptRide(ride)}
-                          ride={ride}
+                <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
+                  {(["ready", "advance", "route"] as const).map((view) => (
+                    <button
+                      className={`rounded-md px-2 py-2.5 text-xs font-black transition sm:text-sm ${riderHomeView === view ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
+                      key={view}
+                      onClick={() => setRiderHomeView(view)}
+                      type="button"
+                    >
+                      {view === "ready" ? "Ready" : view === "advance" ? "Advance" : "Route"}
+                    </button>
+                  ))}
+                </div>
+                <div className="max-h-[42svh] overflow-y-auto overflow-x-hidden pr-1 lg:max-h-none lg:overflow-visible">
+                  {riderHomeView === "ready" ? (
+                    <div className="grid gap-3">
+                      {readyRides.length ? (
+                        readyRides.map((ride) => (
+                          <RequestCard
+                            currentLocation={location}
+                            key={ride.id}
+                            onAccept={() => void acceptRide(ride)}
+                            ride={ride}
+                          />
+                        ))
+                      ) : (
+                        <RiderEmptyState
+                          title="No ready jobs right now"
+                          text="Stay online with live GPS on. Ready requests will appear here instantly and pulse on the map."
                         />
-                      ))
-                    ) : (
-                      <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-                        No ready requests right now. Go online and keep location fresh.
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  ) : null}
+                  {riderHomeView === "advance" ? (
+                    <div className="grid gap-3">
+                      <DemandSignals compact rides={rides} />
+                      {scheduledRides.length ? (
+                        scheduledRides.map((ride) => (
+                          <ScheduledRequestCard currentLocation={location} key={ride.id} ride={ride} />
+                        ))
+                      ) : (
+                        <RiderEmptyState
+                          title="No advance bookings yet"
+                          text="Scheduled pickup demand will appear here before it becomes ready. Use it to plan where to wait."
+                        />
+                      )}
+                    </div>
+                  ) : null}
+                  {riderHomeView === "route" ? (
+                    <div className="grid gap-3">
+                      <RiderRouteIntro />
+                      {profile ? <RouteSetupForm defaultExpanded riderId={profile.id} /> : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -638,16 +670,66 @@ export default function RiderDashboard() {
         ) : null}
       </div>
 
-      <section className="grid w-full min-w-0 max-w-full gap-3 overflow-x-clip bg-background px-2 py-3 pb-24 sm:px-4 sm:py-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:pb-5">
-        <div className="min-w-0 max-w-full overflow-hidden" id="demand">
-          <DemandSignals rides={rides} />
-        </div>
-        <div className="min-w-0 max-w-full overflow-hidden" id="route">{profile ? <RouteSetupForm riderId={profile.id} /> : null}</div>
-      </section>
+
     </AppShell>
   );
 }
 
+function RiderEmptyState({ text, title }: { text: string; title: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-muted p-4 text-sm">
+      <p className="font-black text-foreground">{title}</p>
+      <p className="mt-1 leading-6 text-muted-foreground">{text}</p>
+    </div>
+  );
+}
+
+function RiderRouteIntro() {
+  return (
+    <div className="rounded-lg bg-[#101713] p-4 text-white">
+      <p className="text-sm font-semibold text-white/60">On-The-Way matching</p>
+      <p className="mt-1 text-xl font-black">Get rides along your direction</p>
+      <p className="mt-2 text-sm leading-6 text-white/65">
+        Add where you are starting and where you are going. Taxiro can use this route to surface pickups that fit your travel direction.
+      </p>
+    </div>
+  );
+}
+
+function ScheduledRequestCard({ currentLocation, ride }: { currentLocation: LatLng; ride: RideRequest }) {
+  const fareBreakdown = calculateFareBreakdown(ride.fare_estimate);
+  const riderEarning = ride.rider_earning ?? fareBreakdown.riderEarning;
+  const pickupDistance = approxDistanceKm(currentLocation, ride);
+
+  return (
+    <div className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Badge className="bg-muted text-foreground">Advance</Badge>
+          <p className="mt-2 font-black">{new Date(ride.scheduled_time).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Pickup is about {pickupDistance} km from your current area.</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-black">{formatMoney(ride.fare_estimate)}</p>
+          <p className="text-xs font-bold text-muted-foreground">earn {formatMoney(riderEarning)}</p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2 text-sm">
+        <p className="flex gap-2">
+          <MapPinned className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span className="line-clamp-2">{ride.pickup_address}</span>
+        </p>
+        <p className="flex gap-2">
+          <Navigation className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span className="line-clamp-2">{ride.drop_address}</span>
+        </p>
+      </div>
+      <p className="mt-3 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+        This is a demand signal. It becomes acceptable when the customer taps I&apos;m Ready.
+      </p>
+    </div>
+  );
+}
 function LoadingRiderShell() {
   return (
     <AppShell immersive title="Rider app">

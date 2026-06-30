@@ -44,6 +44,9 @@ export type RideRequest = {
   payment_confirmed_at: string | null;
   payment_confirmed_by: string | null;
   rider_note: string | null;
+  ready_at: string | null;
+  ready_expires_at: string | null;
+  ready_signal_minutes: number | null;
   cancellation_reason: string | null;
   cancellation_fee: number | null;
   cancellation_fee_reason: string | null;
@@ -118,6 +121,35 @@ export type RideRating = {
   reviewee_id: string;
   rating: number;
   comment: string | null;
+  created_at: string;
+};
+
+export type SafetyAlertType = "sos" | "late_trip" | "route_changed";
+export type SafetyAlertStatus = "open" | "acknowledged" | "resolved";
+
+export type SafetyAlert = {
+  id: string;
+  ride_id: string;
+  triggered_by: string;
+  recipient_profile_id: string | null;
+  alert_type: SafetyAlertType;
+  message: string;
+  lat: number | null;
+  lng: number | null;
+  accuracy_m: number | null;
+  status: SafetyAlertStatus;
+  resolved_at: string | null;
+  created_at: string;
+};
+
+export type AppNotification = {
+  id: string;
+  profile_id: string;
+  title: string;
+  body: string;
+  related_ride_id: string | null;
+  safety_alert_id: string | null;
+  read_at: string | null;
   created_at: string;
 };
 export type LatLng = {

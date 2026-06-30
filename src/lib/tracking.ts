@@ -16,8 +16,23 @@ const RIDER_WRITE_INTERVAL_MS = 5_000;
 const RIDER_HEARTBEAT_INTERVAL_MS = 15_000;
 const RIDER_MINIMUM_MOVEMENT_M = 4;
 
+type GeolocationPermissionState = PermissionState | "unknown";
+
+async function getGeolocationPermissionState(): Promise<GeolocationPermissionState> {
+  if (typeof navigator === "undefined" || !("permissions" in navigator)) {
+    return "unknown";
+  }
+
+  try {
+    const status = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+    return status.state;
+  } catch {
+    return "unknown";
+  }
+}
+
 function geolocationErrorMessage(error?: GeolocationPositionError) {
-  if (!error) return "GPS could not determine your location. Choose it on the map.";
+  if (!error) return "GPS could not determine your location. Search or choose it on the map.";
   if (error.code === error.PERMISSION_DENIED) {
     return "Location permission is blocked. Allow precise location access in browser settings, then try again.";
   }
@@ -27,18 +42,42 @@ function geolocationErrorMessage(error?: GeolocationPositionError) {
   return "GPS detection timed out. Move near a window or outdoors, then try again.";
 }
 
-export function getPreciseCurrentLocation(onProgress?: (accuracyM: number) => void) {
-  return new Promise<GeolocationPosition>((resolve, reject) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      reject(new Error("Location detection is not supported in this browser."));
-      return;
-    }
-    if (!window.isSecureContext) {
-      reject(new Error("Location detection requires HTTPS or localhost."));
-      return;
-    }
+function ensureGeolocationReady() {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    throw new Error("Location detection is not supported in this browser.");
+  }
+  if (!window.isSecureContext) {
+    throw new Error("Location detection requires HTTPS or localhost.");
+  }
+}
 
-    let best: GeolocationPosition | null = null;
+function requestCurrentPosition() {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: PRECISE_LOCATION_TIMEOUT_MS,
+    });
+  });
+}
+
+export async function getPromptedCurrentLocation(onProgress?: (accuracyM: number) => void) {
+  ensureGeolocationReady();
+
+  const permissionState = await getGeolocationPermissionState();
+  if (permissionState === "denied") {
+    throw new Error("Location permission is blocked. Allow precise location access in browser settings, then try again.");
+  }
+
+  let best: GeolocationPosition;
+  try {
+    best = await requestCurrentPosition();
+    onProgress?.(Math.round(best.coords.accuracy));
+  } catch (error) {
+    throw new Error(geolocationErrorMessage(error as GeolocationPositionError));
+  }
+
+  return new Promise<GeolocationPosition>((resolve, reject) => {
     let settled = false;
     let watchId: number | null = null;
     let timer: number | null = null;
@@ -64,10 +103,15 @@ export function getPreciseCurrentLocation(onProgress?: (accuracyM: number) => vo
       reject(new Error(geolocationErrorMessage(error)));
     }
 
+    if (best.coords.accuracy <= PRECISE_TARGET_ACCURACY_M) {
+      finish(best);
+      return;
+    }
+
     watchId = navigator.geolocation.watchPosition(
       (position) => {
         if (!Number.isFinite(position.coords.latitude) || !Number.isFinite(position.coords.longitude)) return;
-        if (!best || position.coords.accuracy < best.coords.accuracy) {
+        if (position.coords.accuracy < best.coords.accuracy) {
           best = position;
           onProgress?.(Math.round(position.coords.accuracy));
         }
@@ -79,8 +123,12 @@ export function getPreciseCurrentLocation(onProgress?: (accuracyM: number) => vo
       { enableHighAccuracy: true, maximumAge: 0, timeout: PRECISE_LOCATION_TIMEOUT_MS + 1_000 },
     );
 
-    timer = window.setTimeout(() => finish(best ?? undefined), PRECISE_LOCATION_TIMEOUT_MS);
+    timer = window.setTimeout(() => finish(best), PRECISE_LOCATION_TIMEOUT_MS);
   });
+}
+
+export function getPreciseCurrentLocation(onProgress?: (accuracyM: number) => void) {
+  return getPromptedCurrentLocation(onProgress);
 }
 
 function distanceInMeters(from: LatLng, to: LatLng) {
@@ -113,11 +161,24 @@ export function watchRiderLocation({
     onError("GPS tracking is not available in this browser. Use manual map selection.");
     return null;
   }
+  if (!window.isSecureContext) {
+    onError("Live GPS requires HTTPS or localhost. Use manual map selection for now.");
+    return null;
+  }
 
   let lastAccepted: RiderTrackingUpdate | null = null;
   let lastAcceptedAt = 0;
   let lastStoredAt = 0;
   let lastWeakSignalNoticeAt = 0;
+
+  void getGeolocationPermissionState().then((permissionState) => {
+    if (permissionState === "prompt") {
+      onError("Tap the GPS button to allow location permission and start live tracking.");
+    }
+    if (permissionState === "denied") {
+      onError("Location permission is blocked. Allow precise location access in browser settings, then try again.");
+    }
+  });
 
   const watchId = navigator.geolocation.watchPosition(
     (position) => {

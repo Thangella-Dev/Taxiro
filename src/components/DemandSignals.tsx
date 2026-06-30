@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import type { RideRequest } from "@/types/database";
 
-export function DemandSignals({ rides }: { rides: RideRequest[] }) {
+export function DemandSignals({ compact = false, rides }: { compact?: boolean; rides: RideRequest[] }) {
   const ready = rides.filter((ride) => ride.status === "ready");
   const scheduled = rides.filter((ride) => ride.status === "scheduled");
   const visibleSignals = [...ready, ...scheduled]
@@ -15,10 +15,10 @@ export function DemandSignals({ rides }: { rides: RideRequest[] }) {
     .slice(0, 6);
 
   return (
-    <Card className="min-w-0 max-w-full overflow-hidden p-4">
+    <Card className={compact ? "min-w-0 max-w-full overflow-hidden border-secondary/50 bg-secondary/20 p-3" : "min-w-0 max-w-full overflow-hidden p-4"}>
       <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold">Demand signals</p>
+          <p className="font-semibold">{compact ? "Advance demand signals" : "Demand signals"}</p>
           <p className="text-sm text-muted-foreground">Ready jobs first, then upcoming pickup demand</p>
         </div>
         <Flame className="size-5 shrink-0 text-amber-500" />
@@ -27,7 +27,7 @@ export function DemandSignals({ rides }: { rides: RideRequest[] }) {
         <div className="rounded-lg bg-secondary p-3 font-black">{ready.length} ready now</div>
         <div className="rounded-lg bg-muted p-3 font-black">{scheduled.length} scheduled</div>
       </div>
-      <div className="grid gap-3">
+      <div className={compact ? "hidden" : "grid gap-3"}>
         {visibleSignals.length ? (
           visibleSignals.map((ride) => {
             const earning = ride.rider_earning ?? calculateFareBreakdown(ride.fare_estimate).riderEarning;
