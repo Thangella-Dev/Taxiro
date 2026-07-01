@@ -19,7 +19,7 @@ import { useSingleDeviceSession } from "@/lib/account-session";
 import { getCurrentUser, getProfile } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { getSupabase } from "@/lib/supabase";
-import type { UserRole } from "@/types/database";
+import type { Profile, UserRole } from "@/types/database";
 
 const roleNavigation: Record<
   UserRole,
@@ -69,6 +69,11 @@ export function AppShell({
       setProfileId(user?.id ?? null);
       if (user) {
         const profile = await getProfile(client, user.id);
+        if (profile?.account_status === "suspended") {
+          await client.auth.signOut({ scope: "local" });
+          router.replace("/auth");
+          return;
+        }
         setRole(profile?.role ?? null);
       } else {
         setRole(null);
@@ -81,8 +86,30 @@ export function AppShell({
     } = supabase.auth.onAuthStateChange(() => void loadAccount());
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
+  useEffect(() => {
+    if (!profileId) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const channel = supabase
+      .channel("account-control-" + profileId)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", filter: "id=eq." + profileId, schema: "public", table: "profiles" },
+        (payload) => {
+          const updated = payload.new as Profile;
+          if (updated.account_status === "suspended") {
+            void supabase.auth.signOut({ scope: "local" }).then(() => {
+              router.replace("/auth");
+              router.refresh();
+            });
+          }
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [profileId, router]);
   async function signOut() {
     const supabase = getSupabase();
     if (supabase) {

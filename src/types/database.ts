@@ -12,6 +12,7 @@ export type RiderRouteStatus = "active" | "expired" | "completed";
 export type Profile = {
   id: string;
   role: UserRole;
+  account_status: "active" | "suspended";
   full_name: string | null;
   phone: string | null;
   emergency_contact_name: string | null;
@@ -188,6 +189,8 @@ export type AppNotification = {
   related_ride_id: string | null;
   safety_alert_id: string | null;
   read_at: string | null;
+  category: "system" | "ride" | "safety" | "admin";
+  created_by: string | null;
   created_at: string;
 };
 export type LatLng = {
@@ -195,9 +198,12 @@ export type LatLng = {
   lng: number;
   address?: string;
 };
-
-
-
-
-
-
+export type AdminBroadcast = {
+  id: string;
+  created_by: string;
+  title: string;
+  body: string;
+  audience: "all" | "users" | "riders";
+  delivered_count: number;
+  created_at: string;
+};

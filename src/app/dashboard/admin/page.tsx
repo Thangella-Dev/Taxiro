@@ -14,6 +14,8 @@ import {
   Users,
 } from "lucide-react";
 
+import { AdminNotificationCenter } from "@/components/AdminNotificationCenter";
+import { AdminSafetyCenter } from "@/components/AdminSafetyCenter";
 import { AdminStatsCard } from "@/components/AdminStatsCard";
 import { AppShell } from "@/components/AppShell";
 import { DemandZoneCard } from "@/components/DemandZoneCard";
@@ -249,6 +251,16 @@ export default function AdminDashboard() {
     onResync: loadAdminData,
   });
 
+  async function updateAccountStatus(profileId: string, status: "active" | "suspended") {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const { error } = await supabase.rpc("admin_set_account_status", {
+      p_profile_id: profileId,
+      p_status: status,
+    });
+    setMessage(error ? error.message : "Account marked " + status + ".");
+    if (!error) await loadAdminData();
+  }
   async function updateIdentityVerification(riderId: string, status: RiderProfile["verification_status"]) {
     const supabase = getSupabase();
     if (!supabase) return;
@@ -351,7 +363,19 @@ export default function AdminDashboard() {
         </Card>
       ) : null}
 
-      <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
+      <nav className="sticky top-16 z-30 mb-5 flex gap-2 overflow-x-auto rounded-lg border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
+        {[
+          ["#admin-overview", "Overview"],
+          ["#admin-notifications", "Notifications"],
+          ["#admin-safety", "Safety"],
+          ["#admin-people", "People"],
+          ["#admin-rides", "Rides"],
+        ].map(([href, label]) => (
+          <a className="shrink-0 rounded-md bg-muted px-3 py-2 text-sm font-black transition hover:bg-secondary" href={href} key={href}>{label}</a>
+        ))}
+      </nav>
+
+      <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4" id="admin-overview">
         <AdminStatsCard
           icon={Users}
           label="Users"
@@ -407,8 +431,13 @@ export default function AdminDashboard() {
         />
       </div>
 
+      <div className="mt-6 grid gap-6">
+        <AdminNotificationCenter />
+        <AdminSafetyCenter />
+      </div>
+
       <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(18rem,0.68fr)_minmax(0,1.32fr)]">
-        <section className="grid min-w-0 gap-4">
+        <section className="grid min-w-0 gap-4" id="admin-people">
           <DemandZoneCard count={rides.length} label="All demand areas" />
           <Card className="animate-in">
             <CardHeader>
@@ -427,7 +456,14 @@ export default function AdminDashboard() {
                     <p className="truncate font-medium">
                       {item.full_name ?? item.id}
                     </p>
-                    <p className="text-muted-foreground">{item.role}</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">{item.role} · {item.account_status ?? "active"}</span>
+                      {item.id !== profile?.id ? (
+                        <Button onClick={() => void updateAccountStatus(item.id, item.account_status === "suspended" ? "active" : "suspended")} size="sm" variant={item.account_status === "suspended" ? "default" : "outline"}>
+                          {item.account_status === "suspended" ? "Activate" : "Suspend"}
+                        </Button>
+                      ) : <span className="text-xs font-bold text-muted-foreground">You</span>}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -498,7 +534,7 @@ export default function AdminDashboard() {
           </Card>
         </section>
 
-        <section className="min-w-0">
+        <section className="min-w-0" id="admin-rides">
           <h2 className="mb-4 text-xl font-semibold">Ride operations</h2>
           <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto]">
             <label className="relative">

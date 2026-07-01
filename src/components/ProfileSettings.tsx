@@ -73,7 +73,15 @@ export function ProfileSettings({
     }
 
     onSaved(data as Profile);
-    setMessage("Profile updated.");
+    const { data: linkRows } = await supabase.rpc("get_emergency_contact_link_status");
+    const linkStatus = Array.isArray(linkRows) ? linkRows[0] : linkRows;
+    setMessage(
+      !linkStatus?.configured
+        ? "Profile updated. Add an emergency contact for SOS support."
+        : linkStatus.linked
+          ? "Profile updated. Emergency contact is linked to a Taxiro account."
+          : "Profile updated. This emergency phone is not linked to Taxiro; SOS will offer Call and SMS instead.",
+    );
   }
 
   return (

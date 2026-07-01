@@ -123,6 +123,11 @@ export default function AuthPage() {
         }
         if (data.user) {
           const profile = await ensureProfile(supabase, data.user, role);
+          if (profile.account_status === "suspended") {
+            await supabase.auth.signOut({ scope: "local" });
+            setMessage("This account is suspended. Contact Taxiro support.");
+            return;
+          }
           await ensureInitialRiderVehicle(supabase, data.user);
           if (profile.role === "rider" && livePhoto) {
             await uploadRiderLivePhoto(supabase, data.user.id, livePhoto);
@@ -140,6 +145,11 @@ export default function AuthPage() {
           return;
         }
         const profile = await ensureProfile(supabase, data.user, role);
+        if (profile.account_status === "suspended") {
+          await supabase.auth.signOut({ scope: "local" });
+          setMessage("This account is suspended. Contact Taxiro support.");
+          return;
+        }
         await ensureInitialRiderVehicle(supabase, data.user);
         await establishSingleDeviceSession(supabase, data.user.id);
         router.push(dashboardForRole(profile.role));
