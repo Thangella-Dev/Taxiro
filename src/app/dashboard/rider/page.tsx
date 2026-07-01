@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { AppNotificationBell } from "@/components/AppNotificationBell";
 import { CancelRideDialog } from "@/components/CancelRideDialog";
 import { DemandSignals } from "@/components/DemandSignals";
 import { DynamicMapPicker } from "@/components/DynamicMapPicker";
@@ -553,10 +554,7 @@ export default function RiderDashboard() {
               {activeRide ? riderHeadline(activeRide.status) : "Find nearby work"}
             </p>
           </div>
-          <div className="pointer-events-auto flex min-w-0 shrink items-center gap-1 rounded-xl border border-white/80 bg-white/94 p-1 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:gap-2">
-            <span className="hidden pl-3 text-xs font-semibold text-muted-foreground sm:inline">
-              {riderLocation?.is_available ? "Online" : "Offline"}
-            </span>
+          <div className="pointer-events-auto flex min-w-0 shrink items-center gap-1 rounded-xl border border-white/80 bg-white/94 p-1 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:gap-1.5">
             {profile ? (
               <RiderAvailabilityToggle
                 canGoOnline={hasVerifiedActiveVehicle}
@@ -579,9 +577,20 @@ export default function RiderDashboard() {
                 riderId={profile.id}
               />
             ) : null}
+            <AppNotificationBell profileId={profile?.id ?? null} />
+            <button
+              aria-label="Refresh rider location"
+              aria-busy={detectingLocation}
+              className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 disabled:cursor-wait disabled:opacity-70 sm:size-11"
+              disabled={detectingLocation}
+              onClick={() => void detectRiderLocation()}
+              type="button"
+            >
+              <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingLocation ? "animate-pulse" : ""}`} />
+            </button>
             <button
               aria-label="Open rider menu"
-              className="flex size-9 items-center justify-center rounded-full text-primary transition hover:bg-muted"
+              className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 text-primary shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 sm:size-11"
               onClick={() => setMenuOpen(true)}
               type="button"
             >
@@ -590,20 +599,10 @@ export default function RiderDashboard() {
           </div>
         </div>
 
-        <div className="absolute left-2 top-[calc(max(0.5rem,env(safe-area-inset-top))+5rem)] z-[1200] flex max-w-[calc(100%-1rem)] items-center gap-2 sm:left-4 sm:top-24">
-          <div className="max-w-[11rem] truncate rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-left text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur sm:max-w-[14rem]">
+        <div className="absolute left-2 top-[calc(max(0.5rem,env(safe-area-inset-top))+4.35rem)] z-[1100] max-w-[calc(100%-1rem)] sm:left-4 sm:top-20">
+          <div className="max-w-[13rem] truncate rounded-lg border border-white/80 bg-white/95 px-3 py-2 text-left text-[11px] font-bold text-muted-foreground shadow-[var(--shadow-soft)] backdrop-blur sm:max-w-[16rem]">
             {gpsStatus}
           </div>
-          <button
-            aria-label="Refresh rider location"
-            aria-busy={detectingLocation}
-            className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur disabled:cursor-wait disabled:opacity-70"
-            disabled={detectingLocation}
-            onClick={() => void detectRiderLocation()}
-            type="button"
-          >
-            <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingLocation ? "animate-pulse" : ""}`} />
-          </button>
         </div>
 
         <ResponsiveRideSheet
@@ -1235,30 +1234,3 @@ function formatTrackingAge(value: string) {
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.round(seconds / 60)}m ago`;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

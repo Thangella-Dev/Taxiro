@@ -47,3 +47,20 @@ The admin panel now looks and behaves much closer to a real operational dashboar
 3. Test safety alert acknowledge/resolve from the admin account.
 4. Continue improving admin analytics with charts, date filters, export tools, and ride dispute handling.
 5. Add production push notifications or SMS/WhatsApp integration when a paid provider is selected.
+
+## Late Safety Notification Repair
+
+- Investigated why SOS alerts showed in admin but did not reach the emergency contact account.
+- Verified live Supabase data showed the root cause: the saved emergency number included the India country code, while the emergency contact profile stored the same mobile number without the country code.
+- Added and applied an additive Supabase migration for smarter emergency-contact matching:
+  - exact normalized phone match,
+  - last-10-digit Indian mobile fallback,
+  - updated `create_safety_alert`,
+  - updated emergency contact link-status check,
+  - backfilled previous unlinked SOS alerts where a matching contact account exists.
+- Verified live Supabase now links Thangella SOS alerts to Anil's Taxiro profile and creates one in-app notification per safety alert.
+- Upgraded the admin Safety Command cards to show triggering user, emergency recipient, phone, ride details, pickup/drop, passenger contact, rider context, location, and Open Ride action.
+- Added notification bell access directly on user and rider home map headers.
+- Added swipe-to-dismiss/tap-to-dismiss notifications and ride-linked notification opening.
+- Reduced the user active-trip title pill size so notification, location, and menu controls fit beside it on mobile.
+- Moved rider GPS refresh into the top control cluster beside notifications and menu, with GPS status text moved below the header to avoid overlap.

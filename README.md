@@ -84,6 +84,8 @@ The MVP currently includes:
 - Ready/cancel action schema repair applied remotely by adding `ride_status_events.actor_id` and compatible Ready/Cancel RPC behavior.
 - Shared validation helpers now reject invalid names, phone numbers, email/password inputs, UPI IDs, driving licence values, and vehicle registration/details before saving.
 - Redesigned admin command center with stronger operations layout, broadcast notifications, safety command, people controls, rider verification, and ride audit workflows.
+- Home-screen notification bell on user/rider map headers with unread count, ride-linked notifications, and swipe-to-dismiss behavior.
+- SOS emergency-contact matching now supports exact normalized phone and last-10-digit India mobile fallback, with previous matching unlinked alerts backfilled to in-app delivery.
 
 ## Main Routes
 
@@ -513,6 +515,8 @@ Wednesday - 01 July 2026:
 - Redesigned safety command with open/active counts, urgent alert cards, delivery status, location context, acknowledge, and resolve actions.
 - Improved people control, rider identity review, per-vehicle verification, and ride operations search/filter layout.
 - Passed TypeScript, focused ESLint, and production build verification.
+- Fixed SOS emergency-contact delivery by applying smarter phone matching and backfilling matched in-app notifications.
+- Added user/rider home notification bells, swipe-dismiss notification behavior, and better mobile header control placement.
 
 ## Verification Status
 

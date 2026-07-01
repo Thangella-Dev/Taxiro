@@ -41,3 +41,21 @@ Next actions:
 Regards,
 
 THANGELLA
+
+Late safety notification repair completed:
+
+- Investigated why SOS alerts appeared in admin but did not notify the emergency contact account.
+- Confirmed the live data issue: the emergency contact was saved with country code, while the matching Taxiro profile stored the same phone without country code.
+- Added and applied an additive Supabase migration for exact normalized phone matching plus last-10-digit mobile fallback.
+- Backfilled previous unlinked SOS alerts and verified they now link to Anil's profile with in-app notification rows created.
+- Improved admin Safety Command cards with triggering user, recipient, ride details, pickup/drop, passenger contact, rider context, and Open Ride action.
+- Added home-screen notification bells for user and rider dashboards.
+- Added swipe-to-dismiss notifications and ride-linked notification opening.
+- Reduced the active-trip top bar size and placed notification/location/menu controls together for better mobile usability.
+
+Verification:
+
+- Live Supabase SOS delivery now shows `in_app` for matched emergency contacts.
+- TypeScript passed.
+- Focused ESLint passed.
+- Production build passed.

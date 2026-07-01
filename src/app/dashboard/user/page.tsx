@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Info,
   ListChecks,
+  LocateFixed,
   LogOut,
   Menu,
   Phone,
@@ -29,6 +30,7 @@ import {
 
 import { AppShell } from "@/components/AppShell";
 import { AppNotifications } from "@/components/AppNotifications";
+import { AppNotificationBell } from "@/components/AppNotificationBell";
 import { CancelRideDialog } from "@/components/CancelRideDialog";
 import { DynamicMapPicker } from "@/components/DynamicMapPicker";
 import { RideChatPanel } from "@/components/RideChatPanel";
@@ -723,17 +725,29 @@ export default function UserDashboard() {
 
         {!mapPickMode ? (
         <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:gap-3 lg:inset-x-4">
-          <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-xl border border-white/80 bg-white/94 p-2.5 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-sm sm:p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Taxiro</p>
-            <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
-              <Bike className="size-4 sm:size-5" />
+          <div className="pointer-events-auto min-w-0 max-w-[calc(100%-10.5rem)] overflow-hidden rounded-xl border border-white/80 bg-white/94 px-2.5 py-2 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-xs sm:px-3">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">Taxiro</p>
+            <p className="flex min-w-0 items-center gap-1.5 truncate text-xs font-black tracking-tight sm:text-base">
+              <Bike className="size-3.5 shrink-0 sm:size-4" />
               {activeRide ? rideHeadline(activeRide.status) : "Where to?"}
             </p>
           </div>
-          <div className="pointer-events-auto flex items-center gap-2">
+          <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+            <AppNotificationBell profileId={profile?.id ?? null} />
+            <button
+              aria-label="Detect pickup location"
+              aria-busy={detectingPickup}
+              className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-11"
+              disabled={Boolean(activeRide) || detectingPickup || bookingFor !== "self"}
+              onClick={() => void detectPickupLocation()}
+              title={bookingFor === "self" ? "Detect pickup location" : "Choose Myself to use current location"}
+              type="button"
+            >
+              <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingPickup ? "animate-pulse" : ""}`} />
+            </button>
             <button
               aria-label="Open menu"
-              className="flex size-11 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur"
+              className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 sm:size-11"
               onClick={() => setMenuOpen(true)}
               type="button"
             >
@@ -1424,7 +1438,7 @@ function ActiveUserRide({
                     <p className="truncate text-lg font-black">{riderDetails.full_name ?? "Taxiro rider"}</p>
                     <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-muted-foreground">
                       <Star className="size-3.5 fill-current text-amber-500" />
-                      {Number(riderDetails.rating ?? 5).toFixed(1)} · {riderDetails.completed_rides ?? 0} rides
+                      {Number(riderDetails.rating ?? 5).toFixed(1)} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {riderDetails.completed_rides ?? 0} rides
                     </p>
                   </div>
                   <Badge className="shrink-0 bg-secondary text-secondary-foreground">{getVehicleLabel(riderDetails.vehicle_type)}</Badge>
@@ -1818,38 +1832,3 @@ function formatTrackingAge(value: string) {
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.round(seconds / 60)}m ago`;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
