@@ -59,3 +59,18 @@ Verification:
 - TypeScript passed.
 - Focused ESLint passed.
 - Production build passed.
+
+Subject: Taxiro - July 1 final UI, operations, and live-map update
+
+Hi Manager,
+
+Today I separated admin operations into responsive Overview, Command, Verification, People, and Rides workspaces, which resolves the crowded single-page layout and improves usability across screen sizes.
+
+I also added a privacy-safe nearby fleet preview for customers. After selecting pickup, users can see the number and approximate positions of active verified riders within 8 km. Rider identities and exact positions remain private until a ride is accepted; after assignment, the customer receives precise live rider tracking and phase-aware routing.
+
+The map visuals now distinguish nearby supply, the assigned rider, ready-now demand, and scheduled demand. Existing realtime notifications, SOS context, emergency-contact delivery status, and admin resolution controls remain integrated.
+
+TypeScript and focused ESLint checks pass. The final deployment step is to apply the new additive Supabase migration before publishing the build.
+
+Regards,
+Thangella

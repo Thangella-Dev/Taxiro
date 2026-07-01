@@ -64,3 +64,13 @@ The admin panel now looks and behaves much closer to a real operational dashboar
 - Added swipe-to-dismiss/tap-to-dismiss notifications and ride-linked notification opening.
 - Reduced the user active-trip title pill size so notification, location, and menu controls fit beside it on mobile.
 - Moved rider GPS refresh into the top control cluster beside notifications and menu, with GPS status text moved below the header to avoid overlap.
+
+## Final production-readiness pass
+
+- Reworked the admin dashboard into separate responsive workspaces: Overview, Command, Verification, People, and Rides.
+- Preserved realtime operational metrics while removing the crowded all-sections-at-once layout.
+- Added a privacy-safe customer nearby-rider preview with anonymous, rounded positions and an 8 km availability count.
+- Kept precise rider position and phase-aware route tracking restricted to the customer whose ride was accepted.
+- Improved map marker language so nearby supply, assigned rider tracking, ready demand, and scheduled demand are visually distinct.
+- Added the additive Supabase migration 20260701203000_customer_nearby_rider_preview.sql.
+- Verified changed files with TypeScript and focused ESLint.

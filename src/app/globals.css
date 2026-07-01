@@ -686,3 +686,27 @@ aside {
     touch-action: manipulation;
   }
 }
+
+.taxiro-rider-marker-nearby {
+  background: #dbf86f;
+  border-color: #101713;
+  color: #101713;
+  height: 30px;
+  opacity: 0.9;
+  width: 30px;
+}
+
+.taxiro-rider-marker-nearby::after {
+  animation: demand-pulse 1.8s ease-out infinite;
+  border: 2px solid #dbf86f;
+  border-radius: 999px;
+  content: "";
+  inset: -7px;
+  position: absolute;
+}
+
+.taxiro-rider-marker-assigned {
+  box-shadow: 0 0 0 7px rgb(219 248 111 / 42%), 0 16px 38px rgb(16 23 19 / 30%);
+  height: 40px;
+  width: 40px;
+}

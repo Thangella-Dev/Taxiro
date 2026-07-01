@@ -52,9 +52,10 @@ const scheduledDemandIcon = L.divIcon({
 
 function riderIcon(rider: RiderLocation) {
   const heading = rider.heading ?? 0;
+  const preview = rider.rider_id.startsWith("nearby-");
   return L.divIcon({
     className: "",
-    html: `<div class="taxiro-rider-marker"><span style="transform: rotate(${heading}deg)">&rarr;</span></div>`,
+    html: `<div class="taxiro-rider-marker ${preview ? "taxiro-rider-marker-nearby" : "taxiro-rider-marker-assigned"}"><span style="transform: rotate(${heading}deg)">&rarr;</span></div>`,
     iconAnchor: [18, 18],
     iconSize: [36, 36],
   });
@@ -331,10 +332,10 @@ export function MapPicker({
             ) : null}
             <Marker icon={riderIcon(rider)} position={[rider.lat, rider.lng]}>
               <Popup>
-                {rider.is_available ? "Available rider" : "Assigned rider"}
+                {rider.rider_id.startsWith("nearby-") ? "Nearby verified rider (approximate)" : rider.is_available ? "Available rider" : "Your assigned rider"}
                 <br />
                 {formatLastSeen(rider.last_seen_at ?? rider.updated_at)}
-                {rider.accuracy_m ? (
+                {!rider.rider_id.startsWith("nearby-") && rider.accuracy_m ? (
                   <>
                     <br />
                     Accuracy: {Math.round(rider.accuracy_m)}m

@@ -89,6 +89,7 @@ export default function UserDashboard() {
   const [pickupAccuracy, setPickupAccuracy] = useState<number | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
+  const [nearbyRiders, setNearbyRiders] = useState<RiderLocation[]>([]);
   const [riderProfiles, setRiderProfiles] = useState<Record<string, RiderProfile>>({});
   const [riderPhotoUrls, setRiderPhotoUrls] = useState<Record<string, string>>({});
   const [readySignalMinutes, setReadySignalMinutes] = useState<15 | 30 | 60>(30);
@@ -104,6 +105,20 @@ export default function UserDashboard() {
   const [scheduledTime, setScheduledTime] = useState(() =>
     toDateTimeLocalInput(new Date(Date.now() + 30 * 60 * 1000)),
   );
+
+  const loadNearbyRiders = useCallback(async (point: LatLng | null) => {
+    const supabase = getSupabase();
+    if (!supabase || !point) {
+      setNearbyRiders([]);
+      return;
+    }
+    const { data, error } = await supabase.rpc("get_nearby_available_riders", {
+      p_lat: point.lat,
+      p_lng: point.lng,
+      p_radius_km: 8,
+    });
+    if (!error) setNearbyRiders((data as RiderLocation[]) ?? []);
+  }, []);
 
   const loadRides = useCallback(async (currentUserId: string) => {
     const supabase = getSupabase();
@@ -334,6 +349,16 @@ export default function UserDashboard() {
       void supabase.removeChannel(channel);
     };
   }, [loadRides]);
+
+  useEffect(() => {
+    if (!pickup) return;
+    const initial = window.setTimeout(() => void loadNearbyRiders(pickup), 0);
+    const interval = window.setInterval(() => void loadNearbyRiders(pickup), 12000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [loadNearbyRiders, pickup]);
 
   function startMapPick(target: "pickup" | "drop") {
     const start = target === "pickup"
@@ -576,8 +601,8 @@ export default function UserDashboard() {
     ? riderLocations.find((rider) => rider.rider_id === activeRide.assigned_rider_id)
     : null;
   const mapRiders = useMemo(
-    () => (assignedRiderLocation ? [assignedRiderLocation] : []),
-    [assignedRiderLocation],
+    () => (assignedRiderLocation ? [assignedRiderLocation] : activeRide ? [] : nearbyRiders),
+    [activeRide, assignedRiderLocation, nearbyRiders],
   );
   const assignedRiderProfile = activeRide?.assigned_rider_id ? riderProfiles[activeRide.assigned_rider_id] ?? null : null;
   const assignedRiderDetail = activeRide ? assignedRiderDetails[activeRide.id] ?? null : null;
@@ -755,6 +780,15 @@ export default function UserDashboard() {
             </button>
           </div>
         </div>
+        ) : null}
+
+        {!mapPickMode && !activeRide && pickup ? (
+          <div className="pointer-events-none absolute left-2 top-[4.15rem] z-[1190] sm:left-3 sm:top-[4.5rem] lg:left-4">
+            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-[#101713]/92 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
+              <Radio className="size-3.5 text-lime-300" />
+              <span>{nearbyRiders.length} active {nearbyRiders.length === 1 ? "rider" : "riders"} within 8 km</span>
+            </div>
+          </div>
         ) : null}
 
         {!mapPickMode ? (
@@ -1438,7 +1472,7 @@ function ActiveUserRide({
                     <p className="truncate text-lg font-black">{riderDetails.full_name ?? "Taxiro rider"}</p>
                     <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-muted-foreground">
                       <Star className="size-3.5 fill-current text-amber-500" />
-                      {Number(riderDetails.rating ?? 5).toFixed(1)} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {riderDetails.completed_rides ?? 0} rides
+                      {Number(riderDetails.rating ?? 5).toFixed(1)} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {riderDetails.completed_rides ?? 0} rides
                     </p>
                   </div>
                   <Badge className="shrink-0 bg-secondary text-secondary-foreground">{getVehicleLabel(riderDetails.vehicle_type)}</Badge>

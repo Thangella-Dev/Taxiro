@@ -581,3 +581,13 @@ Future scope:
 - Integrated payment gateway and automated payment verification.
 - Production-grade geocoding/routing provider.
 - Native mobile wrapper.
+
+## July 1, 2026 production update
+
+- Admin operations are separated into responsive Overview, Command, Verification, People, and Rides workspaces instead of one long page.
+- Customer maps show a privacy-safe nearby fleet preview after pickup selection. Positions are rounded and anonymous; exact live tracking is shown only for the assigned rider.
+- Rider demand markers distinguish ready-now signals from scheduled demand, while active rides use phase-aware pickup/drop routing.
+- SOS administration includes sender, emergency-contact delivery, ride context, location, and resolution controls.
+- Home notification bells update through Supabase Realtime and support swipe-left dismissal.
+
+Apply supabase/migrations/20260701203000_customer_nearby_rider_preview.sql before deploying this update.

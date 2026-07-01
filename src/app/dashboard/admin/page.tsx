@@ -38,15 +38,18 @@ import { getVehicleLabel } from "@/lib/vehicles";
 import type { Profile, RideRequest, RiderLocation, RiderProfile, RiderVehicle } from "@/types/database";
 
 const adminSections = [
-  ["#admin-overview", "Overview"],
-  ["#admin-command", "Command"],
-  ["#admin-verification", "Verification"],
-  ["#admin-people", "People"],
-  ["#admin-rides", "Rides"],
+  ["overview", "Overview", LayoutDashboard],
+  ["command", "Command", ShieldCheck],
+  ["verification", "Verification", UserCheck],
+  ["people", "People", Users],
+  ["rides", "Rides", Bike],
 ] as const;
+
+type AdminSection = (typeof adminSections)[number][0];
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [message, setMessage] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [query, setQuery] = useState("");
@@ -276,11 +279,22 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        <nav className="sticky top-16 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background/90 p-2 shadow-sm backdrop-blur">
-          {adminSections.map(([href, label]) => <a className="shrink-0 rounded-xl px-4 py-2 text-sm font-black text-muted-foreground transition hover:bg-secondary hover:text-foreground" href={href} key={href}>{label}</a>)}
+        <nav aria-label="Admin workspace sections" className="sticky top-16 z-30 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-background/92 p-2 shadow-sm backdrop-blur sm:grid-cols-5">
+          {adminSections.map(([section, label, Icon]) => (
+            <button
+              aria-current={activeSection === section ? "page" : undefined}
+              className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition ${activeSection === section ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+              key={section}
+              onClick={() => setActiveSection(section)}
+              type="button"
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </button>
+          ))}
         </nav>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {activeSection === "overview" ? <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricTile icon={Users} label="Customers" value={profiles.filter((item) => item.role === "user").length} helper="Active app accounts" />
           <MetricTile icon={Bike} label="Riders" value={profiles.filter((item) => item.role === "rider").length} helper="Registered riders" />
           <MetricTile icon={MapPin} label="Online riders" value={riderLocations.filter((rider) => rider.is_available).length} helper="Available right now" tone="green" />
@@ -289,20 +303,16 @@ export default function AdminDashboard() {
           <MetricTile icon={Users} label="Guest rides" value={moneyStats.guestBookings} helper="Booked for others" />
           <MetricTile icon={Flame} label="Peak-rate rides" value={moneyStats.peakFareRides} helper="Surge windows" tone="lime" />
           <MetricTile icon={XCircle} label="Suspended" value={dashboardStats.suspendedAccounts} helper="Accounts restricted" tone="red" />
-        </section>
+        </section> : null}
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]" id="admin-command">
+        {activeSection === "command" ? <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]" id="admin-command">
           <div className="grid gap-5"><AdminNotificationCenter /><AdminSafetyCenter /></div>
           <OperationsSnapshot activeRides={dashboardStats.activeRides} profiles={profiles} readyRides={dashboardStats.readyRides} riderLocations={riderLocations} rides={rides} verificationQueue={dashboardStats.verificationQueue} />
-        </section>
+        </section> : null}
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(21rem,0.75fr)_minmax(0,1.25fr)]">
-          <div className="grid content-start gap-5">
-            <PeoplePanel currentAdminId={profile?.id} onUpdateStatus={updateAccountStatus} profiles={profiles} />
-            <RiderVerificationPanel onUpdateIdentity={updateIdentityVerification} onUpdateVehicle={updateVehicleVerification} profiles={profiles} riderProfiles={riderProfiles} riderSelfieUrls={riderSelfieUrls} riderVehicles={riderVehicles} />
-          </div>
-          <RideOperationsPanel filteredRides={filteredRides} query={query} setQuery={setQuery} setStatusFilter={setStatusFilter} statusFilter={statusFilter} />
-        </section>
+        {activeSection === "verification" ? <RiderVerificationPanel onUpdateIdentity={updateIdentityVerification} onUpdateVehicle={updateVehicleVerification} profiles={profiles} riderProfiles={riderProfiles} riderSelfieUrls={riderSelfieUrls} riderVehicles={riderVehicles} /> : null}
+        {activeSection === "people" ? <PeoplePanel currentAdminId={profile?.id} onUpdateStatus={updateAccountStatus} profiles={profiles} /> : null}
+        {activeSection === "rides" ? <RideOperationsPanel filteredRides={filteredRides} query={query} setQuery={setQuery} setStatusFilter={setStatusFilter} statusFilter={statusFilter} /> : null}
       </div>
     </AppShell>
   );
