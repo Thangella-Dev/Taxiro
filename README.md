@@ -83,6 +83,7 @@ The MVP currently includes:
 - Production SEO metadata, sitemap, robots, PWA manifest, app icons, Open Graph image, `llms.txt`, `llms-full.txt`, and `humans.txt`.
 - Ready/cancel action schema repair applied remotely by adding `ride_status_events.actor_id` and compatible Ready/Cancel RPC behavior.
 - Shared validation helpers now reject invalid names, phone numbers, email/password inputs, UPI IDs, driving licence values, and vehicle registration/details before saving.
+- Redesigned admin command center with stronger operations layout, broadcast notifications, safety command, people controls, rider verification, and ride audit workflows.
 
 ## Main Routes
 
@@ -206,17 +207,20 @@ Route: `/dashboard/admin`
 
 Implemented:
 
-- Role-protected admin dashboard.
-- User/rider count.
-- Scheduled ride count.
-- Active rider count.
-- People list from Supabase profiles.
-- All rides list with search and status filters.
-- Demand overview card.
-- Rider verification review for submitted vehicle and licence details.
-- Live rider selfie and licence identity review with private, short-lived image previews.
-- Identity approval must happen before per-vehicle verification for Bike, Auto, and Car.
-- Responsive layout improvements.
+- Role-protected admin command center.
+- Live operations hero with active trips, ready signals, verification queue, gross fare, Taxiro share, and rider earnings.
+- Sticky admin navigation for Overview, Command, Verification, People, and Rides.
+- Metric tiles for customers, riders, online riders, scheduled rides, awaiting payment, guest bookings, peak-rate rides, and suspended accounts.
+- Broadcast notification command center with audience targeting for all accounts, users, or riders.
+- Recent broadcast delivery history.
+- Safety command center for SOS, delayed-trip, and route-change alerts with open/active counts, delivery status, coordinates, acknowledge, and resolve actions.
+- People control for account suspension and reactivation.
+- Rider identity review with live selfie and licence context.
+- Per-vehicle Bike, Auto, and Car verification controls.
+- Platform snapshot showing active load, ready demand, online supply, verification queue, total profiles, and latest ride context.
+- Ride operations search by ride ID, pickup, drop, passenger, phone, or vehicle type.
+- Ride status filtering and responsive ride audit cards.
+- Real Supabase data only; no duplicate/demo admin records.
 
 ### Creating the first admin account
 
@@ -381,17 +385,20 @@ Project documentation:
 - Progress report through 23 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-23.md`
 - Progress report through 24 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
 - Progress report through 29 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md`
-- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-06-30.md`
+- Progress report through 30 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-30.md`
+- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-07-01.md`
 - Daily update for 22 June: `docs/daily-update-2026-06-22.md`
 - Daily update for 23 June: `docs/daily-update-2026-06-23.md`
 - Daily update for 24 June: `docs/daily-update-2026-06-24.md`
 - Daily update for 29 June: `docs/daily-update-2026-06-29.md`
-- Latest daily update: `docs/daily-update-2026-06-30.md`
+- Daily update for 30 June: `docs/daily-update-2026-06-30.md`
+- Latest daily update: `docs/daily-update-2026-07-01.md`
 - Manager email for 22 June: `docs/manager-update-email-2026-06-22.md`
 - Manager email for 23 June: `docs/manager-update-email-2026-06-23.md`
 - Manager email for 24 June: `docs/manager-update-email-2026-06-24.md`
 - Manager email for 29 June: `docs/manager-update-email-2026-06-29.md`
-- Latest manager email: `docs/manager-update-email-2026-06-30.md`
+- Manager email for 30 June: `docs/manager-update-email-2026-06-30.md`
+- Latest manager email: `docs/manager-update-email-2026-07-01.md`
 
 ## Development Timeline
 
@@ -497,14 +504,25 @@ Tuesday - 30 June 2026:
 - Added rider signup/profile vehicle inputs for Bike, Auto, and Car with stronger client and database validation.
 - Fixed the rider live GPS status label spacing so it no longer overlaps the Taxiro Rider header/control area.
 
+
+Wednesday - 01 July 2026:
+
+- Rebuilt the admin dashboard into a professional command-center layout.
+- Added a live operations hero, stronger KPI tiles, sticky admin navigation, and platform snapshot panel.
+- Redesigned notification broadcasting with audience selection, delivery feedback, and recent broadcast history.
+- Redesigned safety command with open/active counts, urgent alert cards, delivery status, location context, acknowledge, and resolve actions.
+- Improved people control, rider identity review, per-vehicle verification, and ride operations search/filter layout.
+- Passed TypeScript, focused ESLint, and production build verification.
+
 ## Verification Status
 
-Latest verification completed on 30 June 2026:
+Latest verification completed on 01 July 2026:
 
 - `npx tsc --noEmit`: passed against the current code.
 - Focused ESLint for changed user/rider/admin/ride-detail/map/demand/fare files: passed.
+- Focused July 1 ESLint for `src/app/dashboard/admin/page.tsx`, `src/components/AdminNotificationCenter.tsx`, and `src/components/AdminSafetyCenter.tsx`: passed.
 - `npm run build`: passed on Next.js 16.2.7.
-- All 12 application routes compiled/generated successfully, including user, rider, admin, policy, auth, and ride-detail routes.
+- All 17 application routes compiled/generated successfully, including user, rider, admin, policy, auth, and ride-detail routes.
 - Earlier Supabase live-tracking and Realtime publication verification passed.
 - Fare boundary checks for standard and peak windows: passed.
 - `git diff --check`: passed after formatting cleanup.
