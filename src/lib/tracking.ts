@@ -198,13 +198,13 @@ function distanceInMeters(from: LatLng, to: LatLng) {
 }
 
 export function watchRiderLocation({
-  isAvailable,
+  getIsAvailable,
   onError,
   onUpdate,
   riderId,
   supabase,
 }: {
-  isAvailable: boolean;
+  getIsAvailable: () => boolean;
   onError: (message: string) => void;
   onUpdate: (location: RiderTrackingUpdate) => void;
   riderId: string;
@@ -256,7 +256,7 @@ export function watchRiderLocation({
       .upsert({
         accuracy_m: location.accuracy_m,
         heading: location.heading,
-        is_available: isAvailable,
+        is_available: getIsAvailable(),
         last_seen_at: now,
         lat: location.lat,
         lng: location.lng,

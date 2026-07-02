@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,6 +61,9 @@ export default function RiderDashboard() {
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
   const [routeSummary, setRouteSummary] = useState<{ distanceKm: number | null; durationMin: number | null } | null>(null);
+  const availabilityRef = useRef(false);
+  const manualOfflineRef = useRef(false);
+  const autoOnlineForRef = useRef<string | null>(null);
 
   const loadRiderData = useCallback(async (riderId: string) => {
     const supabase = getSupabase();
@@ -129,6 +132,58 @@ export default function RiderDashboard() {
     }
     setRiderProfile(loadedRiderProfile);
   }, []);
+
+  useEffect(() => {
+    availabilityRef.current = riderLocation?.is_available ?? false;
+  }, [riderLocation?.is_available]);
+
+  const persistAvailability = useCallback(
+    async (available: boolean) => {
+      if (!profile) return "Please sign in again.";
+      const supabase = getSupabase();
+      if (!supabase) return "Supabase is not configured.";
+
+      const now = new Date().toISOString();
+      availabilityRef.current = available;
+      setRiderLocation((current) => ({
+        accuracy_m: current?.accuracy_m ?? null,
+        heading: current?.heading ?? null,
+        is_available: available,
+        last_seen_at: current?.last_seen_at ?? now,
+        lat: current?.lat ?? location.lat,
+        lng: current?.lng ?? location.lng,
+        rider_id: profile.id,
+        speed: current?.speed ?? null,
+        updated_at: now,
+      }));
+
+      const { error } = await supabase.from("rider_locations").upsert({
+        is_available: available,
+        lat: location.lat,
+        lng: location.lng,
+        rider_id: profile.id,
+        updated_at: now,
+      });
+      return error?.message ?? null;
+    },
+    [location.lat, location.lng, profile],
+  );
+
+  const changeAvailability = useCallback(
+    async (available: boolean) => {
+      const previousManualOffline = manualOfflineRef.current;
+      manualOfflineRef.current = !available;
+      const error = await persistAvailability(available);
+      if (error) {
+        manualOfflineRef.current = previousManualOffline;
+        setMessage(error);
+        return error;
+      }
+      setMessage(available ? "You are online and visible for matching." : "You are offline for this app session.");
+      return null;
+    },
+    [persistAvailability],
+  );
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -243,7 +298,7 @@ export default function RiderDashboard() {
     if (!supabase || !profile || profile.role !== "rider") return;
 
     const stop = watchRiderLocation({
-      isAvailable: riderLocation?.is_available ?? false,
+      getIsAvailable: () => availabilityRef.current,
       onError: (trackingError) => {
         setGpsStatus(trackingError);
       },
@@ -270,7 +325,7 @@ export default function RiderDashboard() {
     return () => {
       stop?.();
     };
-  }, [profile, riderLocation?.is_available]);
+  }, [profile]);
   const resyncRiderData = useCallback(async () => {
     if (profile?.id) {
       await loadRiderData(profile.id);
@@ -293,7 +348,7 @@ export default function RiderDashboard() {
       return;
     }
     const { error } = await supabase.from("rider_locations").upsert({
-      is_available: riderLocation?.is_available ?? false,
+      is_available: availabilityRef.current,
       lat: point.lat,
       lng: point.lng,
       rider_id: profile.id,
@@ -469,6 +524,43 @@ export default function RiderDashboard() {
     activeVehicleType &&
     riderVehicles.some((vehicle) => vehicle.vehicle_type === activeVehicleType && vehicle.verification_status === "verified"),
   );
+  const riderHasActiveJob = rides.some(
+    (ride) => ride.assigned_rider_id === profile?.id && ["assigned", "started"].includes(ride.status),
+  );
+
+  useEffect(() => {
+    if (!profile || !hasVerifiedActiveVehicle || riderHasActiveJob) return;
+    if (autoOnlineForRef.current === profile.id) return;
+
+    autoOnlineForRef.current = profile.id;
+    manualOfflineRef.current = false;
+    void persistAvailability(true).then((error) => {
+      if (error) setMessage("Could not go online automatically: " + error);
+    });
+  }, [hasVerifiedActiveVehicle, persistAvailability, profile, riderHasActiveJob]);
+
+  useEffect(() => {
+    if (!profile || !hasVerifiedActiveVehicle) return;
+
+    const updateForVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        void persistAvailability(false);
+      } else if (!manualOfflineRef.current && !riderHasActiveJob) {
+        void persistAvailability(true);
+      }
+    };
+    const markOffline = () => {
+      void persistAvailability(false);
+    };
+
+    document.addEventListener("visibilitychange", updateForVisibility);
+    window.addEventListener("pagehide", markOffline);
+    return () => {
+      document.removeEventListener("visibilitychange", updateForVisibility);
+      window.removeEventListener("pagehide", markOffline);
+    };
+  }, [hasVerifiedActiveVehicle, persistAvailability, profile, riderHasActiveJob]);
+
   const readyRides = rides
     .filter((ride) => isReadyRideVisible(ride) && ride.vehicle_type === activeVehicleType)
     .sort((a, b) => approxDistanceKm(location, a) - approxDistanceKm(location, b));
@@ -589,24 +681,10 @@ export default function RiderDashboard() {
           <div className="pointer-events-auto flex min-w-0 shrink items-center gap-1 rounded-xl border border-white/80 bg-white/94 p-1 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:gap-1.5">
             {profile ? (
               <RiderAvailabilityToggle
+                available={riderLocation?.is_available ?? false}
                 canGoOnline={hasVerifiedActiveVehicle}
-                initial={riderLocation?.is_available ?? false}
-                location={location}
+                onChange={changeAvailability}
                 onError={setMessage}
-                onChanged={(isAvailable) =>
-                  setRiderLocation((current) => ({
-                    is_available: isAvailable,
-                    lat: current?.lat ?? location.lat,
-                    lng: current?.lng ?? location.lng,
-                    rider_id: profile.id,
-                    accuracy_m: current?.accuracy_m ?? null,
-                    heading: current?.heading ?? null,
-                    last_seen_at: current?.last_seen_at ?? new Date().toISOString(),
-                    speed: current?.speed ?? null,
-                    updated_at: new Date().toISOString(),
-                  }))
-                }
-                riderId={profile.id}
               />
             ) : null}
             <AppNotificationBell profileId={profile?.id ?? null} />

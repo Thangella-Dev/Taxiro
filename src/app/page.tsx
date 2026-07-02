@@ -2,11 +2,13 @@ import Link from "next/link";
 import { ArrowRight, Bike, Clock3, KeyRound, MapPin, Navigation, Radio } from "lucide-react";
 
 import { DynamicMapPicker } from "@/components/DynamicMapPicker";
+import { HomeSessionRedirect } from "@/components/HomeSessionRedirect";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#eef3ec] text-[#101713]">
+      <HomeSessionRedirect />
       <section className="relative mx-auto min-h-screen w-full max-w-6xl overflow-hidden bg-[#dfe8dc] shadow-2xl sm:my-5 sm:min-h-[calc(100vh-2.5rem)] sm:rounded-2xl">
         <div className="relative h-[52svh] min-h-[21rem] overflow-hidden sm:h-[62vh]">
           <DynamicMapPicker

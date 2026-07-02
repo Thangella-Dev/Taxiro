@@ -830,13 +830,21 @@ export default function UserDashboard() {
 
         {!mapPickMode ? (
         <ResponsiveRideSheet desktopSide="left" key={panelView} mobileLabel="booking and rides">
+            <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              {(["book", "rides"] as const).map((view) => (
+                <button
+                  aria-pressed={panelView === view}
+                  className={`min-w-0 rounded-md px-2.5 py-2 text-xs font-black transition ${panelView === view ? "bg-[#101713] text-white shadow-sm" : "text-muted-foreground"}`}
+                  key={view}
+                  onClick={() => setPanelView(view)}
+                  type="button"
+                >
+                  <span className="block truncate">{view === "book" ? "Book" : `My rides (${rides.length})`}</span>
+                </button>
+              ))}
+            </div>
             {panelView === "rides" ? (
               <div className="grid gap-3">
-                {activeRide ? (
-                  <Button className="h-11 w-full rounded-lg" onClick={() => setPanelView("book")} variant="outline">
-                    Back to live trip
-                  </Button>
-                ) : null}
                 <RideHistoryPanel
                   activeRides={activeRides}
                   onCancel={setCancelTarget}
@@ -867,22 +875,6 @@ export default function UserDashboard() {
               />
             ) : (
               <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-                  {(["book", "rides"] as const).map((view) => (
-                    <button
-                      className={`rounded-md px-3 py-2.5 text-sm font-black transition ${
-                        panelView === view
-                          ? "bg-[#101713] text-white shadow-sm"
-                          : "text-muted-foreground"
-                      }`}
-                      key={view}
-                      onClick={() => setPanelView(view)}
-                      type="button"
-                    >
-                      <span className="block truncate">{view === "book" ? "Book" : `My rides (${rides.length})`}</span>
-                    </button>
-                  ))}
-                </div>
                 {panelView === "book" ? (
                   <>
                 <div className="min-w-0">
@@ -1304,17 +1296,17 @@ function RideHistoryPanel({
   upcomingRides: RideRequest[];
 }) {
   return (
-    <div className="grid max-h-[56dvh] gap-4 overflow-y-auto overflow-x-hidden pr-1">
+    <div className="grid max-h-[calc(72dvh-4rem)] gap-2.5 overflow-y-auto overflow-x-hidden pr-1 lg:max-h-[calc(100dvh-9rem)]">
       <div>
-        <h1 className="text-2xl font-black tracking-tight">My rides</h1>
-        <p className="text-sm leading-6 text-muted-foreground">
+        <h1 className="text-lg font-black tracking-tight">My rides</h1>
+        <p className="text-xs leading-5 text-muted-foreground">
           Active, advance, and completed trips in one place.
         </p>
       </div>
       <RideSection
         actionForRide={(ride) =>
           ["scheduled", "ready", "assigned"].includes(ride.status) ? (
-            <Button onClick={() => onCancel(ride)} size="sm" variant="destructive">
+            <Button className="h-8 px-2.5 text-xs" onClick={() => onCancel(ride)} size="sm" variant="destructive">
               Cancel
             </Button>
           ) : null
@@ -1327,14 +1319,14 @@ function RideHistoryPanel({
       <RideSection
         actionForRide={(ride) =>
           ride.status === "scheduled" ? (
-            <Button onClick={() => onReady(ride)} size="sm">
+            <Button className="h-8 px-2.5 text-xs" onClick={() => onReady(ride)} size="sm">
               I&apos;m Ready
             </Button>
           ) : null
         }
         secondaryActionForRide={(ride) =>
           ride.status === "scheduled" ? (
-            <Button onClick={() => onCancel(ride)} size="sm" variant="destructive">
+            <Button className="h-8 px-2.5 text-xs" onClick={() => onCancel(ride)} size="sm" variant="destructive">
               Cancel
             </Button>
           ) : null
@@ -1373,15 +1365,15 @@ function RideSection({
   return (
     <details className="group rounded-lg border border-border bg-muted/60 p-2" onToggle={(event) => setOpen(event.currentTarget.open)} open={open}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-2 py-2">
-        <h2 className="text-lg font-black tracking-tight">{title}</h2>
-        <span className="ml-auto rounded-md bg-card px-3 py-1 text-xs font-bold text-muted-foreground">
+        <h2 className="text-sm font-black tracking-tight">{title}</h2>
+        <span className="ml-auto rounded-md bg-card px-2 py-1 text-[11px] font-bold text-muted-foreground">
           {rides.length}
         </span>
         <ChevronDown className="size-4 shrink-0 transition group-open:rotate-180" />
       </summary>
       <div className="mt-2 max-h-[24rem] overflow-y-auto overscroll-contain pr-1">
         {rides.length ? (
-          <div className="grid min-w-0 gap-3 md:grid-cols-2">
+          <div className="grid min-w-0 gap-2.5">
             {rides.map((ride) => (
               <RideCard
                 action={
