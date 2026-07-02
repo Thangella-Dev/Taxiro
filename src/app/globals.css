@@ -624,8 +624,27 @@ button {
 }
 
 .taxiro-rider-marker span {
-  display: block;
+  align-items: center;
+  display: flex;
+  justify-content: center;
   line-height: 1;
+}
+
+.taxiro-rider-marker svg {
+  display: block;
+}
+
+.taxiro-rider-marker[data-vehicle="auto"] {
+  background: #fff;
+  border-color: #101713;
+  color: #101713;
+  box-shadow: 0 0 0 5px rgb(219 248 111 / 45%), 0 16px 38px rgb(16 23 19 / 25%);
+}
+
+.taxiro-rider-marker[data-vehicle="car"] {
+  background: #101713;
+  border-color: #dbf86f;
+  color: #fff;
 }
 
 .taxiro-center-pin {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -605,6 +605,11 @@ export default function UserDashboard() {
   );
   const assignedRiderProfile = activeRide?.assigned_rider_id ? riderProfiles[activeRide.assigned_rider_id] ?? null : null;
   const assignedRiderDetail = activeRide ? assignedRiderDetails[activeRide.id] ?? null : null;
+  const AssignedVehicleIcon = assignedRiderDetail?.vehicle_type === "auto" ? CarTaxiFront : assignedRiderDetail?.vehicle_type === "car" ? CarFront : Bike;
+  const mapRiderVehicleTypes: Partial<Record<string, VehicleType>> =
+    activeRide?.assigned_rider_id && assignedRiderDetail
+      ? { [activeRide.assigned_rider_id]: assignedRiderDetail.vehicle_type }
+      : {};
   const assignedRiderPhotoUrl = activeRide ? riderPhotoUrls[activeRide.id] ?? null : null;
   const routeFrom = useMemo(() => {
     if (activeRide?.assigned_rider_id && assignedRiderLocation && ["assigned", "started"].includes(activeRide.status)) {
@@ -742,6 +747,7 @@ export default function UserDashboard() {
           onSelectionChange={setMapCandidate}
           pickup={mapPickup}
           riders={mapRiders}
+          riderVehicleTypes={mapRiderVehicleTypes}
           route={routePath}
           selectionCenter={mapSelectionStart}
           selectionMode={mapPickMode}
@@ -781,6 +787,19 @@ export default function UserDashboard() {
         </div>
         ) : null}
 
+        {!mapPickMode && activeRide && assignedRiderLocation ? (
+          <div className="pointer-events-none absolute left-2 top-[4.15rem] z-[1190] max-w-[calc(100%-1rem)] sm:left-3 sm:top-[4.5rem] lg:left-4">
+            <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/80 bg-[#101713]/94 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-primary"><AssignedVehicleIcon className="size-4" /></span>
+              <span className="min-w-0 truncate">
+                {getVehicleLabel(assignedRiderDetail?.vehicle_type ?? activeRide.vehicle_type)} live
+                <span className="mx-1.5 text-white/40">|</span>
+                {activeRide.status === "assigned" ? "Coming to pickup" : "Heading to destination"}
+                {routeSummary?.durationMin ? ` - ${routeSummary.durationMin} min` : ""}
+              </span>
+            </div>
+          </div>
+        ) : null}
         {!mapPickMode && !activeRide && pickup ? (
           <div className="pointer-events-none absolute left-2 top-[4.15rem] z-[1190] sm:left-3 sm:top-[4.5rem] lg:left-4">
             <div className="flex items-center gap-2 rounded-full border border-white/80 bg-[#101713]/92 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
@@ -1729,9 +1748,19 @@ function UserMenu({
   ridesCount: number;
   upcomingCount: number;
 }) {
+  const swipeStartX = useRef<number | null>(null);
+
   return (
     <div className="fixed inset-0 z-[1500] bg-[#101713]/48 backdrop-blur-sm">
-      <aside className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-soft)] sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:gap-4 sm:rounded-xl">
+      <button aria-label="Close menu" className="absolute inset-0 cursor-default" onClick={onClose} type="button" />
+      <aside
+        className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid touch-pan-y gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-soft)] sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:gap-4 sm:rounded-xl"
+        onPointerDown={(event) => { swipeStartX.current = event.clientX; }}
+        onPointerUp={(event) => {
+          if (swipeStartX.current !== null && event.clientX - swipeStartX.current > 72) onClose();
+          swipeStartX.current = null;
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -1771,11 +1800,18 @@ function UserMenu({
             text={`${ridesCount} total rides, ${upcomingCount} upcoming, ${completedCount} completed/cancelled. Tap to open ride history and cancellation options.`}
           />
         </button>
-        <MenuCard
-          icon={Settings}
-          title="Settings"
-          text="Manage account details, preferred pickup behavior, location permissions, and notification preferences."
-        />
+        <details className="group rounded-lg border border-border bg-muted">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-card"><Settings className="size-4" /></span>
+            <span className="min-w-0 flex-1 font-black">App settings</span>
+            <ChevronDown className="size-4 shrink-0 transition group-open:rotate-180" />
+          </summary>
+          <div className="mx-3 mb-3 grid gap-2 rounded-lg bg-white p-3 text-sm text-muted-foreground">
+            <p><strong className="text-foreground">Location:</strong> use Detect on the booking screen. If blocked, enable Location in browser site settings.</p>
+            <p><strong className="text-foreground">Notifications:</strong> open the bell on the home map for ride and SOS updates.</p>
+            <p><strong className="text-foreground">Ride history:</strong> tap My rides, then expand the section you need.</p>
+          </div>
+        </details>
         <MenuLink
           href="/about"
           icon={Info}

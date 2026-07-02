@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useRef } from "react";
+import { createElement, Fragment, useEffect, useRef } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import L from "leaflet";
-import { MapPin } from "lucide-react";
+import { Bike, CarFront, CarTaxiFront, MapPin, type LucideIcon } from "lucide-react";
 import {
   Circle,
   MapContainer,
@@ -20,7 +21,7 @@ import {
   getFarePricingLabel,
 } from "@/lib/fare";
 import { getVehicleLabel } from "@/lib/vehicles";
-import type { LatLng, RideRequest, RiderLocation } from "@/types/database";
+import type { LatLng, RideRequest, RiderLocation, VehicleType } from "@/types/database";
 
 const pickupIcon = L.divIcon({
   className: "",
@@ -50,12 +51,27 @@ const scheduledDemandIcon = L.divIcon({
   iconSize: [30, 30],
 });
 
-function riderIcon(rider: RiderLocation) {
+function vehicleIconComponent(vehicleType?: VehicleType): LucideIcon {
+  if (vehicleType === "auto") return CarTaxiFront;
+  if (vehicleType === "car") return CarFront;
+  return Bike;
+}
+
+function riderIcon(rider: RiderLocation, vehicleType?: VehicleType) {
   const heading = rider.heading ?? 0;
   const preview = rider.rider_id.startsWith("nearby-");
+  const VehicleIcon = vehicleIconComponent(vehicleType);
+  const vehicleMarkup = renderToStaticMarkup(
+    createElement(VehicleIcon, {
+      "aria-hidden": true,
+      fill: "none",
+      size: preview ? 15 : 19,
+      strokeWidth: 2.7,
+    }),
+  );
   return L.divIcon({
     className: "",
-    html: `<div class="taxiro-rider-marker ${preview ? "taxiro-rider-marker-nearby" : "taxiro-rider-marker-assigned"}"><span style="transform: rotate(${heading}deg)">&rarr;</span></div>`,
+    html: `<div class="taxiro-rider-marker ${preview ? "taxiro-rider-marker-nearby" : "taxiro-rider-marker-assigned"}" data-vehicle="${vehicleType ?? "bike"}"><span style="transform: rotate(${heading}deg)">${vehicleMarkup}</span></div>`,
     iconAnchor: [18, 18],
     iconSize: [36, 36],
   });
@@ -192,6 +208,7 @@ export function MapPicker({
   onSelectionChange,
   pickup,
   riders = [],
+  riderVehicleTypes = {},
   route = [],
   selectionCenter,
   selectionMode = null,
@@ -204,6 +221,7 @@ export function MapPicker({
   onSelectionChange?: (point: LatLng) => void;
   pickup?: LatLng | null;
   riders?: RiderLocation[];
+  riderVehicleTypes?: Partial<Record<string, VehicleType>>;
   route?: LatLng[];
   selectionCenter?: LatLng | null;
   selectionMode?: "pickup" | "drop" | null;
@@ -330,9 +348,10 @@ export function MapPicker({
                 radius={Math.min(Math.max(rider.accuracy_m, 20), 250)}
               />
             ) : null}
-            <Marker icon={riderIcon(rider)} position={[rider.lat, rider.lng]}>
+            <Marker icon={riderIcon(rider, riderVehicleTypes[rider.rider_id])} position={[rider.lat, rider.lng]}>
               <Popup>
                 {rider.rider_id.startsWith("nearby-") ? "Nearby verified rider (approximate)" : rider.is_available ? "Available rider" : "Your assigned rider"}
+                {riderVehicleTypes[rider.rider_id] ? ` - ${getVehicleLabel(riderVehicleTypes[rider.rider_id])}` : ""}
                 <br />
                 {formatLastSeen(rider.last_seen_at ?? rider.updated_at)}
                 {!rider.rider_id.startsWith("nearby-") && rider.accuracy_m ? (

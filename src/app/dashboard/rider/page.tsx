@@ -509,6 +509,8 @@ export default function RiderDashboard() {
     () => (riderLocation ? [{ ...riderLocation, lat: location.lat, lng: location.lng }] : []),
     [location.lat, location.lng, riderLocation],
   );
+  const mapRiderVehicleTypes: Partial<Record<string, VehicleType>> =
+    profile?.id && activeVehicleType ? { [profile.id]: activeVehicleType } : {};
 
   useEffect(() => {
     let ignore = false;
@@ -572,6 +574,7 @@ export default function RiderDashboard() {
           onPick={(point) => void updateLocation(point)}
           pickup={mapPickup}
           riders={mapRiders}
+          riderVehicleTypes={mapRiderVehicleTypes}
           route={routePath}
         />
 

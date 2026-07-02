@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import { ChevronDown, HelpCircle, History, Info, ListChecks, LogOut, ShieldCheck, UserRound, X } from "lucide-react";
 
@@ -25,10 +26,19 @@ export function RiderMenu({
   const history = rides.filter((ride) =>
     ["completed", "cancelled"].includes(ride.status),
   );
+  const swipeStartX = useRef<number | null>(null);
 
   return (
     <div className="fixed inset-0 z-[1500] bg-[#101713]/48 backdrop-blur-sm">
-      <aside className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid content-start gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:rounded-xl">
+      <button aria-label="Close rider menu" className="absolute inset-0 cursor-default" onClick={onClose} type="button" />
+      <aside
+        className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid touch-pan-y content-start gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:rounded-xl"
+        onPointerDown={(event) => { swipeStartX.current = event.clientX; }}
+        onPointerUp={(event) => {
+          if (swipeStartX.current !== null && event.clientX - swipeStartX.current > 72) onClose();
+          swipeStartX.current = null;
+        }}
+      >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
