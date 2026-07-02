@@ -48,7 +48,7 @@ import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
 import { calculateFareBreakdown, formatMoney, getUserCancellationFine, getVehicleFareQuote } from "@/lib/fare";
 import { createSafetyAlert, usePanicTrigger, useRideSafetyMonitor } from "@/lib/safety";
 import { getSupabase } from "@/lib/supabase";
-import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M } from "@/lib/tracking";
+import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M, PRECISE_TARGET_ACCURACY_M } from "@/lib/tracking";
 import { useLiveResync } from "@/lib/useLiveResync";
 import { normalizePhone, validateFullName, validatePhone } from "@/lib/validation";
 import { VEHICLE_OPTIONS, getVehicleLabel } from "@/lib/vehicles";
@@ -404,7 +404,7 @@ export default function UserDashboard() {
     try {
       const position = await getPromptedCurrentLocation((accuracy) => {
         setPickupAccuracy(accuracy);
-        setMessage(`Improving GPS accuracy... currently +/-${accuracy}m`);
+        setMessage(`Confirming fresh GPS samples... currently +/-${accuracy}m`);
       });
       const detected = {
         address: `Detected location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`,
@@ -418,6 +418,18 @@ export default function UserDashboard() {
         return;
       }
       setPickupAccuracy(Math.round(position.coords.accuracy));
+      if (position.coords.accuracy > PRECISE_TARGET_ACCURACY_M) {
+        setClickTarget("pickup");
+        setMapCandidate(detected);
+        setMapSelectionStart(detected);
+        setMapPickMode("pickup");
+        setMessage(
+          "GPS is confirmed within +/-" +
+            Math.round(position.coords.accuracy) +
+            "m. Move the map to the exact pickup entrance, then confirm.",
+        );
+        return;
+      }
       setPickup(detected);
       setClickTarget("drop");
       setMapPickMode(null);
@@ -1155,7 +1167,7 @@ export default function UserDashboard() {
         </ResponsiveRideSheet>
         ) : null}
         {activeRide ? (
-          <div className="absolute left-2 right-2 top-20 z-[1200] mx-auto hidden max-w-xl grid-cols-3 gap-1.5 sm:left-3 sm:right-3 sm:top-24 sm:grid sm:gap-2">
+          <div className="absolute left-1/2 top-[max(0.5rem,env(safe-area-inset-top))] z-[1210] hidden w-[28rem] -translate-x-1/2 grid-cols-3 gap-1.5 xl:grid">
             <FloatingStat label="Status" value={activeRide.status} />
             <FloatingStat label="ETA" value={`${activeRide.estimated_duration_min ?? "--"}m`} />
             <FloatingStat label="KM" value={`${activeRide.distance_km ?? "--"}`} />
@@ -1395,11 +1407,11 @@ function RideSection({
 
 function FloatingStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/70 bg-white/90 px-3 py-2 text-center shadow-[var(--shadow-soft)] backdrop-blur-xl">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="rounded-md border border-white/70 bg-white/94 px-2 py-1.5 text-center shadow-[var(--shadow-soft)] backdrop-blur-xl">
+      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 truncate text-sm font-black capitalize">{value}</p>
+      <p className="mt-0.5 truncate text-xs font-black capitalize">{value}</p>
     </div>
   );
 }

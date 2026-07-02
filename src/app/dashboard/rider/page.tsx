@@ -322,7 +322,7 @@ export default function RiderDashboard() {
     setGpsStatus("Finding a precise GPS fix...");
     try {
       const position = await getPreciseCurrentLocation((accuracyM) => {
-        setGpsStatus(`Improving GPS accuracy... +/-${accuracyM}m`);
+        setGpsStatus(`Confirming fresh GPS samples... +/-${accuracyM}m`);
       });
       await updateLocation(
         {
@@ -798,7 +798,7 @@ export default function RiderDashboard() {
             {message ? <p className="mt-3 text-center text-sm text-muted-foreground">{message}</p> : null}
         </ResponsiveRideSheet>
         {activeRide ? (
-          <div className="absolute left-2 right-2 top-20 z-[1200] mx-auto hidden max-w-xl grid-cols-3 gap-1.5 sm:left-3 sm:right-3 sm:top-24 sm:grid sm:gap-2">
+          <div className="absolute left-1/2 top-[max(0.5rem,env(safe-area-inset-top))] z-[1210] hidden w-[28rem] -translate-x-1/2 grid-cols-3 gap-1.5 xl:grid">
             <FloatingStat label="Job" value={activeRide.status} />
             <FloatingStat label="ETA" value={`${activeRide.estimated_duration_min ?? "--"}m`} />
             <FloatingStat label="KM" value={`${activeRide.distance_km ?? "--"}`} />
@@ -955,11 +955,11 @@ function LoadingRiderShell() {
 }
 function FloatingStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/70 bg-white/90 px-3 py-2 text-center shadow-[var(--shadow-soft)] backdrop-blur-xl">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="rounded-md border border-white/70 bg-white/94 px-2 py-1.5 text-center shadow-[var(--shadow-soft)] backdrop-blur-xl">
+      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 truncate text-sm font-black capitalize">{value}</p>
+      <p className="mt-0.5 truncate text-xs font-black capitalize">{value}</p>
     </div>
   );
 }
