@@ -43,24 +43,24 @@ Measurements were generated from the repository on 02 July 2026.
 
 | Area | Files | Physical lines | Non-blank lines |
 |---|---:|---:|---:|
-| TypeScript (.ts) | 15 | 1,534 | 1,360 |
-| React/TypeScript (.tsx) | 47 | 8,684 | 8,099 |
-| Global CSS (.css) | 1 | 956 | 818 |
-| Supabase migration history (.sql) | 23 | 3,484 | 3,114 |
-| **Unique implementation total** | **86** | **14,658** | **13,391** |
+| TypeScript (.ts) | 15 | 1,542 | 1,368 |
+| React/TypeScript (.tsx) | 47 | 8,886 | 8,297 |
+| Global CSS (.css) | 1 | 995 | 851 |
+| Supabase migration history (.sql) | 25 | 3,750 | 3,359 |
+| **Unique implementation total** | **88** | **15,173** | **13,875** |
 
 ### Additional tracked material
 
 | Area | Files | Physical lines | Non-blank lines |
 |---|---:|---:|---:|
-| Cumulative Supabase schema snapshot | 1 | 3,027 | 2,705 |
-| Existing project documentation | 21 | 2,489 | 1,926 |
+| Cumulative Supabase schema snapshot | 1 | 3,295 | 2,950 |
+| Existing project documentation | 25 | 3,330 | 2,599 |
 
 The cumulative schema repeats SQL already represented in migration history. Therefore:
 
-- **Recommended unique implementation count:** 14,658 physical lines.
-- **Implementation plus cumulative schema:** 17,685 physical lines.
-- **Implementation plus schema excluding blank lines:** 16,096 lines.
+- **Recommended unique implementation count:** 15,173 physical lines.
+- **Implementation plus cumulative schema:** 18,468 physical lines.
+- **Implementation plus schema excluding blank lines:** 16,825 lines.
 
 Generated .next output, node_modules, Git internals, images, icons, and binary assets are excluded.
 
@@ -69,7 +69,7 @@ Generated .next output, node_modules, Git internals, images, icons, and binary a
 - 10 application pages.
 - 3 role-specific dashboards.
 - 36 React components.
-- 23 additive Supabase migrations.
+- 25 additive Supabase migrations.
 - 14 application database tables.
 - 35 unique PostgreSQL/RPC functions across migration history.
 - 2 Supabase Storage buckets.
@@ -80,13 +80,13 @@ Generated .next output, node_modules, Git internals, images, icons, and binary a
 
 | File | Physical lines | Responsibility |
 |---|---:|---|
-| src/app/dashboard/user/page.tsx | 1,868 | Booking, tracking, safety, history, active ride |
-| src/app/dashboard/rider/page.tsx | 1,236 | Rider work, demand, GPS, execution, navigation |
-| src/app/globals.css | 956 | Responsive UI, map styling, motion, containment |
-| src/app/rides/[id]/page.tsx | 470 | Detailed ride lifecycle |
+| src/app/dashboard/user/page.tsx | 1,951 | Booking, tracking, safety, history, active ride |
+| src/app/dashboard/rider/page.tsx | 1,277 | Rider work, demand, GPS, execution, navigation |
+| src/app/globals.css | 995 | Responsive UI, map styling, motion, containment |
+| src/app/rides/[id]/page.tsx | 471 | Detailed ride lifecycle |
 | src/app/dashboard/admin/page.tsx | 421 | Operations, verification, people, ride audit |
-| src/components/MapPicker.tsx | 362 | Leaflet maps, routes, demand, rider markers |
-| src/app/auth/page.tsx | 345 | Signup, sign-in, validation, onboarding |
+| src/components/MapPicker.tsx | 391 | Leaflet maps, routes, demand, rider markers |
+| src/app/auth/page.tsx | 360 | Signup, sign-in, validation, onboarding |
 | src/components/RiderIdentitySettings.tsx | 291 | Identity, vehicles, UPI, uploads |
 | src/components/AppNotificationBell.tsx | 289 | Realtime notification panel and dismissal |
 
@@ -142,6 +142,11 @@ The user and rider dashboards are large enough that decomposition into focused f
   - Manual map fallback.
 - PostGIS distance calculations.
 - Phase-aware rider-to-pickup and rider-to-drop routing.
+- Installed PWA geolocation hardening:
+  - Production Permissions-Policy permits geolocation from the Taxiro origin.
+  - User-triggered current-position requests work in standalone home-screen mode.
+  - Fresh-position fallback avoids stale cached coordinates.
+  - Installed-app permission recovery guidance.
 
 ### Backend and database
 
@@ -468,3 +473,46 @@ In short:
 - **Close to controlled pilot testing.**
 - **Not yet safe for unrestricted public operations.**
 - **Next focus: reliability, native capability, operations, security, and compliance.**
+
+## July 2, 2026 Reliability And Data Integrity Update
+
+### Customer and mobile behavior
+
+- User My Rides now opens during assigned/started trips instead of being overridden by the active-trip panel.
+- The responsive bottom sheet remounts open when changing between My Rides and the live trip.
+- Active trips provide a Back to live trip action from history.
+- The active-rider tracking status respects iPhone safe-area and header-control spacing.
+
+### Installed web-app location
+
+- next.config.js emits Permissions-Policy: geolocation=(self).
+- Location is requested directly from a user tap instead of trusting a potentially stale permission-state query.
+- Low-accuracy fallback requests no longer accept a one-minute cached location.
+- Installed Chrome/Safari mode receives actionable OS/browser permission guidance.
+- Manual location search and map pinning remain available.
+
+### Demand and rider reputation
+
+- Leaflet demand markers include permanent Ready demand and Advance demand labels.
+- Vehicle-specific assigned-rider markers remain Bike, Auto, and Car aware.
+- Migration 20260702153000_real_rider_reputation_stats.sql derives rider statistics from real data.
+- Completed-rides totals come from completed ride_requests.
+- Average rating comes from ride_ratings.
+- New riders with no submitted rating display New rider instead of a synthetic 5.0 score.
+- Database triggers keep both summaries synchronized after ride or rating changes.
+
+### Verified live state
+
+- The migration is applied to the connected Supabase project.
+- 5 completed rides are derived for the current rider profile.
+- 0 completed-count mismatches exist.
+- No rating is shown because no ride rating has been submitted.
+- Ride and rating synchronization triggers are active.
+
+### Verification
+
+- TypeScript passed.
+- Focused ESLint passed.
+- Git diff validation passed.
+- Next.js 16.2.7 production build passed with all 17 routes.
+- Production HTTP response, geolocation header, and standalone PWA manifest checks passed.

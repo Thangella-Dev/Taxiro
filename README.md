@@ -86,6 +86,11 @@ The MVP currently includes:
 - Redesigned admin command center with stronger operations layout, broadcast notifications, safety command, people controls, rider verification, and ride audit workflows.
 - Home-screen notification bell on user/rider map headers with unread count, ride-linked notifications, and swipe-to-dismiss behavior.
 - SOS emergency-contact matching now supports exact normalized phone and last-10-digit India mobile fallback, with previous matching unlinked alerts backfilled to in-app delivery.
+- User My Rides navigation now works during active trips and reopens a previously collapsed mobile sheet.
+- Installed Chrome/Safari home-screen location requests use a fresh user-triggered GPS request and the production geolocation Permissions-Policy.
+- Active-trip rider tracking status now respects iPhone safe-area/header spacing.
+- Rider map signals carry explicit Ready demand and Advance demand labels.
+- Rider rating and completed-rides summaries are derived from real ride and rating records and synchronized by database triggers; unrated riders display New rider.
 
 ## Main Routes
 
@@ -388,19 +393,19 @@ Project documentation:
 - Progress report through 24 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-24.md`
 - Progress report through 29 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-29.md`
 - Progress report through 30 June: `docs/taxiro-progress-report-2026-06-08-to-2026-06-30.md`
-- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-07-01.md`
+- Latest full progress report: `docs/taxiro-progress-report-2026-06-08-to-2026-07-02.md`
 - Daily update for 22 June: `docs/daily-update-2026-06-22.md`
 - Daily update for 23 June: `docs/daily-update-2026-06-23.md`
 - Daily update for 24 June: `docs/daily-update-2026-06-24.md`
 - Daily update for 29 June: `docs/daily-update-2026-06-29.md`
 - Daily update for 30 June: `docs/daily-update-2026-06-30.md`
-- Latest daily update: `docs/daily-update-2026-07-01.md`
+- Latest daily update: `docs/daily-update-2026-07-02.md`
 - Manager email for 22 June: `docs/manager-update-email-2026-06-22.md`
 - Manager email for 23 June: `docs/manager-update-email-2026-06-23.md`
 - Manager email for 24 June: `docs/manager-update-email-2026-06-24.md`
 - Manager email for 29 June: `docs/manager-update-email-2026-06-29.md`
 - Manager email for 30 June: `docs/manager-update-email-2026-06-30.md`
-- Latest manager email: `docs/manager-update-email-2026-07-01.md`
+- Latest manager email: `docs/manager-update-email-2026-07-02.md`
 
 ## Development Timeline
 
@@ -518,9 +523,19 @@ Wednesday - 01 July 2026:
 - Fixed SOS emergency-contact delivery by applying smarter phone matching and backfilling matched in-app notifications.
 - Added user/rider home notification bells, swipe-dismiss notification behavior, and better mobile header control placement.
 
+Thursday - 02 July 2026:
+
+- Fixed My Rides navigation and collapsed-sheet reopening during active trips.
+- Improved installed-PWA geolocation requests, fresh-fix behavior, permission guidance, and production response policy.
+- Fixed active-trip tracking status placement under iPhone safe areas.
+- Added named Ready demand and Advance demand map labels.
+- Replaced synthetic rider statistics with real completed-ride and rating aggregates.
+- Applied and verified the real rider reputation migration in remote Supabase.
+- Passed TypeScript, focused ESLint, git diff, production build, HTTP header, manifest, and database consistency checks.
+
 ## Verification Status
 
-Latest verification completed on 01 July 2026:
+Latest verification completed on 02 July 2026:
 
 - `npx tsc --noEmit`: passed against the current code.
 - Focused ESLint for changed user/rider/admin/ride-detail/map/demand/fare files: passed.
@@ -539,6 +554,7 @@ Remote database status:
 - `20260630173000_repair_ready_and_cancel_actions.sql` is applied to align the Ready, expiry, and rider/user cancellation RPCs with the current app.
 - `20260630190000_vehicle_matching_and_action_schema_repair.sql` is applied to add vehicle-aware matching, per-vehicle rider verification, active-vehicle switching, and the `ride_status_events.actor_id` repair.
 - Remote verification confirmed ready/fare/passenger columns, `ride_status_events.actor_id`, `rider_vehicles`, vehicle columns, safety/notification tables, and required ride-action RPC signatures.
+- 20260702153000_real_rider_reputation_stats.sql is applied remotely; existing rider totals were backfilled and both ride/rating synchronization triggers are active.
 
 Pending manual QA:
 
@@ -591,3 +607,15 @@ Future scope:
 - Home notification bells update through Supabase Realtime and support swipe-left dismissal.
 
 Apply supabase/migrations/20260701203000_customer_nearby_rider_preview.sql before deploying this update.
+
+## July 2, 2026 reliability update
+
+- My Rides now opens from the user side menu even while a ride is assigned or started.
+- Switching to history or back to the live trip reopens the responsive sheet instead of leaving the selected view hidden behind a collapsed handle.
+- Installed web-app location requests now call device geolocation directly from the user's tap, avoid stale cached fallback positions, and return installed-app-specific permission recovery guidance.
+- Production responses include Permissions-Policy: geolocation=(self).
+- The active rider tracking pill is positioned below iPhone safe-area and header controls.
+- Rider map markers now identify Ready demand and Advance demand in text.
+- Rider reputation is real-data only: completed rides come from completed ride_requests and rating comes from ride_ratings.
+- The live database currently confirms 5 real completed rides, no submitted rating, zero count mismatches, and active synchronization triggers.
+- TypeScript, focused ESLint, git diff validation, production build, production HTTP response, PWA manifest, response-header, and live database checks pass.

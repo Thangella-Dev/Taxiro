@@ -410,8 +410,9 @@ export default function RideDetails({
                   </div>
                 ) : null}
                 <p className="mt-3 text-xs font-semibold capitalize text-muted-foreground">
-                  {getVehicleLabel(riderVehicle.vehicle_type)} verification: {riderVehicle.verification_status} | Rating:{" "}
-                  {riderProfile.rating}/5
+                  {getVehicleLabel(riderVehicle.vehicle_type)} verification: {riderVehicle.verification_status} |{" "}
+                  {Number(riderProfile.rating) > 0 ? "Rating: " + riderProfile.rating + "/5" : "New rider"} |{" "}
+                  {riderProfile.completed_rides} completed rides
                 </p>
               </Card>
             ) : null}

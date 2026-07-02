@@ -128,7 +128,7 @@ export type AssignedRiderDetails = {
   vehicle_make: string;
   vehicle_model: string;
   registration_number: string;
-  rating: number;
+  rating: number | null;
   completed_rides: number;
   photo_path: string | null;
 };

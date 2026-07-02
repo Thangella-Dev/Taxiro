@@ -615,6 +615,26 @@ button {
   width: 9px;
 }
 
+.leaflet-tooltip.taxiro-demand-label {
+  border: 1px solid rgb(16 23 19 / 16%);
+  border-radius: 0.55rem;
+  box-shadow: 0 8px 20px rgb(16 23 19 / 16%);
+  color: #101713;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.5rem;
+  white-space: nowrap;
+}
+
+.leaflet-tooltip.taxiro-demand-label-ready {
+  background: #dbf86f;
+}
+
+.leaflet-tooltip.taxiro-demand-label-scheduled {
+  background: #fff;
+}
+
 .taxiro-rider-marker {
   background: #101713;
   border: 3px solid #fff;

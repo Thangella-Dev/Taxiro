@@ -11,6 +11,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -295,6 +296,15 @@ export function MapPicker({
                 icon={ready ? readyDemandIcon : scheduledDemandIcon}
                 position={[ride.pickup_lat, ride.pickup_lng]}
               >
+                <Tooltip
+                  className={ready ? "taxiro-demand-label taxiro-demand-label-ready" : "taxiro-demand-label taxiro-demand-label-scheduled"}
+                  direction="top"
+                  offset={[0, -18]}
+                  opacity={1}
+                  permanent
+                >
+                  {ready ? "Ready demand" : "Advance demand"}
+                </Tooltip>
                 <Popup>
                   <div className="grid gap-1 text-sm">
                     <strong>

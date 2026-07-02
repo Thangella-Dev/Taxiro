@@ -34,7 +34,13 @@ async function getGeolocationPermissionState(): Promise<GeolocationPermissionSta
 function geolocationErrorMessage(error?: GeolocationPositionError) {
   if (!error) return "GPS could not determine your location. Search or choose it on the map.";
   if (error.code === error.PERMISSION_DENIED) {
-    return "Location permission is blocked. Allow precise location access in browser settings, then try again.";
+    const installed =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(display-mode: standalone)").matches ||
+        Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+    return installed
+      ? "Location is blocked for installed Taxiro. Open device Settings, allow precise location for Taxiro or the browser, then reopen the app."
+      : "Location permission is blocked. Allow precise location access in browser settings, then try again.";
   }
   if (error.code === error.POSITION_UNAVAILABLE) {
     return "Your device cannot get a GPS fix right now. Move near a window or outdoors, then try again.";
@@ -60,10 +66,8 @@ function requestCurrentPosition(options: PositionOptions) {
 export async function getPromptedCurrentLocation(onProgress?: (accuracyM: number) => void) {
   ensureGeolocationReady();
 
-  const permissionState = await getGeolocationPermissionState();
-  if (permissionState === "denied") {
-    throw new Error("Location permission is blocked. Allow precise location access in browser settings, then try again.");
-  }
+  // The geolocation request itself is authoritative. Installed PWAs can have a
+  // permission state separate from the browser tab that installed them.
 
   let best: GeolocationPosition;
   try {
@@ -80,7 +84,7 @@ export async function getPromptedCurrentLocation(onProgress?: (accuracyM: number
     try {
       best = await requestCurrentPosition({
         enableHighAccuracy: false,
-        maximumAge: 60_000,
+        maximumAge: 0,
         timeout: 10_000,
       });
     } catch (fallbackError) {

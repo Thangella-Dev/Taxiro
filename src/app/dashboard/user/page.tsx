@@ -73,6 +73,7 @@ export default function UserDashboard() {
   const [clickTarget, setClickTarget] = useState<"pickup" | "drop">("pickup");
   const [confirmationCodes, setConfirmationCodes] = useState<Record<string, string>>({});
   const [drop, setDrop] = useState<LatLng | null>(null);
+  const [deviceLocation, setDeviceLocation] = useState<LatLng | null>(null);
   const [detectingPickup, setDetectingPickup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mapPickMode, setMapPickMode] = useState<"pickup" | "drop" | null>(null);
@@ -388,7 +389,7 @@ export default function UserDashboard() {
     setMessage(`${clickTarget === "pickup" ? "Pickup" : "Drop"} pinned on the map.`);
   }
   async function detectPickupLocation() {
-    if (bookingFor === "other") {
+    if (!activeRide && bookingFor === "other") {
       setMessage("For another passenger, search their pickup or pin it on the map.");
       return;
     }
@@ -410,6 +411,12 @@ export default function UserDashboard() {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
+      setDeviceLocation(detected);
+      if (activeRide) {
+        setPickupAccuracy(Math.round(position.coords.accuracy));
+        setMessage("Current location updated with +/-" + Math.round(position.coords.accuracy) + "m accuracy.");
+        return;
+      }
       setPickupAccuracy(Math.round(position.coords.accuracy));
       setPickup(detected);
       setClickTarget("drop");
@@ -743,7 +750,7 @@ export default function UserDashboard() {
         <DynamicMapPicker
           className="taxiro-map-canvas overflow-hidden"
           drop={mapDrop}
-          focusPoint={!activeRide ? pickup : null}
+          focusPoint={activeRide ? deviceLocation : pickup}
           onSelectionChange={setMapCandidate}
           pickup={mapPickup}
           riders={mapRiders}
@@ -765,12 +772,12 @@ export default function UserDashboard() {
           <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
             <AppNotificationBell profileId={profile?.id ?? null} />
             <button
-              aria-label="Detect pickup location"
+              aria-label={activeRide ? "Refresh current location" : "Detect pickup location"}
               aria-busy={detectingPickup}
               className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-11"
-              disabled={Boolean(activeRide) || detectingPickup || bookingFor !== "self"}
+              disabled={detectingPickup || (!activeRide && bookingFor !== "self")}
               onClick={() => void detectPickupLocation()}
-              title={bookingFor === "self" ? "Detect pickup location" : "Choose Myself to use current location"}
+              title={activeRide ? "Refresh your current location" : bookingFor === "self" ? "Detect pickup location" : "Choose Myself to use current location"}
               type="button"
             >
               <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingPickup ? "animate-pulse" : ""}`} />
@@ -788,7 +795,7 @@ export default function UserDashboard() {
         ) : null}
 
         {!mapPickMode && activeRide && assignedRiderLocation ? (
-          <div className="pointer-events-none absolute left-2 top-[4.15rem] z-[1190] max-w-[calc(100%-1rem)] sm:left-3 sm:top-[4.5rem] lg:left-4">
+          <div className="pointer-events-none absolute inset-x-2 top-[calc(max(0.5rem,env(safe-area-inset-top))+4.35rem)] z-[1190] flex justify-center sm:inset-x-3 sm:top-[4.75rem] lg:inset-x-4">
             <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/80 bg-[#101713]/94 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-primary"><AssignedVehicleIcon className="size-4" /></span>
               <span className="min-w-0 truncate">
@@ -810,8 +817,23 @@ export default function UserDashboard() {
         ) : null}
 
         {!mapPickMode ? (
-        <ResponsiveRideSheet desktopSide="left" mobileLabel="booking and rides">
-            {activeRide ? (
+        <ResponsiveRideSheet desktopSide="left" key={panelView} mobileLabel="booking and rides">
+            {panelView === "rides" ? (
+              <div className="grid gap-3">
+                {activeRide ? (
+                  <Button className="h-11 w-full rounded-lg" onClick={() => setPanelView("book")} variant="outline">
+                    Back to live trip
+                  </Button>
+                ) : null}
+                <RideHistoryPanel
+                  activeRides={activeRides}
+                  onCancel={setCancelTarget}
+                  completedRides={completedRides}
+                  onReady={(ride) => void markReady(ride)}
+                  upcomingRides={upcomingRides}
+                />
+              </div>
+            ) : activeRide ? (
               <ActiveUserRide
                 code={confirmationCodes[activeRide.id]}
                 emergencyContactName={profile?.emergency_contact_name ?? null}
@@ -1500,7 +1522,9 @@ function ActiveUserRide({
                     <div className="mt-1 flex min-w-0 flex-wrap gap-1.5 text-[11px] font-bold">
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-amber-800">
                         <Star className="size-3 fill-current" />
-                        {Number(riderDetails.rating ?? 5).toFixed(1)} rating
+                        {riderDetails.rating && Number(riderDetails.rating) > 0
+                          ? Number(riderDetails.rating).toFixed(1) + " rating"
+                          : "New rider"}
                       </span>
                       <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
                         {riderDetails.completed_rides ?? 0} completed rides
