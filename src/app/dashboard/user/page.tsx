@@ -1464,10 +1464,10 @@ function ActiveUserRide({
       {hasLivePhase ? (
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           {riderDetails ? (
-            <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3">
-              <div className="relative size-[4.5rem] overflow-hidden rounded-lg bg-secondary">
+            <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3">
+              <div className="relative size-16 overflow-hidden rounded-lg bg-secondary">
                 {riderPhotoUrl ? (
-                  <Image alt={(riderDetails.full_name ?? "Assigned rider") + " profile"} className="object-cover" fill sizes="72px" src={riderPhotoUrl} unoptimized />
+                  <Image alt={(riderDetails.full_name ?? "Assigned rider") + " profile"} className="object-cover" fill sizes="64px" src={riderPhotoUrl} unoptimized />
                 ) : (
                   <div className="flex size-full items-center justify-center text-2xl font-black">
                     {(riderDetails.full_name ?? "R").slice(0, 1).toUpperCase()}
@@ -1478,15 +1478,20 @@ function ActiveUserRide({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-lg font-black">{riderDetails.full_name ?? "Taxiro rider"}</p>
-                    <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-muted-foreground">
-                      <Star className="size-3.5 fill-current text-amber-500" />
-                      {Number(riderDetails.rating ?? 5).toFixed(1)} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {riderDetails.completed_rides ?? 0} rides
-                    </p>
+                    <div className="mt-1 flex min-w-0 flex-wrap gap-1.5 text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-amber-800">
+                        <Star className="size-3 fill-current" />
+                        {Number(riderDetails.rating ?? 5).toFixed(1)} rating
+                      </span>
+                      <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
+                        {riderDetails.completed_rides ?? 0} completed rides
+                      </span>
+                    </div>
                   </div>
                   <Badge className="shrink-0 bg-secondary text-secondary-foreground">{getVehicleLabel(riderDetails.vehicle_type)}</Badge>
                 </div>
-                <p className="mt-2 truncate text-sm font-semibold">{riderDetails.vehicle_make} {riderDetails.vehicle_model}</p>
-                <p className="mt-1 inline-flex rounded-md bg-[#101713] px-2.5 py-1 text-sm font-black tracking-[0.12em] text-white">{riderDetails.registration_number}</p>
+                <p className="mt-2 break-words text-sm font-semibold leading-5">{riderDetails.vehicle_make} {riderDetails.vehicle_model}</p>
+                <p className="mt-1 inline-flex max-w-full break-all rounded-md bg-[#101713] px-2.5 py-1 text-sm font-black tracking-[0.12em] text-white">{riderDetails.registration_number}</p>
               </div>
               {riderDetails.phone ? (
                 <a className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-sm font-black" href={"tel:" + riderDetails.phone}>
@@ -1498,13 +1503,14 @@ function ActiveUserRide({
             <p className="text-sm text-muted-foreground">Loading your assigned rider and vehicle details...</p>
           )}
         </div>
-      ) : null}      <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-secondary/60 p-3">
+      ) : null}
+      <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-secondary/60 p-3">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">Passenger</p>
           <p className="truncate font-black">{ride.passenger_name || (ride.booking_for === "other" ? "Guest passenger" : "You")}</p>
           <p className="text-xs text-muted-foreground">{ride.booking_for === "other" ? "Ride booked for someone else" : "Ride booked for yourself"}</p>
         </div>
-        {ride.passenger_phone ? <span className="shrink-0 rounded-lg bg-card px-3 py-2 text-xs font-bold">{ride.passenger_phone}</span> : null}
+        {ride.passenger_phone ? <span className="max-w-[10rem] shrink-0 truncate rounded-lg bg-card px-3 py-2 text-xs font-bold">{ride.passenger_phone}</span> : null}
       </div>
       {ride.status === "started" ? (
         <div className="rounded-lg bg-[#101713] p-4 text-white">
