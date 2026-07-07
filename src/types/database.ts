@@ -42,6 +42,8 @@ export type RideRequest = {
   fare_rate_per_km: number | null;
   vehicle_surcharge_per_km: number;
   vehicle_type: VehicleType;
+  service_area_id: string | null;
+  pricing_rule_id: string | null;
   fare_pricing_period: "standard" | "morning_peak" | "evening_peak" | "night_peak" | null;
   company_commission: number | null;
   rider_earning: number | null;
@@ -230,5 +232,45 @@ export type SavedPlace = {
   address: string;
   lat: number;
   lng: number;
+  created_at: string;
+};
+export type ServiceArea = {
+  id: string;
+  name: string;
+  center_lat: number;
+  center_lng: number;
+  radius_km: number;
+  supported_vehicle_types: VehicleType[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PricingRule = {
+  id: string;
+  service_area_id: string | null;
+  vehicle_type: VehicleType;
+  base_fare: number;
+  per_km_rate: number;
+  per_minute_rate: number;
+  minimum_fare: number;
+  company_commission_rate: number;
+  peak_windows: unknown[];
+  is_active: boolean;
+  effective_from: string;
+  effective_until: string | null;
+  created_at: string;
+};
+
+export type FraudSignal = {
+  id: string;
+  profile_id: string | null;
+  ride_id: string | null;
+  signal_type: "impossible_speed" | "location_jump" | "mock_location" | "repeat_cancellation" | "payment_dispute" | "account_abuse" | "other";
+  severity: "low" | "medium" | "high" | "critical";
+  evidence: Record<string, unknown>;
+  status: "open" | "reviewing" | "dismissed" | "confirmed";
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   created_at: string;
 };

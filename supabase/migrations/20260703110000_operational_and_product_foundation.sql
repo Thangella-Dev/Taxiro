@@ -240,7 +240,7 @@ create policy "profiles read wallets" on public.wallets for select to authentica
 create policy "profiles read wallet transactions" on public.wallet_transactions for select to authenticated using (profile_id = auth.uid() or public.is_admin());
 create policy "riders read own incentives" on public.rider_incentives for select to authenticated using (rider_id = auth.uid() or public.is_admin());
 create policy "admins manage incentives" on public.rider_incentives for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "business members read account" on public.business_accounts for select to authenticated using (owner_profile_id = auth.uid() or public.is_admin() or exists (select 1 from public.business_account_members member where member.business_account_id = business_accounts.id and member.profile_id = auth.uid()));
+create policy "business owners read account" on public.business_accounts for select to authenticated using (owner_profile_id = auth.uid() or public.is_admin());
 create policy "business owners manage account" on public.business_accounts for all to authenticated using (owner_profile_id = auth.uid() or public.is_admin()) with check (owner_profile_id = auth.uid() or public.is_admin());
 create policy "business members read membership" on public.business_account_members for select to authenticated using (profile_id = auth.uid() or public.is_admin() or exists (select 1 from public.business_accounts account where account.id = business_account_members.business_account_id and account.owner_profile_id = auth.uid()));
 

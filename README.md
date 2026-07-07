@@ -91,6 +91,10 @@ The MVP currently includes:
 - Active-trip rider tracking status now respects iPhone safe-area/header spacing.
 - Rider map signals carry explicit Ready demand and Advance demand labels.
 - Rider rating and completed-rides summaries are derived from real ride and rating records and synchronized by database triggers; unrated riders display New rider.
+- Service-area aware booking can enforce pickup/drop inside active Taxiro operating zones once configured.
+- Configurable pricing rules can override fallback per-km fare logic by service area and vehicle type.
+- Admin Controls workspace manages service areas, pricing rules, commission preview, and fraud signal review.
+- Rider GPS jump anomalies can be recorded as fraud signals with evidence for admin review.
 
 ## Main Routes
 
@@ -216,7 +220,7 @@ Implemented:
 
 - Role-protected admin command center.
 - Live operations hero with active trips, ready signals, verification queue, gross fare, Taxiro share, and rider earnings.
-- Sticky admin navigation for Overview, Command, Verification, People, and Rides.
+- Sticky admin navigation for Overview, Command, Verification, People, Support, Controls, and Rides.
 - Metric tiles for customers, riders, online riders, scheduled rides, awaiting payment, guest bookings, peak-rate rides, and suspended accounts.
 - Broadcast notification command center with audience targeting for all accounts, users, or riders.
 - Recent broadcast delivery history.
@@ -227,6 +231,8 @@ Implemented:
 - Platform snapshot showing active load, ready demand, online supply, verification queue, total profiles, and latest ride context.
 - Ride operations search by ride ID, pickup, drop, passenger, phone, or vehicle type.
 - Ride status filtering and responsive ride audit cards.
+- Service area and pricing rule creation for controlled operating zones.
+- Fraud/location anomaly review with evidence and Review/Dismiss/Confirm actions.
 - Real Supabase data only; no duplicate/demo admin records.
 
 ### Creating the first admin account
@@ -264,6 +270,17 @@ Schema files:
 - `supabase/migrations/20260630173000_repair_ready_and_cancel_actions.sql`
 - `supabase/migrations/20260630190000_vehicle_matching_and_action_schema_repair.sql`
 - `supabase/migrations/20260701103000_rider_live_identity_and_admin_verification.sql`
+- `supabase/migrations/20260701123000_single_device_account_sessions.sql`
+- `supabase/migrations/20260701143000_vehicle_signal_delivery_repair.sql`
+- `supabase/migrations/20260701144500_vehicle_signal_rls_recursion_fix.sql`
+- `supabase/migrations/20260701160000_assigned_rider_profile_and_sos_delivery.sql`
+- `supabase/migrations/20260701173000_notification_platform_and_admin_controls.sql`
+- `supabase/migrations/20260701190000_emergency_contact_matching_and_notifications.sql`
+- `supabase/migrations/20260701203000_customer_nearby_rider_preview.sql`
+- `supabase/migrations/20260702123000_sos_auth_phone_delivery_repair.sql`
+- `supabase/migrations/20260702153000_real_rider_reputation_stats.sql`
+- `supabase/migrations/20260703110000_operational_and_product_foundation.sql`
+- `supabase/migrations/20260706100000_operational_enforcement_and_fraud.sql`
 
 Main tables:
 
@@ -279,6 +296,19 @@ Main tables:
 - `ride_chat_messages`
 - `safety_alerts`
 - `app_notifications`
+- `support_tickets`
+- `admin_audit_logs`
+- `service_areas`
+- `pricing_rules`
+- `fraud_signals`
+- `saved_places`
+- `ride_stops`
+- `recurring_ride_templates`
+- `trip_shares`
+- `promo_codes` and `promo_redemptions`
+- `wallets` and `wallet_transactions`
+- rider_incentives
+- `business_accounts` and `business_account_members`
 
 Important RPC/functions:
 
@@ -295,6 +325,10 @@ Important RPC/functions:
 - `get_or_create_ride_confirmation_code`
 - `is_admin`
 - `is_rider`
+- `create_support_ticket`
+- `create_trip_share`
+- `record_location_anomaly`
+- `admin_review_fraud_signal`
 
 Security:
 
@@ -535,7 +569,7 @@ Thursday - 02 July 2026:
 
 ## Verification Status
 
-Latest verification completed on 02 July 2026:
+Latest verification completed on 07 July 2026:
 
 - `npx tsc --noEmit`: passed against the current code.
 - Focused ESLint for changed user/rider/admin/ride-detail/map/demand/fare files: passed.
@@ -619,3 +653,59 @@ Apply supabase/migrations/20260701203000_customer_nearby_rider_preview.sql befor
 - Rider reputation is real-data only: completed rides come from completed ride_requests and rating comes from ride_ratings.
 - The live database currently confirms 5 real completed rides, no submitted rating, zero count mismatches, and active synchronization triggers.
 - TypeScript, focused ESLint, git diff validation, production build, production HTTP response, PWA manifest, response-header, and live database checks pass.
+## July 3, 2026 Production Readiness Update
+
+- Added structured telemetry, Web Vitals, browser error reporting, /api/health, /api/telemetry, and route-level recovery.
+- Added Vitest unit tests, Playwright desktop/mobile browser tests, Axe accessibility testing, migration validation, performance budgets, and GitHub Actions CI.
+- Added tracked /support cases and a separate Admin Support workspace with assignment, investigation, resolution, Realtime updates, and audit logging.
+- Added operational/product database foundations for service areas, pricing, fraud signals, saved places, multiple stops, recurring rides, trip sharing, promos, wallets, incentives, and business accounts.
+- Added server-only /api/jobs/expire-ready-signals protected by CRON_SECRET and scheduled through vercel.json.
+- Added accessible labels to Ready demand, Advance demand, pickup, destination, and rider map markers.
+- Added production migration, backup/recovery, security, incident-response, provider-integration, and pilot QA runbooks.
+
+Latest verified checks:
+
+- 27 additive migrations validated.
+- TypeScript and ESLint passed.
+- 11 unit tests passed.
+- Next.js 16.2.7 production build passed.
+- JavaScript performance budget passed: 2,278,886 bytes total and 355,987-byte largest chunk.
+- 14 desktop/mobile Playwright and serious accessibility checks passed.
+
+Deployment requirements:
+
+1. Apply supabase/migrations/20260703110000_operational_and_product_foundation.sql to staging and then production.
+2. Configure SUPABASE_SERVICE_ROLE_KEY and CRON_SECRET as server-only Vercel variables.
+3. Confirm the deployment plan supports the configured five-minute cron frequency.
+4. Run the authenticated two-device pilot matrix before declaring pilot readiness.
+
+Native background tracking, FCM/APNs, SMS escalation, integrated payment operations, and production routing remain external-provider work and are not represented as complete.
+- Added a compatible PostCSS 8.5.16 dependency override; npm audit --omit=dev now reports zero vulnerabilities.
+
+## July 7, 2026 Operational Controls Update
+
+- Added service-area aware booking enforcement with safe fallback when service areas are not configured.
+- Added configured pricing support using service areas and pricing rules.
+- Ride requests now support saved `service_area_id` and `pricing_rule_id` audit fields.
+- Extended fare split calculation to support configured commission while keeping the default 7% Taxiro share.
+- Added Admin Controls for service area creation, per-vehicle pricing rule creation, commission preview, and fraud review.
+- Added rider GPS jump anomaly detection and fraud-signal reporting from foreground tracking.
+- Added additive migration `20260706100000_operational_enforcement_and_fraud.sql`.
+- Added unit tests for service-area matching, destination rejection, configured fare calculation, and suspicious GPS jump detection.
+
+Latest verified checks:
+
+- 27 additive migrations validated.
+- TypeScript and ESLint passed.
+- 11 unit tests passed.
+- Next.js 16.2.7 production build passed with 21 app routes.
+- JavaScript performance budget passed: 2,278,886 bytes total and 355,987-byte largest chunk.
+- `npm audit --omit=dev` reports zero vulnerabilities.
+
+Deployment requirements:
+
+1. Apply `supabase/migrations/20260703110000_operational_and_product_foundation.sql` if it is not yet applied.
+2. Apply `supabase/migrations/20260706100000_operational_enforcement_and_fraud.sql` before using Admin Controls service-area/pricing/fraud features.
+3. Create active service areas and pricing rules for Bike, Auto, and Car before relying on configured dispatch pricing.
+4. Run authenticated two-device field QA after remote migration application.
+

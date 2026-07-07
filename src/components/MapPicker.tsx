@@ -293,8 +293,10 @@ export function MapPicker({
                 radius={ready ? 950 : 420}
               />
               <Marker
+                alt={ready ? "Ready ride demand at pickup" : "Advance ride demand at pickup"}
                 icon={ready ? readyDemandIcon : scheduledDemandIcon}
                 position={[ride.pickup_lat, ride.pickup_lng]}
+                title={ready ? "Ready ride demand" : "Advance ride demand"}
               >
                 <Tooltip
                   className={ready ? "taxiro-demand-label taxiro-demand-label-ready" : "taxiro-demand-label taxiro-demand-label-scheduled"}
@@ -334,12 +336,12 @@ export function MapPicker({
           );
         })}
         {pickup ? (
-          <Marker icon={pickupIcon} position={[pickup.lat, pickup.lng]}>
+          <Marker alt="Ride pickup" icon={pickupIcon} position={[pickup.lat, pickup.lng]} title="Ride pickup">
             <Popup>Pickup</Popup>
           </Marker>
         ) : null}
         {drop ? (
-          <Marker icon={dropIcon} position={[drop.lat, drop.lng]}>
+          <Marker alt="Ride destination" icon={dropIcon} position={[drop.lat, drop.lng]} title="Ride destination">
             <Popup>Drop</Popup>
           </Marker>
         ) : null}
@@ -358,7 +360,7 @@ export function MapPicker({
                 radius={Math.min(Math.max(rider.accuracy_m, 20), 250)}
               />
             ) : null}
-            <Marker icon={riderIcon(rider, riderVehicleTypes[rider.rider_id])} position={[rider.lat, rider.lng]}>
+            <Marker alt="Rider location" icon={riderIcon(rider, riderVehicleTypes[rider.rider_id])} position={[rider.lat, rider.lng]} title="Rider location">
               <Popup>
                 {rider.rider_id.startsWith("nearby-") ? "Nearby verified rider (approximate)" : rider.is_available ? "Available rider" : "Your assigned rider"}
                 {riderVehicleTypes[rider.rider_id] ? ` - ${getVehicleLabel(riderVehicleTypes[rider.rider_id])}` : ""}

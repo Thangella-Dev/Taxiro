@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { assessLocationJump } from "@/lib/operations";
 import type { LatLng } from "@/types/database";
 
 export type RiderTrackingUpdate = LatLng & {
@@ -18,7 +19,6 @@ const RIDER_MINIMUM_MOVEMENT_M = 4;
 const MAX_POSITION_AGE_MS = 15_000;
 const MIN_CONFIRMATION_SAMPLE_GAP_MS = 700;
 const MIN_CONFIRMATION_RADIUS_M = 45;
-const MAX_PLAUSIBLE_RIDER_SPEED_MPS = 45;
 
 type GeolocationPermissionState = PermissionState | "unknown";
 
@@ -222,6 +222,7 @@ export function watchRiderLocation({
   let lastAccepted: RiderTrackingUpdate | null = null;
   let lastAcceptedAt = 0;
   let lastStoredAt = 0;
+  let lastAnomalyReportAt = 0;
   let lastWeakSignalNoticeAt = 0;
   let confirmationSamples: GeolocationPosition[] = [];
   let jumpSamples: GeolocationPosition[] = [];
@@ -302,21 +303,31 @@ export function watchRiderLocation({
       }
 
       const elapsedSeconds = Math.max(1, (receivedAt - lastAcceptedAt) / 1000);
-      const movedM = distanceInMeters(lastAccepted, {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
+      const jump = assessLocationJump({
+        accuracyM,
+        elapsedSeconds,
+        from: lastAccepted,
+        fromAccuracyM: lastAccepted.accuracy_m ?? 0,
+        to: { lat: position.coords.latitude, lng: position.coords.longitude },
       });
-      const allowedMovementM = Math.max(
-        120,
-        (lastAccepted.accuracy_m ?? 0) +
-          accuracyM +
-          elapsedSeconds * MAX_PLAUSIBLE_RIDER_SPEED_MPS,
-      );
 
-      if (movedM > allowedMovementM) {
+      if (jump.suspicious) {
         const agreeingJump = jumpSamples.find((sample) => positionsAgree(sample, position));
         jumpSamples = [...jumpSamples.slice(-3), position];
         if (!agreeingJump) {
+          if (receivedAt - lastAnomalyReportAt >= 60_000) {
+            lastAnomalyReportAt = receivedAt;
+            void supabase.rpc("record_location_anomaly", {
+              p_evidence: {
+                accuracy_m: accuracyM,
+                allowed_movement_m: Math.round(jump.allowedMovementM),
+                elapsed_seconds: Math.round(elapsedSeconds),
+                moved_m: Math.round(jump.movedM),
+              },
+              p_ride_id: null,
+              p_signal_type: "location_jump",
+            });
+          }
           onError("A large GPS jump was detected. Confirming before moving your live marker...");
           return;
         }

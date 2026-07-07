@@ -1,6 +1,6 @@
 # Taxiro Technology Stack And Engineering Assessment
 
-**Report date:** 02 July 2026  
+**Report date:** 07 July 2026  
 **Application:** Taxiro  
 **Current version:** 0.1.0  
 **Product stage:** Advanced full-stack web MVP approaching controlled pilot readiness
@@ -28,70 +28,58 @@ The application supports most of the visible ride lifecycle:
 
 Engineering estimate:
 
-- **MVP feature completeness:** approximately 75%.
-- **Controlled internal pilot readiness:** approximately 65-70%.
-- **Unrestricted public production readiness:** approximately 45-50%.
+- **MVP feature completeness:** approximately 78%.
+- **Controlled internal pilot readiness:** approximately 70%.
+- **Unrestricted public production readiness:** approximately 50%.
 - **Current stage:** between functional MVP and pilot-ready release candidate.
 
 These are engineering estimates, not automated quality scores. Taxiro is advanced in feature breadth and UI, while production readiness still depends on reliability, operations, automated testing, security, compliance, and native-device capabilities.
 
 ## Codebase Measurements
 
-Measurements were generated from the repository on 02 July 2026.
+Measurements were generated from the repository on 07 July 2026.
 
 ### Unique implementation
 
 | Area | Files | Physical lines | Non-blank lines |
 |---|---:|---:|---:|
-| TypeScript (.ts) | 15 | 1,542 | 1,368 |
-| React/TypeScript (.tsx) | 47 | 8,886 | 8,297 |
+| TypeScript and test tooling (.ts/.mjs) | 32 | 2,241 | 2,001 |
+| React/TypeScript (.tsx) | 53 | 9,530 | 8,879 |
 | Global CSS (.css) | 1 | 995 | 851 |
-| Supabase migration history (.sql) | 25 | 3,750 | 3,359 |
-| **Unique implementation total** | **88** | **15,173** | **13,875** |
+| Supabase migration history and schema snapshot (.sql) | 28 | 7,742 | 6,948 |
+| CI YAML | 1 | 51 | 47 |
+| **Tracked source/config total** | **115** | **20,559** | **18,726** |
 
-### Additional tracked material
-
-| Area | Files | Physical lines | Non-blank lines |
-|---|---:|---:|---:|
-| Cumulative Supabase schema snapshot | 1 | 3,295 | 2,950 |
-| Existing project documentation | 25 | 3,330 | 2,599 |
-
-The cumulative schema repeats SQL already represented in migration history. Therefore:
-
-- **Recommended unique implementation count:** 15,173 physical lines.
-- **Implementation plus cumulative schema:** 18,468 physical lines.
-- **Implementation plus schema excluding blank lines:** 16,825 lines.
-
-Generated .next output, node_modules, Git internals, images, icons, and binary assets are excluded.
+The cumulative schema snapshot repeats SQL already represented in migration history and is excluded from the recommended unique implementation count. Generated .next output, node_modules, Git internals, test artifacts, images, icons, and binary assets are also excluded.
 
 ### Repository inventory
 
-- 10 application pages.
+- 11 application pages.
 - 3 role-specific dashboards.
-- 36 React components.
-- 25 additive Supabase migrations.
-- 14 application database tables.
-- 35 unique PostgreSQL/RPC functions across migration history.
+- 41 React components.
+- 27 additive Supabase migrations.
+- 30 application database tables represented across migration history.
+- 40 unique PostgreSQL/RPC functions across migration history.
 - 2 Supabase Storage buckets.
 - 19 public assets.
-- 17 routes emitted by the latest successful Next.js build, including metadata and icon routes.
+- 21 routes emitted by the latest successful Next.js build.
+- 11 passing unit tests.
+- 14 passing desktop/mobile Playwright and accessibility tests.
 
 ### Largest source files
 
 | File | Physical lines | Responsibility |
 |---|---:|---|
-| src/app/dashboard/user/page.tsx | 1,951 | Booking, tracking, safety, history, active ride |
-| src/app/dashboard/rider/page.tsx | 1,277 | Rider work, demand, GPS, execution, navigation |
-| src/app/globals.css | 995 | Responsive UI, map styling, motion, containment |
-| src/app/rides/[id]/page.tsx | 471 | Detailed ride lifecycle |
-| src/app/dashboard/admin/page.tsx | 421 | Operations, verification, people, ride audit |
-| src/components/MapPicker.tsx | 391 | Leaflet maps, routes, demand, rider markers |
-| src/app/auth/page.tsx | 360 | Signup, sign-in, validation, onboarding |
-| src/components/RiderIdentitySettings.tsx | 291 | Identity, vehicles, UPI, uploads |
-| src/components/AppNotificationBell.tsx | 289 | Realtime notification panel and dismissal |
-
-The user and rider dashboards are large enough that decomposition into focused feature components and hooks should be a next-phase engineering task.
-
+| src/app/dashboard/user/page.tsx | 1,860 | Booking, tracking, safety, history, active ride |
+| src/app/dashboard/rider/page.tsx | 1,278 | Rider work, demand, GPS, execution, navigation |
+| src/app/globals.css | 851 | Responsive UI, map styling, motion, containment |
+| src/app/rides/[id]/page.tsx | 442 | Detailed ride lifecycle |
+| src/app/dashboard/admin/page.tsx | 400+ | Operations, verification, people, support, controls, ride audit |
+| src/components/MapPicker.tsx | 371 | Leaflet maps, routes, demand, rider markers |
+| src/app/auth/page.tsx | 344 | Signup, sign-in, validation, onboarding |
+| src/lib/tracking.ts | 304 | GPS acquisition, filtering, persistence |
+| src/components/AppNotificationBell.tsx | 270 | Realtime notification inbox and dismissal |
+| src/components/RiderIdentitySettings.tsx | 265 | Identity, vehicles, UPI, uploads |
 ## Complete Technology Stack
 
 ### Frontend
@@ -369,7 +357,7 @@ A Supabase service-role key must never be exposed through frontend or NEXT_PUBLI
 
 5. **Limited automated testing**
    - TypeScript, ESLint, and build checks exist.
-   - No complete unit, integration, or E2E suite is declared in package.json.
+   - Unit, public browser, accessibility, migration, build, lint, type, and performance checks exist; authenticated full ride lifecycle E2E coverage remains incomplete.
 
 6. **Incomplete production monitoring**
    - Error tracking, tracing, uptime alerts, and business analytics are required.
@@ -389,60 +377,65 @@ A Supabase service-role key must never be exposed through frontend or NEXT_PUBLI
 
 ## Recommended Next Work
 
+Status key: Complete means implemented and locally verified. Partial means a foundation exists but field, provider, remote database, or authenticated coverage remains.
+
 ### Priority 0: Pilot blockers
 
-1. Apply and verify every migration in production Supabase.
-2. Run repeated two-device user/rider ride lifecycles.
-3. Test Bike, Auto, and Car matching with verified vehicles.
-4. Test session persistence and new-device revocation.
-5. Test Realtime reconnect after close, network loss, and sleep.
-6. Test denied GPS, weak GPS, stale location, and route changes.
-7. Complete RLS/RPC/storage security review.
-8. Add structured production error logging.
-9. Add database backup and recovery procedures.
-10. Add critical authentication and ride-lifecycle E2E tests.
+1. **Partial:** Apply and verify every migration in production Supabase. The July 3 operational foundation and July 7 operational enforcement migrations are still pending remote application unless applied manually.
+2. **Pending:** Run at least ten repeated two-device user/rider ride lifecycles.
+3. **Pending:** Field-test Bike, Auto, and Car matching with separate verified vehicles.
+4. **Pending:** Field-test session persistence and new-device revocation.
+5. **Pending:** Field-test Realtime reconnect after close, network loss, and sleep.
+6. **Pending:** Field-test denied GPS, weak GPS, stale location, movement, and route changes.
+7. **Partial:** RLS-first operational migration and security runbook are present; formal adversarial RPC/storage review remains.
+8. **Complete:** Structured telemetry, browser errors, Web Vitals, health endpoint, and recovery UI.
+9. **Partial:** Backup/recovery procedures are documented; managed backups/PITR and restoration drills must be activated.
+10. **Partial:** Unit and public desktop/mobile E2E checks exist; authenticated ride-lifecycle and RLS integration tests remain.
 
 ### Priority 1: Real operational capability
 
-1. Build native Android/iOS apps or a native tracking wrapper.
-2. Add FCM/APNs push notifications.
-3. Add SMS/phone escalation for SOS.
-4. Move dispatch and expiry into reliable background jobs.
-5. Use production geocoding/routing or self-host OSRM/Nominatim.
-6. Integrate payment gateway and webhook verification.
-7. Add rider settlement, invoices, refunds, and reconciliation.
-8. Add support tickets, incidents, and admin audit logs.
-9. Add fraud and fake-location detection.
-10. Add service-area, pricing, and supply controls.
+1. **External:** Native Android/iOS or native tracking wrapper requires a mobile architecture and store credentials.
+2. **External:** FCM/APNs requires provider projects, certificates, device tokens, consent, and delivery operations.
+3. **External:** SMS/phone SOS escalation requires an India-compliant provider and approved templates.
+4. **Partial:** Ready-signal expiry has a protected scheduled endpoint and Vercel Cron; dispatch retries and durable queues remain.
+5. **External:** Production geocoding/routing requires a contracted provider or self-hosted OSRM/Nominatim.
+6. **External:** Payment gateway requires merchant KYC, server webhooks, idempotency, and reconciliation.
+7. **Partial:** Wallet, transaction, incentive, and pricing foundations exist; settlement, invoice, refund, and reconciliation execution remains.
+8. **Complete foundation:** Tracked support cases, admin support operations, and admin audit writes are implemented.
+9. **Partial:** Fraud/fake-location signal storage, rider GPS jump reporting, and admin review actions exist; automated scoring and enforcement remain.
+10. **Partial:** Service-area/pricing models, admin creation UI, and booking enforcement exist locally; remote migration application, real area configuration, and field QA remain.
 
 ### Priority 2: Architecture and quality
 
-1. Split user/rider dashboards into feature components and hooks.
-2. Add component and utility unit tests.
-3. Add database integration tests for RPC and RLS.
-4. Add Playwright E2E tests.
-5. Add accessibility testing.
-6. Add performance budgets and bundle analysis.
-7. Add funnel, matching, cancellation, ETA, and completion analytics.
-8. Add production observability.
-9. Add CI for build, lint, tests, and migration validation.
-10. Separate staging and production environments.
+1. **Pending:** Split the largest user/rider dashboard modules into feature components and hooks.
+2. **Partial:** Fare and validation unit tests exist; component and tracking tests should expand.
+3. **Pending:** Add database integration tests for RPC and RLS.
+4. **Complete foundation:** Playwright desktop/mobile smoke tests are configured and passing.
+5. **Complete foundation:** Axe serious/critical accessibility checks are passing for public routes.
+6. **Complete foundation:** Production JavaScript budgets pass; route-level bundle analysis remains useful.
+7. **Pending:** Add persisted funnel, matching, cancellation, ETA, and completion analytics.
+8. **Partial:** Structured observability exists; external alerting and tracing remain.
+9. **Complete:** CI validates migrations, types, lint, unit tests, build, performance, browser, and accessibility.
+10. **Partial:** Staging-first procedures and Supabase local config exist; separate cloud staging resources must be provisioned.
 
 ### Priority 3: Product expansion
 
-- Saved places and favourite routes.
-- Multiple stops.
-- Promo/referral system.
-- Wallet and credits.
-- Recurring scheduled rides.
-- Rider incentives.
-- Heat maps and demand forecasting.
-- Support chat/calling.
-- Better ETA recalculation.
-- Trip sharing.
-- Localization and accessibility.
-- Business accounts.
+Database foundations now exist for saved places, multiple stops, promos, wallets, recurring rides, rider incentives, trip sharing, and business accounts. These are not complete user-facing features until their workflows, admin controls, and tests are implemented.
 
+Still pending:
+
+- Saved-place and favourite-route user UI.
+- Multiple-stop booking and routing UI.
+- Promo/referral redemption workflow.
+- Wallet funding, refund, and ledger operations.
+- Recurring ride generation worker and controls.
+- Rider incentive progress and payout UI.
+- Heat maps and demand forecasting.
+- Support calling/chat escalation.
+- Better continuous ETA recalculation.
+- Secure public trip-sharing page.
+- Localization and broader accessibility review.
+- Business account billing and member administration.
 ## Release Definition
 
 Taxiro should be called **pilot-ready** after:
@@ -516,3 +509,45 @@ In short:
 - Git diff validation passed.
 - Next.js 16.2.7 production build passed with all 17 routes.
 - Production HTTP response, geolocation header, and standalone PWA manifest checks passed.
+## July 3, 2026 Production Readiness And Operations Update
+
+- Added structured telemetry, Web Vitals, browser error reporting, health checks, and route recovery.
+- Added Vitest, Playwright, Axe accessibility checks, migration validation, performance budgets, and GitHub Actions CI.
+- Added tracked support cases for users/riders and an admin support queue with audit logging.
+- Added the additive operational/product migration covering service areas, pricing, fraud signals, saved places, stops, recurring rides, sharing, promos, wallets, incentives, and business accounts.
+- Added a protected ready-signal expiry endpoint and five-minute Vercel Cron configuration.
+- Added accessible names to all interactive Leaflet markers.
+- Added production migration, backup/recovery, security, incident response, provider, and two-device pilot runbooks.
+- Current implementation footprint: 105 source/migration/test/CI files and 16,927 lines across TypeScript, JavaScript, SQL, and CI YAML.
+- Verification passes: 26 migrations, TypeScript, ESLint, 7 unit tests, production build, 2.26 MB JavaScript budget, and 14 desktop/mobile browser/accessibility tests.
+- The July 3 migration remains local until applied to staging and production Supabase.
+- Added a compatible PostCSS 8.5.16 dependency override; the production dependency audit reports zero vulnerabilities.
+
+## July 7, 2026 Operational Controls Update
+
+### Implemented today
+
+- Added `src/lib/operations.ts` for service-area matching, configured fare calculation, distance calculation, and suspicious GPS jump assessment.
+- Added optional service-area enforcement in the user booking flow.
+- Added configured pricing support using `service_areas` and `pricing_rules`.
+- Added `service_area_id` and `pricing_rule_id` support on `ride_requests` types and booking inserts.
+- Added configurable commission support in `calculateFareBreakdown` while preserving the default 7% Taxiro commission.
+- Added `AdminOperationalControls` for service area creation, pricing rule creation, fare split preview, and fraud-signal review.
+- Added rider GPS jump anomaly reporting from foreground tracking through `record_location_anomaly`.
+- Added additive migration `20260706100000_operational_enforcement_and_fraud.sql`.
+- Added unit tests for service-area matching, configured fare, and location anomaly behavior.
+
+### Verification
+
+- `npm run db:validate`: 27 additive migrations passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 3 files and 11 tests passed.
+- `npm run build`: passed on Next.js 16.2.7 with 21 app routes.
+- `npm run perf:budget`: passed with 34 chunks, 2,278,886 total JavaScript bytes, and 355,987-byte largest chunk.
+- `npm audit --omit=dev`: zero vulnerabilities.
+
+### Updated readiness opinion
+
+Taxiro now has a stronger operations layer: service areas, configurable pricing, admin controls, and fraud-review foundations. It is closer to a controlled pilot, but still needs remote migration application, real operating-zone configuration, authenticated two-device field testing, formal security/RLS review, external push/SMS/payment providers, and native/background tracking before unrestricted public production.
+

@@ -64,7 +64,10 @@ export function estimateBikeFare(
   return getBikeFareQuote(distanceKm, departureAt).fare;
 }
 
-export function calculateFareBreakdown(fare: number | null): FareBreakdown {
+export function calculateFareBreakdown(
+  fare: number | null,
+  commissionRate = COMPANY_COMMISSION_RATE,
+): FareBreakdown {
   if (fare === null) {
     return {
       companyCommission: null,
@@ -73,7 +76,7 @@ export function calculateFareBreakdown(fare: number | null): FareBreakdown {
     };
   }
 
-  const companyCommission = Math.round(fare * COMPANY_COMMISSION_RATE);
+  const companyCommission = Math.round(fare * commissionRate);
   return {
     companyCommission,
     fare,

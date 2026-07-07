@@ -46,6 +46,7 @@ import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
 import { calculateFareBreakdown, formatMoney, getUserCancellationFine, getVehicleFareQuote } from "@/lib/fare";
+import { calculateConfiguredFare, findEffectivePricingRule, findServiceAreaForTrip } from "@/lib/operations";
 import { createSafetyAlert, usePanicTrigger, useRideSafetyMonitor } from "@/lib/safety";
 import { getSupabase } from "@/lib/supabase";
 import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M, PRECISE_TARGET_ACCURACY_M } from "@/lib/tracking";
@@ -55,12 +56,14 @@ import { VEHICLE_OPTIONS, getVehicleLabel } from "@/lib/vehicles";
 import type {
   AssignedRiderDetails,
   LatLng,
+  PricingRule,
   Profile,
   RideConfirmationCode,
   RideRequest,
   RiderLocation,
   RiderProfile,
   SafetyAlertType,
+  ServiceArea,
   VehicleType,
 } from "@/types/database";
 
@@ -99,6 +102,8 @@ export default function UserDashboard() {
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
   const [routeSummary, setRouteSummary] = useState<{ distanceKm: number | null; durationMin: number | null } | null>(null);
   const [rides, setRides] = useState<RideRequest[]>([]);
+  const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [vehicleType, setVehicleType] = useState<VehicleType>("bike");
   const [showRideOptions, setShowRideOptions] = useState(false);
@@ -229,6 +234,20 @@ export default function UserDashboard() {
     }
   }, []);
 
+
+
+  const loadOperationalConfig = useCallback(async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const [areasResult, rulesResult] = await Promise.all([
+      supabase.from("service_areas").select("*").eq("is_active", true),
+      supabase.from("pricing_rules").select("*").eq("is_active", true),
+    ]);
+
+    if (!areasResult.error) setServiceAreas((areasResult.data as ServiceArea[]) ?? []);
+    if (!rulesResult.error) setPricingRules((rulesResult.data as PricingRule[]) ?? []);
+  }, []);
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) {
@@ -249,7 +268,7 @@ export default function UserDashboard() {
       setUserId(user.id);
       await ensureProfile(supabase, user, "user");
       setProfile(await getProfile(supabase, user.id));
-      await loadRides(user.id);
+      await Promise.all([loadRides(user.id), loadOperationalConfig()]);
       setLoading(false);
     });
 
@@ -348,7 +367,7 @@ export default function UserDashboard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadRides]);
+  }, [loadOperationalConfig, loadRides]);
 
   useEffect(() => {
     if (!pickup) return;
@@ -485,10 +504,22 @@ export default function UserDashboard() {
         ? new Date(Date.now() + 5 * 60 * 1000).toISOString()
         : new Date(scheduledTime).toISOString();
 
-    setMessage("Finding route...");
+    const serviceDecision = findServiceAreaForTrip(serviceAreas, pickup, drop, vehicleType);
+    if (serviceDecision.reason) {
+      setMessage(serviceDecision.reason);
+      return;
+    }
+
+    setMessage("Finding route and fare...");
     const summary = await getRouteSummary(pickup, drop);
+    const configuredRule = serviceDecision.area
+      ? findEffectivePricingRule(pricingRules, serviceDecision.area.id, vehicleType, rideTime)
+      : null;
     const fareQuote = getVehicleFareQuote(summary.distanceKm, rideTime, vehicleType);
-    const fareBreakdown = calculateFareBreakdown(fareQuote.fare);
+    const fareEstimate = configuredRule
+      ? calculateConfiguredFare(summary.distanceKm, summary.durationMin, configuredRule)
+      : fareQuote.fare;
+    const fareBreakdown = calculateFareBreakdown(fareEstimate, configuredRule?.company_commission_rate);
     const { error } = await supabase.from("ride_requests").insert({
       assigned_rider_id: null,
       distance_km: summary.distanceKm,
@@ -496,11 +527,13 @@ export default function UserDashboard() {
       drop_lat: drop.lat,
       drop_lng: drop.lng,
       estimated_duration_min: summary.durationMin,
-      fare_estimate: fareQuote.fare,
-      fare_rate_per_km: fareQuote.baseRatePerKm,
-      vehicle_surcharge_per_km: fareQuote.vehicleSurchargePerKm,
+      fare_estimate: fareEstimate,
+      fare_rate_per_km: configuredRule?.per_km_rate ?? fareQuote.baseRatePerKm,
+      vehicle_surcharge_per_km: configuredRule ? 0 : fareQuote.vehicleSurchargePerKm,
       vehicle_type: vehicleType,
-      fare_pricing_period: fareQuote.period,
+      service_area_id: serviceDecision.area?.id ?? null,
+      pricing_rule_id: configuredRule?.id ?? null,
+      fare_pricing_period: configuredRule ? null : fareQuote.period,
       company_commission: fareBreakdown.companyCommission,
       rider_earning: fareBreakdown.riderEarning,
       booking_for: bookingFor,
@@ -650,11 +683,25 @@ export default function UserDashboard() {
     ["completed", "cancelled"].includes(ride.status),
   );
   const userCancelledRideCount = rides.filter((ride) => ride.status === "cancelled" && (!ride.cancelled_by || ride.cancelled_by === userId)).length;
-  const displayedFare = getVehicleFareQuote(
-    routeSummary?.distanceKm ?? null,
-    bookingMode === "advance" ? scheduledTime : undefined,
-    vehicleType,
-  );
+  const displayedFare = useMemo(() => {
+    const departure = bookingMode === "advance" ? scheduledTime : undefined;
+    const fallbackFare = getVehicleFareQuote(routeSummary?.distanceKm ?? null, departure, vehicleType);
+    if (!pickup || !drop) return fallbackFare;
+    const serviceDecision = findServiceAreaForTrip(serviceAreas, pickup, drop, vehicleType);
+    const configuredRule = serviceDecision.area
+      ? findEffectivePricingRule(pricingRules, serviceDecision.area.id, vehicleType, departure ?? new Date())
+      : null;
+    if (!configuredRule) return fallbackFare;
+    return {
+      ...fallbackFare,
+      baseRatePerKm: configuredRule.per_km_rate,
+      fare: calculateConfiguredFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null, configuredRule),
+      isPeak: false,
+      periodLabel: "Configured fare",
+      ratePerKm: configuredRule.per_km_rate,
+      vehicleSurchargePerKm: 0,
+    };
+  }, [bookingMode, drop, pickup, pricingRules, routeSummary?.distanceKm, routeSummary?.durationMin, scheduledTime, serviceAreas, vehicleType]);
   const safetyLocation = useMemo(
     () =>
       assignedRiderLocation

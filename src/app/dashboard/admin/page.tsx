@@ -11,12 +11,14 @@ import {
   Car,
   CreditCard,
   Flame,
+  Headphones,
   IndianRupee,
   LayoutDashboard,
   MapPin,
   Megaphone,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   UserCheck,
   Users,
   XCircle,
@@ -24,7 +26,9 @@ import {
 } from "lucide-react";
 
 import { AdminNotificationCenter } from "@/components/AdminNotificationCenter";
+import { AdminOperationalControls } from "@/components/AdminOperationalControls";
 import { AdminSafetyCenter } from "@/components/AdminSafetyCenter";
+import { AdminSupportCenter } from "@/components/AdminSupportCenter";
 import { AppShell } from "@/components/AppShell";
 import { RideCard } from "@/components/RideCard";
 import { Button } from "@/components/ui/button";
@@ -35,13 +39,15 @@ import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import { getSupabase } from "@/lib/supabase";
 import { useLiveResync } from "@/lib/useLiveResync";
 import { getVehicleLabel } from "@/lib/vehicles";
-import type { Profile, RideRequest, RiderLocation, RiderProfile, RiderVehicle } from "@/types/database";
+import type { Profile, RideRequest, RiderLocation, RiderProfile, RiderVehicle, SupportTicket } from "@/types/database";
 
 const adminSections = [
   ["overview", "Overview", LayoutDashboard],
   ["command", "Command", ShieldCheck],
   ["verification", "Verification", UserCheck],
   ["people", "People", Users],
+  ["support", "Support", Headphones],
+  ["controls", "Controls", SlidersHorizontal],
   ["rides", "Rides", Bike],
 ] as const;
 
@@ -59,21 +65,23 @@ export default function AdminDashboard() {
   const [riderSelfieUrls, setRiderSelfieUrls] = useState<Record<string, string>>({});
   const [riderVehicles, setRiderVehicles] = useState<RiderVehicle[]>([]);
   const [rides, setRides] = useState<RideRequest[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | RideRequest["status"]>("all");
 
   const loadAdminData = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase) return;
-    const [profileResult, riderResult, riderProfileResult, riderVehicleResult, rideResult] = await Promise.all([
+    const [profileResult, riderResult, riderProfileResult, riderVehicleResult, rideResult, supportResult] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("rider_locations").select("*"),
       supabase.from("rider_profiles").select("*").order("updated_at", { ascending: false }),
       supabase.from("rider_vehicles").select("*").order("updated_at", { ascending: false }),
       supabase.from("ride_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("support_tickets").select("*").order("created_at", { ascending: false }),
     ]);
 
-    if (profileResult.error || riderResult.error || riderProfileResult.error || riderVehicleResult.error || rideResult.error) {
-      setMessage(profileResult.error?.message ?? riderResult.error?.message ?? riderProfileResult.error?.message ?? riderVehicleResult.error?.message ?? rideResult.error?.message ?? "Could not load admin data.");
+    if (profileResult.error || riderResult.error || riderProfileResult.error || riderVehicleResult.error || rideResult.error || supportResult.error) {
+      setMessage(profileResult.error?.message ?? riderResult.error?.message ?? riderProfileResult.error?.message ?? riderVehicleResult.error?.message ?? rideResult.error?.message ?? supportResult.error?.message ?? "Could not load admin data.");
       return;
     }
 
@@ -88,6 +96,7 @@ export default function AdminDashboard() {
     }));
     setRiderSelfieUrls(Object.fromEntries(signedSelfies));
     setRides((rideResult.data as RideRequest[]) ?? []);
+    setSupportTickets((supportResult.data as SupportTicket[]) ?? []);
   }, []);
 
   useEffect(() => {
@@ -160,6 +169,15 @@ export default function AdminDashboard() {
           return;
         }
         setRiderVehicles((current) => upsertById(current, payload.new as RiderVehicle));
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, (payload) => {
+        if (!isAdmin) return;
+        if (payload.eventType === "DELETE") {
+          const deleted = payload.old as Partial<SupportTicket>;
+          if (deleted.id) setSupportTickets((current) => current.filter((ticket) => ticket.id !== deleted.id));
+          return;
+        }
+        setSupportTickets((current) => sortByCreated(upsertById(current, payload.new as SupportTicket)));
       })
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setMessage("Admin live updates are reconnecting. The dashboard will resync automatically.");
@@ -279,7 +297,7 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        <nav aria-label="Admin workspace sections" className="sticky top-16 z-30 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-background/92 p-2 shadow-sm backdrop-blur sm:grid-cols-5">
+        <nav aria-label="Admin workspace sections" className="sticky top-16 z-30 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-background/92 p-2 shadow-sm backdrop-blur sm:grid-cols-3 xl:grid-cols-7">
           {adminSections.map(([section, label, Icon]) => (
             <button
               aria-current={activeSection === section ? "page" : undefined}
@@ -312,6 +330,8 @@ export default function AdminDashboard() {
 
         {activeSection === "verification" ? <RiderVerificationPanel onUpdateIdentity={updateIdentityVerification} onUpdateVehicle={updateVehicleVerification} profiles={profiles} riderProfiles={riderProfiles} riderSelfieUrls={riderSelfieUrls} riderVehicles={riderVehicles} /> : null}
         {activeSection === "people" ? <PeoplePanel currentAdminId={profile?.id} onUpdateStatus={updateAccountStatus} profiles={profiles} /> : null}
+        {activeSection === "support" && profile ? <AdminSupportCenter adminId={profile.id} onChanged={loadAdminData} onMessage={setMessage} tickets={supportTickets} /> : null}
+        {activeSection === "controls" ? <AdminOperationalControls onMessage={setMessage} /> : null}
         {activeSection === "rides" ? <RideOperationsPanel filteredRides={filteredRides} query={query} setQuery={setQuery} setStatusFilter={setStatusFilter} statusFilter={statusFilter} /> : null}
       </div>
     </AppShell>
@@ -366,18 +386,127 @@ function PeoplePanel({ currentAdminId, onUpdateStatus, profiles }: { currentAdmi
 function RiderVerificationPanel({ onUpdateIdentity, onUpdateVehicle, profiles, riderProfiles, riderSelfieUrls, riderVehicles }: { onUpdateIdentity: (riderId: string, status: RiderProfile["verification_status"]) => Promise<void>; onUpdateVehicle: (vehicleId: string, status: RiderVehicle["verification_status"]) => Promise<void>; profiles: Profile[]; riderProfiles: RiderProfile[]; riderSelfieUrls: Record<string, string>; riderVehicles: RiderVehicle[] }) {
   const pendingIdentity = riderProfiles.filter((rider) => rider.verification_status !== "verified");
   const pendingVehicles = riderVehicles.filter((vehicle) => vehicle.verification_status !== "verified");
+  const verifiedIdentityCount = riderProfiles.length - pendingIdentity.length;
+  const verifiedVehicleCount = riderVehicles.length - pendingVehicles.length;
+
   return (
-    <Card className="rounded-[1.5rem]" id="admin-verification"><CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="size-5" /> Rider verification</CardTitle><CardDescription>Approve live identity first, then verify each Bike, Auto, or Car.</CardDescription></CardHeader>
-      <div className="grid gap-5">
-        <section><div className="mb-3 flex items-center justify-between gap-2"><p className="flex items-center gap-2 text-sm font-black"><Camera className="size-4" /> Identity review</p><span className="rounded-full bg-muted px-2 py-1 text-xs font-black">{pendingIdentity.length} pending</span></div>
-          <div className="grid gap-3">{riderProfiles.length ? riderProfiles.map((rider) => { const person = profiles.find((item) => item.id === rider.rider_id); const verified = rider.verification_status === "verified"; return <div className="rounded-2xl border border-border bg-muted/70 p-3" key={rider.rider_id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black">{person?.full_name ?? rider.rider_id.slice(0, 8)}</p><p className="truncate text-xs text-muted-foreground">Licence {rider.license_number ?? "not submitted"}</p></div><ReviewBadge status={rider.verification_status} /></div>{riderSelfieUrls[rider.rider_id] ? <Image alt={"Live identity capture for " + (person?.full_name ?? "rider")} className="mt-3 aspect-[4/3] w-full rounded-2xl object-cover" height={480} src={riderSelfieUrls[rider.rider_id]} unoptimized width={640} /> : <p className="mt-3 rounded-2xl bg-card p-3 text-xs font-semibold text-amber-800">No live photo submitted.</p>}<div className="mt-3 grid grid-cols-2 gap-2"><Button disabled={!rider.live_selfie_path || verified} onClick={() => void onUpdateIdentity(rider.rider_id, "verified")} size="sm">{verified ? "Verified" : "Approve"}</Button><Button onClick={() => void onUpdateIdentity(rider.rider_id, "rejected")} size="sm" variant="outline">Reject</Button></div></div>; }) : <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">No rider identities submitted yet.</p>}</div>
-        </section>
-        <section><div className="mb-3 flex items-center justify-between gap-2"><p className="flex items-center gap-2 text-sm font-black"><Car className="size-4" /> Vehicle review</p><span className="rounded-full bg-muted px-2 py-1 text-xs font-black">{pendingVehicles.length} pending</span></div>
-          <div className="grid gap-3">{riderVehicles.length ? riderVehicles.map((vehicle) => { const rider = riderProfiles.find((item) => item.rider_id === vehicle.rider_id); const person = profiles.find((item) => item.id === vehicle.rider_id); const verified = vehicle.verification_status === "verified"; return <div className="rounded-2xl border border-border bg-muted/70 p-3" key={vehicle.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black capitalize">{vehicle.vehicle_type} - {vehicle.registration_number}</p><p className="truncate text-sm text-muted-foreground">{vehicle.make} {vehicle.model}</p><p className="truncate text-xs text-muted-foreground">{person?.full_name ?? vehicle.rider_id.slice(0, 8)}</p></div><ReviewBadge status={vehicle.verification_status} /></div>{rider?.active_vehicle_type === vehicle.vehicle_type ? <p className="mt-2 text-xs font-black text-primary">Currently active for matching</p> : null}<div className="mt-3 grid grid-cols-2 gap-2"><Button disabled={!rider?.live_selfie_path || rider.verification_status !== "verified" || verified} onClick={() => void onUpdateVehicle(vehicle.id, "verified")} size="sm">{verified ? "Verified" : "Verify"}</Button><Button onClick={() => void onUpdateVehicle(vehicle.id, "rejected")} size="sm" variant="outline">Reject</Button></div></div>; }) : <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">No vehicles submitted yet.</p>}</div>
-        </section>
+    <section className="grid min-w-0 gap-5" id="admin-verification">
+      <Card className="overflow-hidden rounded-[1.5rem] border-primary/10 bg-gradient-to-br from-[#f8fbf3] via-card to-card p-4 sm:p-5">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">Rider trust desk</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Verification control</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Approve live identity first, then verify each Bike, Auto, or Car. Photos are shown as compact review thumbnails so the queue stays scannable.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[28rem]">
+            <VerificationStat label="Identity pending" value={pendingIdentity.length} tone="amber" />
+            <VerificationStat label="Identity verified" value={verifiedIdentityCount} tone="green" />
+            <VerificationStat label="Vehicle pending" value={pendingVehicles.length} tone="amber" />
+            <VerificationStat label="Vehicle verified" value={verifiedVehicleCount} tone="green" />
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <Card className="min-w-0 rounded-[1.5rem] p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-black"><Camera className="size-4" /> Identity review</p>
+              <p className="mt-1 text-xs text-muted-foreground">Live selfie and licence context</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-black">{pendingIdentity.length} pending</span>
+          </div>
+          <div className="grid max-h-[min(70dvh,42rem)] gap-3 overflow-y-auto pr-1">
+            {riderProfiles.length ? riderProfiles.map((rider) => {
+              const person = profiles.find((item) => item.id === rider.rider_id);
+              const verified = rider.verification_status === "verified";
+              const photoUrl = riderSelfieUrls[rider.rider_id];
+              return (
+                <article className="rounded-2xl border border-border bg-muted/55 p-3 transition hover:bg-muted/80" key={rider.rider_id}>
+                  <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                    <div className="overflow-hidden rounded-2xl bg-card shadow-sm">
+                      {photoUrl ? (
+                        <Image alt={"Live identity capture for " + (person?.full_name ?? "rider")} className="h-40 w-full object-cover sm:h-36" height={180} src={photoUrl} unoptimized width={160} />
+                      ) : (
+                        <div className="grid h-36 place-items-center p-3 text-center text-xs font-semibold text-amber-800">No live photo submitted</div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-lg font-black">{person?.full_name ?? rider.rider_id.slice(0, 8)}</p>
+                          <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">{person?.phone ?? "No phone on profile"}</p>
+                        </div>
+                        <ReviewBadge status={rider.verification_status} />
+                      </div>
+                      <div className="mt-3 grid gap-2 rounded-xl bg-card p-3 text-xs">
+                        <div className="flex items-center justify-between gap-2"><span className="font-bold text-muted-foreground">Licence</span><span className="truncate font-black">{rider.license_number ?? "Not submitted"}</span></div>
+                        <div className="flex items-center justify-between gap-2"><span className="font-bold text-muted-foreground">Active vehicle</span><span className="truncate font-black capitalize">{rider.active_vehicle_type ?? "Not selected"}</span></div>
+                      </div>
+                      {rider.identity_rejection_reason ? <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{rider.identity_rejection_reason}</p> : null}
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button disabled={!rider.live_selfie_path || verified} onClick={() => void onUpdateIdentity(rider.rider_id, "verified")} size="sm">{verified ? "Verified" : "Approve"}</Button>
+                        <Button onClick={() => void onUpdateIdentity(rider.rider_id, "rejected")} size="sm" variant="outline">Reject</Button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            }) : <VerificationEmpty text="No rider identities submitted yet." />}
+          </div>
+        </Card>
+
+        <Card className="min-w-0 rounded-[1.5rem] p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-black"><Car className="size-4" /> Vehicle review</p>
+              <p className="mt-1 text-xs text-muted-foreground">Verify each submitted Bike, Auto, and Car separately</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-black">{pendingVehicles.length} pending</span>
+          </div>
+          <div className="grid max-h-[min(70dvh,42rem)] gap-3 overflow-y-auto pr-1">
+            {riderVehicles.length ? riderVehicles.map((vehicle) => {
+              const rider = riderProfiles.find((item) => item.rider_id === vehicle.rider_id);
+              const person = profiles.find((item) => item.id === vehicle.rider_id);
+              const verified = vehicle.verification_status === "verified";
+              const canVerify = Boolean(rider?.live_selfie_path && rider.verification_status === "verified");
+              return (
+                <article className="rounded-2xl border border-border bg-muted/55 p-3 transition hover:bg-muted/80" key={vehicle.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-black capitalize">{getVehicleLabel(vehicle.vehicle_type)}</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-muted-foreground">{vehicle.make} {vehicle.model}</p>
+                    </div>
+                    <ReviewBadge status={vehicle.verification_status} />
+                  </div>
+                  <div className="mt-3 grid gap-2 rounded-xl bg-card p-3 text-xs sm:grid-cols-2">
+                    <div><p className="font-bold uppercase tracking-[0.12em] text-muted-foreground">Registration</p><p className="mt-1 truncate text-base font-black">{vehicle.registration_number}</p></div>
+                    <div><p className="font-bold uppercase tracking-[0.12em] text-muted-foreground">Rider</p><p className="mt-1 truncate text-base font-black">{person?.full_name ?? vehicle.rider_id.slice(0, 8)}</p></div>
+                  </div>
+                  {rider?.active_vehicle_type === vehicle.vehicle_type ? <p className="mt-2 rounded-xl bg-lime-100 px-3 py-2 text-xs font-black text-lime-800">Currently active for matching</p> : null}
+                  {!canVerify ? <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Identity must be approved before this vehicle can be verified.</p> : null}
+                  {vehicle.rejection_reason ? <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{vehicle.rejection_reason}</p> : null}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button disabled={!canVerify || verified} onClick={() => void onUpdateVehicle(vehicle.id, "verified")} size="sm">{verified ? "Verified" : "Verify"}</Button>
+                    <Button onClick={() => void onUpdateVehicle(vehicle.id, "rejected")} size="sm" variant="outline">Reject</Button>
+                  </div>
+                </article>
+              );
+            }) : <VerificationEmpty text="No vehicles submitted yet." />}
+          </div>
+        </Card>
       </div>
-    </Card>
+    </section>
   );
+}
+
+function VerificationStat({ label, tone, value }: { label: string; tone: "amber" | "green"; value: number }) {
+  const toneClass = tone === "green" ? "bg-lime-100 text-lime-800" : "bg-amber-100 text-amber-800";
+  return <div className={`rounded-2xl p-3 ${toneClass}`}><p className="text-2xl font-black">{value}</p><p className="text-[10px] font-black uppercase tracking-[0.12em] opacity-75">{label}</p></div>;
+}
+
+function VerificationEmpty({ text }: { text: string }) {
+  return <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">{text}</p>;
 }
 
 function ReviewBadge({ status }: { status: "pending" | "rejected" | "verified" }) {
@@ -419,3 +548,4 @@ function sortByCreated<T extends { created_at?: string; updated_at?: string }>(i
     return new Date(right).getTime() - new Date(left).getTime();
   });
 }
+
