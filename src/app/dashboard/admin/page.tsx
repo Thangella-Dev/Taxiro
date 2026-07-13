@@ -297,11 +297,11 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        <nav aria-label="Admin workspace sections" className="sticky top-16 z-30 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-background/92 p-2 shadow-sm backdrop-blur sm:grid-cols-3 xl:grid-cols-7">
+        <nav aria-label="Admin workspace sections" className="sticky top-16 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background/92 p-2 shadow-sm backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {adminSections.map(([section, label, Icon]) => (
             <button
               aria-current={activeSection === section ? "page" : undefined}
-              className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition ${activeSection === section ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+              className={`flex min-w-[7.75rem] flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition sm:min-w-[8.5rem] xl:min-w-0 ${activeSection === section ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
               key={section}
               onClick={() => setActiveSection(section)}
               type="button"

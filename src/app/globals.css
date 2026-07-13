@@ -20,7 +20,25 @@
   --shadow-float: 0 24px 64px rgb(16 23 19 / 18%);
   --shadow-soft: 0 12px 36px rgb(16 23 19 / 10%);
 }
-
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #07100d;
+  --foreground: #f4f8f2;
+  --card: #111b16;
+  --card-foreground: #f4f8f2;
+  --muted: #19251f;
+  --muted-foreground: #a9b6ac;
+  --border: #2d3a32;
+  --primary: #dbf86f;
+  --primary-foreground: #07100d;
+  --secondary: #263620;
+  --secondary-foreground: #ecffd0;
+  --destructive: #f05252;
+  --ring: #dbf86f;
+  --surface-raised: rgb(15 24 19 / 94%);
+  --shadow-float: 0 26px 78px rgb(0 0 0 / 46%);
+  --shadow-soft: 0 14px 42px rgb(0 0 0 / 34%);
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -254,7 +272,7 @@ button {
 .taxiro-sheet-shell {
   margin-inline: auto;
   margin-top: -1.5rem;
-  padding: 0 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+  padding: 0 clamp(0.35rem, 2vw, 0.75rem) max(0.5rem, env(safe-area-inset-bottom));
   position: relative;
   width: 100%;
   z-index: 1200;
@@ -370,7 +388,7 @@ button {
   bottom: 0;
   left: 0;
   margin: 0;
-  padding: 0 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+  padding: 0 clamp(0.35rem, 2vw, 0.75rem) max(0.5rem, env(safe-area-inset-bottom));
   position: absolute;
   transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
   width: 100%;
@@ -382,11 +400,11 @@ button {
 }
 
 .taxiro-responsive-sheet[data-mobile-open="false"] {
-  transform: translateY(calc(100% - 3.5rem + var(--taxiro-sheet-drag-y, 0px)));
+  transform: translateY(calc(100% - max(3.75rem, 3.25rem + env(safe-area-inset-bottom)) + var(--taxiro-sheet-drag-y, 0px)));
 }
 
 .taxiro-responsive-sheet .taxiro-sheet-surface {
-  max-height: min(72svh, 44rem);
+  max-height: min(70svh, 44rem);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-top: 2.75rem;
@@ -975,7 +993,7 @@ button[aria-current="page"] {
   animation: taxiro-notification-open 300ms var(--motion-snappy) both;
   left: max(0.5rem, env(safe-area-inset-left));
   right: max(0.5rem, env(safe-area-inset-right));
-  top: max(4.25rem, calc(env(safe-area-inset-top) + 3.5rem));
+  top: max(4.75rem, calc(env(safe-area-inset-top) + 4rem));
   width: auto;
   max-width: calc(100vw - max(1rem, env(safe-area-inset-left) + env(safe-area-inset-right)));
   overscroll-behavior: contain;
@@ -985,11 +1003,149 @@ button[aria-current="page"] {
   .taxiro-notification-panel {
     left: auto;
     right: max(1rem, env(safe-area-inset-right));
-    width: min(23rem, calc(100vw - 2rem));
+    width: min(24rem, calc(100vw - 2rem));
   }
 }
 
 @keyframes taxiro-notification-open {
   from { opacity: 0; transform: translateY(-10px) scale(0.975); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Premium Taxiro visual system */
+body {
+  background:
+    radial-gradient(circle at 18% 8%, rgb(219 248 111 / 16%), transparent 30rem),
+    radial-gradient(circle at 88% 12%, rgb(16 23 19 / 8%), transparent 28rem),
+    var(--background);
+  transition: background-color 420ms ease, color 420ms ease;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 18% 8%, rgb(219 248 111 / 12%), transparent 30rem),
+    radial-gradient(circle at 85% 0%, rgb(87 111 76 / 16%), transparent 28rem),
+    var(--background);
+}
+
+.taxiro-card,
+.taxiro-sheet-surface,
+.taxiro-notification-panel,
+.taxiro-app-header,
+.taxiro-input,
+.taxiro-theme-toggle {
+  backdrop-filter: blur(22px) saturate(1.14);
+  -webkit-backdrop-filter: blur(22px) saturate(1.14);
+}
+
+.taxiro-card,
+.taxiro-sheet-surface {
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 82%), rgb(255 255 255 / 96%)),
+    var(--card);
+  border-color: color-mix(in srgb, var(--border) 72%, white 28%);
+}
+
+html[data-theme="dark"] .taxiro-card,
+html[data-theme="dark"] .taxiro-sheet-surface {
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 7%), rgb(255 255 255 / 3%)),
+    var(--card);
+  border-color: rgb(255 255 255 / 10%);
+}
+
+.taxiro-button {
+  border-radius: 999px !important;
+  letter-spacing: -0.01em;
+}
+
+.taxiro-button:hover,
+.taxiro-card:hover {
+  transform: translateY(-1px);
+}
+
+.taxiro-input {
+  border-radius: 999px !important;
+}
+
+.taxiro-page-enter .rounded-lg,
+.taxiro-sheet-surface .rounded-lg,
+.taxiro-responsive-stage .rounded-lg {
+  border-radius: 1.15rem !important;
+}
+
+.taxiro-page-enter .rounded-xl,
+.taxiro-sheet-surface .rounded-xl,
+.taxiro-responsive-stage .rounded-xl {
+  border-radius: 1.35rem !important;
+}
+
+.taxiro-page-enter .rounded-2xl,
+.taxiro-sheet-surface .rounded-2xl,
+.taxiro-responsive-stage .rounded-2xl {
+  border-radius: 1.75rem !important;
+}
+
+.taxiro-theme-toggle::before {
+  background: linear-gradient(135deg, rgb(219 248 111 / 35%), transparent 52%);
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: 0.75;
+  pointer-events: none;
+  position: absolute;
+}
+
+html[data-theme="dark"] .leaflet-tile-pane {
+  filter: saturate(0.58) contrast(1.05) brightness(0.72) hue-rotate(8deg);
+}
+
+html[data-theme="dark"] .leaflet-container {
+  background: #111b16;
+}
+
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-card,
+html[data-theme="dark"] .bg-white\/94,
+html[data-theme="dark"] .bg-white\/95,
+html[data-theme="dark"] .bg-card\/95,
+html[data-theme="dark"] .bg-card\/96 {
+  background-color: rgb(17 27 22 / 94%) !important;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .bg-muted,
+html[data-theme="dark"] .bg-muted\/60,
+html[data-theme="dark"] .bg-muted\/70 {
+  background-color: rgb(25 37 31 / 92%) !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#f0f3ef]"],
+html[data-theme="dark"] [class*="bg-[#eef3ec]"],
+html[data-theme="dark"] [class*="bg-[#e9eee9]"],
+html[data-theme="dark"] [class*="bg-[#dfe8dc]"] {
+  background-color: #07100d !important;
+}
+
+html[data-theme="dark"] [class*="text-[#101713]"],
+html[data-theme="dark"] [class*="text-black"] {
+  color: var(--foreground) !important;
+}
+
+html[data-theme="dark"] .text-muted-foreground,
+html[data-theme="dark"] [class*="text-[#647067]"] {
+  color: var(--muted-foreground) !important;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .shadow-sm,
+html[data-theme="dark"] .shadow-lg,
+html[data-theme="dark"] .shadow-xl,
+html[data-theme="dark"] .shadow-2xl {
+  box-shadow: var(--shadow-soft) !important;
 }

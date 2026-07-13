@@ -1,4 +1,4 @@
-# Taxiro - Predictive Bike Taxi MVP
+﻿# Taxiro - Predictive Bike Taxi MVP
 
 **Taxiro** means **journey/trip** in Greek. Taxiro is a bike taxi web app MVP for India focused on scheduled demand, rider readiness, map-first booking, secure ride confirmation, and real Supabase-backed ride data.
 
@@ -708,4 +708,55 @@ Deployment requirements:
 2. Apply `supabase/migrations/20260706100000_operational_enforcement_and_fraud.sql` before using Admin Controls service-area/pricing/fraud features.
 3. Create active service areas and pricing rules for Bike, Auto, and Car before relying on configured dispatch pricing.
 4. Run authenticated two-device field QA after remote migration application.
+
+## July 13, 2026 UI/UX And Verification Update
+
+- Improved the admin dashboard workspace navigation with a horizontal, touch-friendly section rail for Overview, Command, Verification, People, Support, Controls, and Rides.
+- Improved mobile ride-sheet spacing and collapsed peek behavior so the live map remains easier to inspect when the sheet is pulled down.
+- Tightened reusable ride-sheet safe-area spacing for browser and installed PWA views.
+- Adjusted the notification panel viewport placement so it opens lower and stays better contained on small screens.
+- Confirmed the existing notification swipe-to-dismiss behavior remains active.
+- Confirmed rider verification image cards remain compact and scroll-contained in the admin verification queue.
+- Full local verification passed with `npm run check`.
+
+Latest verified checks:
+
+- 27 additive Supabase migrations validated.
+- TypeScript passed.
+- ESLint passed.
+- 3 unit test files passed.
+- 11 unit tests passed.
+- Next.js 16.2.7 production build passed with 21 app routes.
+- JavaScript performance budget passed: 2,282,733 bytes total and 355,987-byte largest chunk.
+
+Deployment requirements:
+
+1. Apply the latest operational Supabase migration to production if it has not already been applied.
+2. Configure real service areas and Bike/Auto/Car pricing rules in Admin Controls.
+3. Run authenticated two-device user/rider QA against the live deployment.
+4. Validate installed PWA geolocation behavior on Chrome Android and Safari iOS.
+## July 14, 2026 Premium UI/UX Theme Update
+
+Implemented early from the next-day design plan:
+
+- Added a reusable Taxiro light/dark theme toggle.
+- Added saved theme preference through `localStorage`.
+- Added a startup theme script so the saved theme is applied before React hydration.
+- Added theme access on the public landing page, standard app shell pages, and immersive user/rider map screens.
+- Added dark theme tokens for core app colors, surfaces, borders, shadows, and map context.
+- Upgraded shared Button, Card, and Input primitives with smoother capsule-like shapes and richer surfaces.
+- Added premium global styling for blur, shadows, hover lift, softer corners, and dark-mode surface overrides.
+- Reduced the boxy feel of common Taxiro panels and controls through shared CSS rather than risky page-by-page rewrites.
+
+Verification completed:
+
+- `npm run check` passed.
+- 27 additive Supabase migrations validated.
+- TypeScript, ESLint, unit tests, production build, and performance budget passed.
+- Next.js generated 21 app routes.
+- Performance budget passed with 35 chunks, 2,299,865 total JavaScript bytes, and a 355,987-byte largest chunk.
+
+Manual QA still recommended:
+
+- Review light/dark mode on landing, user dashboard, rider dashboard, admin dashboard, and mobile widths.
 

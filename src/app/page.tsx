@@ -3,6 +3,7 @@ import { ArrowRight, Bike, Clock3, KeyRound, MapPin, Navigation, Radio } from "l
 
 import { DynamicMapPicker } from "@/components/DynamicMapPicker";
 import { HomeSessionRedirect } from "@/components/HomeSessionRedirect";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -25,6 +26,7 @@ export default function Home() {
               Taxiro
             </Link>
             <div className="flex items-center gap-2">
+              <ThemeToggle compact />
               <Button asChild className="h-11 bg-[#101713] px-4 text-white hover:bg-[#101713]/90">
                 <Link href="/auth">Open app</Link>
               </Button>

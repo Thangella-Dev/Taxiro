@@ -195,6 +195,11 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var key='taxiro-theme';var stored=localStorage.getItem(key);var theme=stored==='dark'||stored==='light'?stored:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme;}catch(e){}})();`,
+          }}
+        />
+        <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
           type="application/ld+json"
         />

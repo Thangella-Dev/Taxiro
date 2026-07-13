@@ -34,12 +34,12 @@ export function Button({
   ...props
 }: ButtonProps) {
   const classes = cn(
-    "taxiro-button inline-flex max-w-full items-center justify-center gap-2 rounded-lg text-sm font-bold transition-[transform,box-shadow,background-color,border-color,color] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97]",
+    "taxiro-button inline-flex max-w-full items-center justify-center gap-2 rounded-full text-sm font-black transition-[transform,box-shadow,background-color,border-color,color,filter] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.96]",
     size === "lg" ? "h-12 px-5" : size === "sm" ? "h-9 px-3" : "h-11 px-4",
     variant === "default" &&
-      "bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(16_23_19_/_0.16)] hover:bg-primary/92 hover:shadow-[0_12px_28px_rgb(16_23_19_/_0.22)]",
+      "bg-primary text-primary-foreground shadow-[0_12px_30px_rgb(16_23_19_/_0.18)] hover:bg-primary/92 hover:shadow-[0_18px_42px_rgb(16_23_19_/_0.24)]",
     variant === "outline" &&
-      "border border-border bg-card hover:border-primary/25 hover:bg-muted",
+      "border border-border bg-card/86 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.72)] hover:border-primary/25 hover:bg-muted hover:shadow-[0_12px_30px_rgb(16_23_19_/_0.09)]",
     variant === "ghost" && "hover:bg-secondary",
     variant === "secondary" &&
       "bg-secondary text-secondary-foreground hover:bg-secondary/80",

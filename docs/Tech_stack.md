@@ -1,8 +1,8 @@
-# Taxiro Technology Stack And Engineering Assessment
+﻿# Taxiro Technology Stack And Engineering Assessment
 
-**Report date:** 07 July 2026  
-**Application:** Taxiro  
-**Current version:** 0.1.0  
+**Report date:** 13 July 2026
+**Application:** Taxiro
+**Current version:** 0.1.0
 **Product stage:** Advanced full-stack web MVP approaching controlled pilot readiness
 
 ## Executive Assessment
@@ -28,8 +28,8 @@ The application supports most of the visible ride lifecycle:
 
 Engineering estimate:
 
-- **MVP feature completeness:** approximately 78%.
-- **Controlled internal pilot readiness:** approximately 70%.
+- **MVP feature completeness:** approximately 80%.
+- **Controlled internal pilot readiness:** approximately 72%.
 - **Unrestricted public production readiness:** approximately 50%.
 - **Current stage:** between functional MVP and pilot-ready release candidate.
 
@@ -550,4 +550,48 @@ In short:
 ### Updated readiness opinion
 
 Taxiro now has a stronger operations layer: service areas, configurable pricing, admin controls, and fraud-review foundations. It is closer to a controlled pilot, but still needs remote migration application, real operating-zone configuration, authenticated two-device field testing, formal security/RLS review, external push/SMS/payment providers, and native/background tracking before unrestricted public production.
+
+## July 13, 2026 UI/UX And Verification Update
+
+### Completed today
+
+- Improved admin workspace navigation from a cramped grid into a horizontal, touch-friendly section rail.
+- Preserved clean access to Overview, Command, Verification, People, Support, Controls, and Rides sections.
+- Improved mobile bottom-sheet spacing and collapsed peek behavior for map-first user/rider flows.
+- Tightened ride-sheet safe-area behavior for browser and installed PWA surfaces.
+- Adjusted notification panel placement so it stays inside the viewport more reliably on small screens.
+- Confirmed swipe-to-dismiss notifications and compact rider verification cards remain active.
+- Updated README, daily update, manager update, and progress reporting for 13 July 2026.
+
+### Verification
+
+`npm run check` passed on 13 July 2026:
+
+- 27 additive Supabase migrations validated.
+- TypeScript passed.
+- ESLint passed.
+- 3 unit test files passed.
+- 11 unit tests passed.
+- Next.js 16.2.7 production build passed.
+- 21 app routes generated.
+- Performance budget passed with 34 chunks, 2,282,733 total JavaScript bytes, and a 355,987-byte largest chunk.
+
+### Current opinion
+
+Taxiro remains an advanced full-stack MVP. The strongest next step is live Supabase migration/configuration plus two-device field QA, not broad new feature expansion. The app is closer to controlled pilot readiness, but unrestricted public launch still requires real-device QA, stronger E2E coverage, provider integrations, monitoring, security/RLS review, and production operations.
+## July 14, 2026 Premium UI/UX Theme Update
+
+### Design-system additions
+
+- Reusable light/dark theme toggle.
+- Saved theme preference with `localStorage`.
+- Pre-hydration theme bootstrap script to prevent mode flash.
+- Theme access across landing, app shell, and immersive user/rider map screens.
+- Dark theme CSS variables for Taxiro surfaces, cards, borders, foregrounds, shadows, and accent colors.
+- Premium visual layer with softer corners, glass-like surfaces, richer shadows, hover lift, and smoother motion.
+- Shared Button, Card, and Input primitives now use more capsule-like and premium styling.
+
+### Current design assessment
+
+This moves Taxiro away from a boxy dashboard style toward a more modern mobility-app interface. The full verification pipeline passed after this update. The next design step should be screenshot-based QA on real mobile and desktop sizes, then page-level cleanup of remaining hard-coded colors and one-off rectangle classes.
 

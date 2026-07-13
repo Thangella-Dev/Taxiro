@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { LiveNotificationBanner } from "@/components/LiveNotificationBanner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser, getProfile } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -122,6 +123,9 @@ export function AppShell({
     return (
       <main className="min-h-svh min-w-0 w-full max-w-full overflow-x-clip bg-[#e9eee9] text-foreground">
         <LiveNotificationBanner profileId={profileId} />
+        <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-3 z-[2100] sm:right-4">
+          <ThemeToggle compact />
+        </div>
         {children}
       </main>
     );
@@ -158,6 +162,7 @@ export function AppShell({
             ))}
           </nav>
           <div className="flex shrink-0 items-center gap-1.5">
+            <ThemeToggle className="hidden sm:inline-flex" />
             {email ? (
               <>
                 <span className="hidden max-w-[180px] truncate text-xs text-muted-foreground lg:inline">
@@ -186,7 +191,11 @@ export function AppShell({
       </section>
 
       {navigation.length ? (
-        <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/96 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_rgb(16_23_19_/_0.08)] backdrop-blur-xl md:hidden"
+        <>
+          <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-3 z-40 md:hidden">
+            <ThemeToggle compact />
+          </div>
+          <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/96 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_rgb(16_23_19_/_0.08)] backdrop-blur-xl md:hidden"
           style={{ gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))` }}
         >
           {navigation.map(({ href, icon: Icon, label }) => (
@@ -203,6 +212,7 @@ export function AppShell({
             </Link>
           ))}
         </nav>
+        </>
       ) : null}
     </main>
   );
