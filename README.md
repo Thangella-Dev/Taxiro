@@ -1,4 +1,4 @@
-﻿# Taxiro - Predictive Bike Taxi MVP
+# Taxiro - Predictive Bike Taxi MVP
 
 **Taxiro** means **journey/trip** in Greek. Taxiro is a bike taxi web app MVP for India focused on scheduled demand, rider readiness, map-first booking, secure ride confirmation, and real Supabase-backed ride data.
 
@@ -759,4 +759,8 @@ Verification completed:
 Manual QA still recommended:
 
 - Review light/dark mode on landing, user dashboard, rider dashboard, admin dashboard, and mobile widths.
+Corrected after visual review:
 
+- Moved the compact light/dark switch directly beside the notification icon on user and rider map headers.
+- Removed the lower immersive-screen theme toggle placement so the control is easier to discover.
+- Added a stronger visible UI pass for capsule overlay controls, pill segmented controls, softer ride sheets, and clearer dark-mode contrast.

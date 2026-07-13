@@ -26,6 +26,7 @@ import { ResponsiveRideSheet } from "@/components/ResponsiveRideSheet";
 import { RiderAvailabilityToggle } from "@/components/RiderAvailabilityToggle";
 import { RiderMenu } from "@/components/RiderMenu";
 import { RiderVehicleSwitcher } from "@/components/RiderVehicleSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { RouteSetupForm } from "@/components/RouteSetupForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -688,6 +689,7 @@ export default function RiderDashboard() {
               />
             ) : null}
             <AppNotificationBell profileId={profile?.id ?? null} />
+            <ThemeToggle compact />
             <button
               aria-label="Refresh rider location"
               aria-busy={detectingLocation}

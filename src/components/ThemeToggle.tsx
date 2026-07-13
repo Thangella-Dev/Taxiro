@@ -39,7 +39,7 @@ export function ThemeToggle({ className, compact = false }: { className?: string
     <button
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       className={cn(
-        compact ? "taxiro-theme-toggle relative inline-flex size-10 shrink-0 items-center rounded-full border border-border bg-card/90 p-1 text-primary shadow-[var(--shadow-soft)] backdrop-blur-xl transition active:scale-95 sm:size-11" : "taxiro-theme-toggle relative inline-flex h-10 w-[4.75rem] shrink-0 items-center rounded-full border border-border bg-card/90 p-1 text-primary shadow-[var(--shadow-soft)] backdrop-blur-xl transition active:scale-95 sm:h-11 sm:w-20",
+        compact ? "taxiro-theme-toggle taxiro-theme-toggle-compact relative inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/80 bg-card/95 p-1 text-primary shadow-[var(--shadow-soft)] backdrop-blur-xl transition active:scale-95 sm:size-11" : "taxiro-theme-toggle relative inline-flex h-10 w-[4.75rem] shrink-0 items-center rounded-full border border-border bg-card/90 p-1 text-primary shadow-[var(--shadow-soft)] backdrop-blur-xl transition active:scale-95 sm:h-11 sm:w-20",
         className,
       )}
       onClick={toggleTheme}
@@ -49,7 +49,7 @@ export function ThemeToggle({ className, compact = false }: { className?: string
       <span
         className={cn(
           "absolute inset-y-1 left-1 grid aspect-square place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-300 ease-out",
-          compact ? "translate-x-0" : theme === "dark" ? "translate-x-[2.15rem] sm:translate-x-[2.25rem]" : "translate-x-0",
+          compact ? "left-1/2 -translate-x-1/2" : theme === "dark" ? "translate-x-[2.15rem] sm:translate-x-[2.25rem]" : "translate-x-0",
         )}
       >
         {theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}

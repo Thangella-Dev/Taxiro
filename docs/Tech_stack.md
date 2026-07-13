@@ -1,4 +1,4 @@
-﻿# Taxiro Technology Stack And Engineering Assessment
+# Taxiro Technology Stack And Engineering Assessment
 
 **Report date:** 13 July 2026
 **Application:** Taxiro
@@ -594,4 +594,8 @@ Taxiro remains an advanced full-stack MVP. The strongest next step is live Supab
 ### Current design assessment
 
 This moves Taxiro away from a boxy dashboard style toward a more modern mobility-app interface. The full verification pipeline passed after this update. The next design step should be screenshot-based QA on real mobile and desktop sizes, then page-level cleanup of remaining hard-coded colors and one-off rectangle classes.
+Corrected after visual review:
 
+- Moved the compact light/dark switch directly beside the notification icon on user and rider map headers.
+- Removed the lower immersive-screen theme toggle placement so the control is easier to discover.
+- Added a stronger visible UI pass for capsule overlay controls, pill segmented controls, softer ride sheets, and clearer dark-mode contrast.

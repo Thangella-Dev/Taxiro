@@ -36,6 +36,7 @@ import { RideChatPanel } from "@/components/RideChatPanel";
 import { LocationSearch } from "@/components/LocationSearch";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { ResponsiveRideSheet } from "@/components/ResponsiveRideSheet";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { RideCard } from "@/components/RideCard";
 import { RideProgress } from "@/components/RideProgress";
 import { Badge } from "@/components/ui/badge";
@@ -830,6 +831,7 @@ export default function UserDashboard() {
           </div>
           <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
             <AppNotificationBell profileId={profile?.id ?? null} />
+            <ThemeToggle compact />
             <button
               aria-label={activeRide ? "Refresh current location" : "Detect pickup location"}
               aria-busy={detectingPickup}

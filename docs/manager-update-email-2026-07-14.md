@@ -44,3 +44,8 @@ Next planned work:
 Regards,
 
 Thangella G
+Corrected after visual review:
+
+- Moved the compact light/dark switch directly beside the notification icon on user and rider map headers.
+- Removed the lower immersive-screen theme toggle placement so the control is easier to discover.
+- Added a stronger visible UI pass for capsule overlay controls, pill segmented controls, softer ride sheets, and clearer dark-mode contrast.

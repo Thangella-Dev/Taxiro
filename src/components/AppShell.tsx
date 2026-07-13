@@ -123,9 +123,6 @@ export function AppShell({
     return (
       <main className="min-h-svh min-w-0 w-full max-w-full overflow-x-clip bg-[#e9eee9] text-foreground">
         <LiveNotificationBanner profileId={profileId} />
-        <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-3 z-[2100] sm:right-4">
-          <ThemeToggle compact />
-        </div>
         {children}
       </main>
     );

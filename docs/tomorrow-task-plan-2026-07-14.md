@@ -1,4 +1,4 @@
-﻿# Taxiro Tomorrow Task Plan - 14 July 2026
+# Taxiro Tomorrow Task Plan - 14 July 2026
 
 ## Task Theme
 
@@ -61,4 +61,8 @@ Manual QA:
 - Add better route/ride transition animation states.
 - Add optional reduced-motion testing.
 - Add a complete design-token audit for every component.
+Corrected after visual review:
 
+- Moved the compact light/dark switch directly beside the notification icon on user and rider map headers.
+- Removed the lower immersive-screen theme toggle placement so the control is easier to discover.
+- Added a stronger visible UI pass for capsule overlay controls, pill segmented controls, softer ride sheets, and clearer dark-mode contrast.
