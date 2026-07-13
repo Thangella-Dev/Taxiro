@@ -131,10 +131,10 @@ export function AppShell({
   return (
     <main className="min-h-screen min-w-0 w-full max-w-full overflow-x-clip bg-background pb-24 md:pb-0">
       <LiveNotificationBanner profileId={profileId} />
-      <header className="taxiro-app-header sticky top-0 z-40 border-b border-border/70 bg-card/88 pt-[env(safe-area-inset-top)] backdrop-blur-2xl">
+      <header className="taxiro-app-header taxiro-glass-nav sticky top-0 z-40 border-b border-border/60 bg-card/82 pt-[env(safe-area-inset-top)] backdrop-blur-2xl">
         <div className="mx-auto flex h-16 max-w-[90rem] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
           <Link href={role ? roleNavigation[role][0].href : "/"} className="flex min-w-0 items-center gap-2.5 font-black">
-            <span className="taxiro-brand-mark flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <span className="taxiro-brand-mark flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
               <Bike className="size-5" />
             </span>
             <span className="truncate text-lg tracking-tight">Taxiro</span>
@@ -144,11 +144,11 @@ export function AppShell({
               </span>
             ) : null}
           </Link>
-          <nav className="hidden items-center gap-1 rounded-lg bg-muted p-1 md:flex">
+          <nav className="hidden items-center gap-1 rounded-full border border-border/70 bg-muted/80 p-1 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.65)] md:flex">
             {navigation.map(({ href, label }) => (
               <Link
                 className={cn(
-                  "rounded-md px-3 py-2 text-sm font-semibold text-muted-foreground transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-card hover:text-foreground hover:shadow-sm active:scale-[0.97]",
+                  "rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-[transform,background-color,color,box-shadow] duration-300 hover:bg-card hover:text-foreground hover:shadow-sm active:scale-[0.97]",
                   pathname === href && "bg-card text-foreground shadow-sm",
                 )}
                 href={href}
@@ -214,3 +214,4 @@ export function AppShell({
     </main>
   );
 }
+

@@ -1229,3 +1229,175 @@ html[data-theme="dark"] .taxiro-map-canvas::after {
   position: absolute;
   z-index: 900;
 }
+
+/* Deploy refresh: July 14 premium mobility polish */
+.taxiro-public-home {
+  background:
+    radial-gradient(circle at 12% 8%, rgb(219 248 111 / 34%), transparent 24rem),
+    radial-gradient(circle at 86% 4%, rgb(16 23 19 / 14%), transparent 22rem),
+    linear-gradient(180deg, #f7faf5 0%, #edf3eb 100%);
+}
+
+.taxiro-public-stage {
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.taxiro-public-stage::after {
+  background: linear-gradient(180deg, transparent 42%, rgb(246 250 245 / 68%) 77%, rgb(246 250 245 / 92%) 100%);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 100;
+}
+
+.taxiro-hero-aura {
+  border-radius: 999px;
+  filter: blur(4px);
+  pointer-events: none;
+  position: absolute;
+  z-index: 5;
+}
+
+.taxiro-hero-aura-one {
+  animation: taxiro-aurora-drift 9s ease-in-out infinite;
+  background: rgb(219 248 111 / 42%);
+  height: 12rem;
+  right: 7%;
+  top: 9%;
+  width: 12rem;
+}
+
+.taxiro-hero-aura-two {
+  animation: taxiro-aurora-drift 11s ease-in-out infinite reverse;
+  background: rgb(255 255 255 / 52%);
+  bottom: 33%;
+  height: 9rem;
+  left: 7%;
+  width: 9rem;
+}
+
+.taxiro-floating-pill,
+.taxiro-live-map-badge,
+.taxiro-home-sheet,
+.taxiro-glass-nav {
+  backdrop-filter: blur(24px) saturate(1.22);
+  -webkit-backdrop-filter: blur(24px) saturate(1.22);
+}
+
+.taxiro-floating-pill,
+.taxiro-live-map-badge {
+  animation: taxiro-soft-drop 560ms var(--motion-snappy) both;
+}
+
+.taxiro-home-sheet {
+  animation: taxiro-sheet-rise 620ms var(--motion-snappy) both;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 92%), rgb(247 251 245 / 96%)),
+    radial-gradient(circle at 0% 0%, rgb(219 248 111 / 30%), transparent 22rem) !important;
+  box-shadow: 0 -1px 0 rgb(255 255 255 / 92%) inset, 0 -30px 80px rgb(16 23 19 / 18%) !important;
+}
+
+.taxiro-metric-tile,
+.taxiro-route-line,
+.taxiro-trust-chip {
+  border: 1px solid rgb(16 23 19 / 5%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 82%), 0 10px 26px rgb(16 23 19 / 5%);
+  transition: transform 280ms var(--motion-spring), box-shadow 280ms ease, border-color 280ms ease;
+}
+
+.taxiro-metric-tile:hover,
+.taxiro-route-line:hover,
+.taxiro-trust-chip:hover {
+  border-color: rgb(16 23 19 / 10%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 88%), 0 16px 38px rgb(16 23 19 / 9%);
+  transform: translateY(-2px);
+}
+
+.taxiro-route-preview {
+  background:
+    linear-gradient(145deg, rgb(240 243 239 / 92%), rgb(248 251 246 / 94%)),
+    radial-gradient(circle at 80% 0%, rgb(219 248 111 / 28%), transparent 18rem) !important;
+  border: 1px solid rgb(16 23 19 / 5%);
+}
+
+.taxiro-primary-glow {
+  box-shadow: 0 16px 42px rgb(16 23 19 / 30%), 0 0 0 1px rgb(219 248 111 / 20%) inset !important;
+}
+
+.taxiro-primary-glow:hover {
+  box-shadow: 0 22px 56px rgb(16 23 19 / 34%), 0 0 28px rgb(219 248 111 / 26%) !important;
+}
+
+.taxiro-glass-nav {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 74%), rgb(255 255 255 / 88%)),
+    var(--card) !important;
+}
+
+html[data-theme="dark"] .taxiro-public-home {
+  background:
+    radial-gradient(circle at 14% 7%, rgb(219 248 111 / 12%), transparent 24rem),
+    radial-gradient(circle at 86% 4%, rgb(219 248 111 / 8%), transparent 22rem),
+    linear-gradient(180deg, #050907 0%, #07100d 100%);
+}
+
+html[data-theme="dark"] .taxiro-public-stage::after {
+  background: linear-gradient(180deg, transparent 42%, rgb(7 16 13 / 52%) 77%, rgb(7 16 13 / 88%) 100%);
+}
+
+html[data-theme="dark"] .taxiro-home-sheet {
+  background:
+    linear-gradient(145deg, rgb(17 27 22 / 94%), rgb(8 15 12 / 96%)),
+    radial-gradient(circle at 0% 0%, rgb(219 248 111 / 11%), transparent 22rem) !important;
+  border-color: rgb(255 255 255 / 12%) !important;
+}
+
+html[data-theme="dark"] .taxiro-metric-tile,
+html[data-theme="dark"] .taxiro-route-line,
+html[data-theme="dark"] .taxiro-trust-chip,
+html[data-theme="dark"] .taxiro-route-preview {
+  border-color: rgb(255 255 255 / 9%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), 0 12px 32px rgb(0 0 0 / 22%);
+}
+
+html[data-theme="dark"] .taxiro-glass-nav {
+  background:
+    linear-gradient(180deg, rgb(17 27 22 / 76%), rgb(17 27 22 / 90%)),
+    var(--card) !important;
+}
+
+@keyframes taxiro-soft-drop {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes taxiro-sheet-rise {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes taxiro-aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.72; }
+  50% { transform: translate3d(18px, -12px, 0) scale(1.08); opacity: 0.92; }
+}
+
+@media (max-width: 640px) {
+  .taxiro-home-sheet {
+    border-radius: 2.2rem 2.2rem 0 0 !important;
+  }
+
+  .taxiro-floating-pill {
+    max-width: calc(100vw - 9.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taxiro-hero-aura,
+  .taxiro-floating-pill,
+  .taxiro-live-map-badge,
+  .taxiro-home-sheet {
+    animation: none !important;
+  }
+}
