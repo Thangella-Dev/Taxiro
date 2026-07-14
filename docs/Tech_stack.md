@@ -1,6 +1,6 @@
 # Taxiro Technology Stack And Engineering Assessment
 
-**Report date:** 13 July 2026
+**Report date:** 14 July 2026
 **Application:** Taxiro
 **Current version:** 0.1.0
 **Product stage:** Advanced full-stack web MVP approaching controlled pilot readiness
@@ -43,12 +43,12 @@ Measurements were generated from the repository on 07 July 2026.
 
 | Area | Files | Physical lines | Non-blank lines |
 |---|---:|---:|---:|
-| TypeScript and test tooling (.ts/.mjs) | 32 | 2,241 | 2,001 |
-| React/TypeScript (.tsx) | 53 | 9,530 | 8,879 |
-| Global CSS (.css) | 1 | 995 | 851 |
-| Supabase migration history and schema snapshot (.sql) | 28 | 7,742 | 6,948 |
+| TypeScript and test tooling (.ts/.mjs) | 22 | 2,069 | 1,850 |
+| React/TypeScript (.tsx) | 54 | 9,854 | 9,172 |
+| Global CSS (.css) | 1 | 1,403 | 1,203 |
+| Supabase migration history and schema snapshot (.sql) | 28 | 7,872 | 7,065 |
 | CI YAML | 1 | 51 | 47 |
-| **Tracked source/config total** | **115** | **20,559** | **18,726** |
+| **Tracked source/config total** | **106 measured source/config files** | **21,249** | **19,287** |
 
 The cumulative schema snapshot repeats SQL already represented in migration history and is excluded from the recommended unique implementation count. Generated .next output, node_modules, Git internals, test artifacts, images, icons, and binary assets are also excluded.
 
@@ -90,6 +90,7 @@ The cumulative schema snapshot repeats SQL already represented in migration hist
   - Turbopack.
   - Metadata routes.
   - Vercel-compatible output.
+  - Structured /api/health deployment diagnostics for production readiness checks.
 - **React 19.2.4**
 - **React DOM 19.2.4**
 - **TypeScript 5**
@@ -111,6 +112,8 @@ The cumulative schema snapshot repeats SQL already represented in migration hist
 - **tailwind-merge 3.6.0**
 - Geist Sans and Geist Mono through next/font.
 - Custom responsive and premium motion system.
+- Premium light/dark visual system with saved preference and pre-hydration theme bootstrap.
+- Glass-style landing surfaces, animated public hero accents, and capsule mobility controls.
 - Reduced-motion accessibility support.
 - Safe-area support for modern phones.
 - Mobile bottom sheets and desktop collapsible side panels.
@@ -203,6 +206,7 @@ The cumulative schema snapshot repeats SQL already represented in migration hist
 - Rider live photo capture.
 - Verified-vehicle-only switching.
 - Admin identity and vehicle approval.
+- Admin Health workspace for deployment diagnostics, environment readiness, and Vercel/Supabase action items.
 
 ### Fare and payment model
 
@@ -599,3 +603,32 @@ Corrected after visual review:
 - Moved the compact light/dark switch directly beside the notification icon on user and rider map headers.
 - Removed the lower immersive-screen theme toggle placement so the control is easier to discover.
 - Added a stronger visible UI pass for capsule overlay controls, pill segmented controls, softer ride sheets, and clearer dark-mode contrast.
+## 14 July 2026 Engineering Update
+
+Completed today:
+
+- Added a real Admin **Health** workspace to `/dashboard/admin`.
+- Expanded `/api/health` into a structured deployment diagnostics endpoint.
+- Added safe health checks for public Supabase config, service-role readiness, cron secret readiness, site URL readiness, Vercel git metadata, deployment environment, region, URL, and generated timestamp.
+- Added admin-visible action items for current Vercel/Supabase deployment blockers.
+- Added another premium UI/UX pass to make the application feel less boxy and more modern.
+- Upgraded the public landing page with glass surfaces, animated glow, live service-map badge, trust chips, and stronger capsule CTAs.
+- Improved app-shell header polish with rounded brand mark and capsule navigation.
+- Confirmed light/dark theme access remains available beside the notification icon on user and rider map headers.
+- Investigated Vercel deployment author/team mismatch and confirmed current commits use the correct `Thangella-Dev` author identity.
+- Investigated Supabase Preview migration mismatch and confirmed local migrations are tracked and complete on the repository side.
+
+Verification completed today:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Next.js generated 21 app routes.
+
+Current deployment blockers/notes:
+
+- Vercel should deploy from a fresh commit authored by `Thangella-Dev`, not an old failed commit associated with `inphroneofficial`.
+- Supabase Preview still needs remote migration-history sync or working-directory correction in Supabase.
+- Supabase GitHub integration working directory should be blank or `.` for this repository.
+- Admin Health can be used after deployment to confirm environment readiness.
+

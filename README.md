@@ -95,6 +95,10 @@ The MVP currently includes:
 - Configurable pricing rules can override fallback per-km fare logic by service area and vehicle type.
 - Admin Controls workspace manages service areas, pricing rules, commission preview, and fraud signal review.
 - Rider GPS jump anomalies can be recorded as fraud signals with evidence for admin review.
+- Premium light/dark mode is available across public, standard, and immersive app surfaces.
+- Public landing page now includes a premium glass-style map hero, animated glow layers, live service badge, trust chips, and smoother capsule CTAs.
+- Deployment troubleshooting is documented for Vercel author/team mismatch and Supabase Preview migration-history mismatch.
+- Admin dashboard now includes a real System Health workspace backed by `/api/health` for deployment diagnostics, environment readiness, Vercel metadata, and Supabase/Vercel action items.
 
 ## Main Routes
 
@@ -764,3 +768,30 @@ Corrected after visual review:
 - Moved the compact light/dark switch directly beside the notification icon on user and rider map headers.
 - Removed the lower immersive-screen theme toggle placement so the control is easier to discover.
 - Added a stronger visible UI pass for capsule overlay controls, pill segmented controls, softer ride sheets, and clearer dark-mode contrast.
+## July 14, 2026 Deployment Refresh, Premium UI, And Admin Health Update
+
+- Added a visible premium landing-page refresh with glass surfaces, animated aurora glow, live service-map pulse badge, trust chips, and capsule CTAs.
+- Improved dashboard app header polish with rounded brand mark and capsule navigation.
+- Continued light/dark mode support and confirmed the compact theme switch placement beside notification controls on user/rider map headers.
+- Expanded `/api/health` from a simple public-config check into a structured deployment diagnostic endpoint.
+- `/api/health` now reports safe boolean checks for public Supabase config, server service-role readiness, cron secret readiness, site URL readiness, Vercel git metadata, deployment environment, region, URL, generated timestamp, and recommended action items.
+- Added a new Admin dashboard **Health** workspace that reads `/api/health`, displays deployment status, check cards, commit/environment details, and a Vercel/Supabase deployment action checklist.
+- Confirmed local verification passes with TypeScript, ESLint, and production build.
+- Investigated Vercel deployment blocking caused by old deployments authored by `inphroneofficial`, which is not a member of the Vercel team.
+- Confirmed latest local commits are authored correctly as `Thangella-Dev <thangella.charani@gmail.com>`.
+- Investigated Supabase Preview migration mismatch and confirmed the local repository contains 27 tracked migration files with no deleted migration files in local git history.
+
+Latest verified checks:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed.
+- Next.js 16.2.7 generated 21 app routes.
+
+Deployment requirements:
+
+1. Push/deploy a fresh commit authored by `Thangella-Dev`; do not redeploy an older failed deployment authored by `inphroneofficial`.
+2. In Supabase GitHub integration, set Working directory to blank or `.` because the repo has `supabase/migrations` at root.
+3. If Supabase Preview still fails, run `npx supabase migration list --linked`, identify remote-only migration versions, then restore missing files or carefully repair migration history.
+4. Configure `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, and `NEXT_PUBLIC_SITE_URL` in Vercel Production so Admin Health shows a complete operational state.
+5. Re-run Vercel and Supabase checks after the Supabase migration-history issue is resolved.

@@ -47,16 +47,29 @@ const adminSections = [
   ["verification", "Verification", UserCheck],
   ["people", "People", Users],
   ["support", "Support", Headphones],
+  ["health", "Health", Activity],
   ["controls", "Controls", SlidersHorizontal],
   ["rides", "Rides", Bike],
 ] as const;
 
 type AdminSection = (typeof adminSections)[number][0];
 
+type HealthPayload = {
+  checks: Record<string, { description: string; ok: boolean; required: boolean }>;
+  deployment: { commit: string; environment: string; region: string; url: string };
+  generatedAt: string;
+  recommendations: string[];
+  service: string;
+  status: "degraded" | "failed" | "ok";
+  version: string;
+};
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [message, setMessage] = useState("");
+  const [health, setHealth] = useState<HealthPayload | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -67,6 +80,20 @@ export default function AdminDashboard() {
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | RideRequest["status"]>("all");
+
+  const loadHealth = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      const payload = (await response.json()) as HealthPayload;
+      setHealth(payload);
+      if (!response.ok) setMessage("System health is degraded. Check the Health section for deployment configuration.");
+    } catch {
+      setMessage("Could not read system health from /api/health.");
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
 
   const loadAdminData = useCallback(async () => {
     const supabase = getSupabase();
@@ -118,7 +145,9 @@ export default function AdminDashboard() {
       const currentProfile = await getProfile(supabase, user.id);
       setProfile(currentProfile);
       isAdmin = currentProfile?.role === "admin";
-      if (isAdmin) await loadAdminData();
+      if (isAdmin) {
+        await Promise.all([loadAdminData(), loadHealth()]);
+      }
       else setMessage("Your profile is not an admin. Update role in Supabase to access this dashboard.");
       setLoading(false);
     });
@@ -186,7 +215,7 @@ export default function AdminDashboard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadAdminData]);
+  }, [loadAdminData, loadHealth]);
 
   useLiveResync({ enabled: profile?.role === "admin", intervalMs: 8000, onResync: loadAdminData });
 
@@ -331,6 +360,7 @@ export default function AdminDashboard() {
         {activeSection === "verification" ? <RiderVerificationPanel onUpdateIdentity={updateIdentityVerification} onUpdateVehicle={updateVehicleVerification} profiles={profiles} riderProfiles={riderProfiles} riderSelfieUrls={riderSelfieUrls} riderVehicles={riderVehicles} /> : null}
         {activeSection === "people" ? <PeoplePanel currentAdminId={profile?.id} onUpdateStatus={updateAccountStatus} profiles={profiles} /> : null}
         {activeSection === "support" && profile ? <AdminSupportCenter adminId={profile.id} onChanged={loadAdminData} onMessage={setMessage} tickets={supportTickets} /> : null}
+        {activeSection === "health" ? <SystemHealthPanel health={health} loading={healthLoading} onRefresh={loadHealth} /> : null}
         {activeSection === "controls" ? <AdminOperationalControls onMessage={setMessage} /> : null}
         {activeSection === "rides" ? <RideOperationsPanel filteredRides={filteredRides} query={query} setQuery={setQuery} setStatusFilter={setStatusFilter} statusFilter={statusFilter} /> : null}
       </div>
@@ -338,6 +368,77 @@ export default function AdminDashboard() {
   );
 }
 
+
+function SystemHealthPanel({ health, loading, onRefresh }: { health: HealthPayload | null; loading: boolean; onRefresh: () => void }) {
+  const statusTone = health?.status === "ok" ? "bg-lime-300 text-[#07110d]" : health?.status === "failed" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800";
+  const checks = health ? Object.entries(health.checks) : [];
+  return (
+    <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)]" id="admin-health">
+      <Card className="rounded-[1.75rem] p-5">
+        <CardHeader className="mb-4 flex flex-row items-start justify-between gap-4 p-0">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">System health</p>
+            <CardTitle className="mt-2 text-3xl">Deployment diagnostics</CardTitle>
+            <CardDescription className="mt-2 max-w-2xl">Track production readiness, environment configuration, and deployment action items from inside the admin panel.</CardDescription>
+          </div>
+          <Button disabled={loading} onClick={onRefresh} variant="outline">{loading ? "Checking..." : "Refresh"}</Button>
+        </CardHeader>
+
+        {health ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {checks.map(([key, check]) => (
+              <div className="rounded-2xl border border-border bg-muted/60 p-4" key={key}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black">{humanizeHealthKey(key)}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{check.description}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${check.ok ? "bg-lime-100 text-lime-800" : check.required ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>{check.ok ? "OK" : check.required ? "Missing" : "Needed"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-muted p-5 text-sm font-semibold text-muted-foreground">Health data has not loaded yet. Use Refresh to check /api/health.</div>
+        )}
+      </Card>
+
+      <div className="grid gap-5">
+        <Card className="rounded-[1.75rem] bg-[#07110d] p-5 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/55">Current deployment</p>
+              <h2 className="mt-2 text-2xl font-black">{health?.service ?? "taxiro-web"}</h2>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${statusTone}`}>{health?.status ?? "checking"}</span>
+          </div>
+          <div className="mt-5 grid gap-3 text-sm">
+            <DeploymentFact label="Commit" value={health?.deployment.commit ?? "local"} />
+            <DeploymentFact label="Environment" value={health?.deployment.environment ?? "local"} />
+            <DeploymentFact label="Region" value={health?.deployment.region ?? "local"} />
+            <DeploymentFact label="URL" value={health?.deployment.url ?? "local"} />
+            <DeploymentFact label="Checked" value={health ? new Date(health.generatedAt).toLocaleString() : "Not checked"} />
+          </div>
+        </Card>
+
+        <Card className="rounded-[1.75rem] p-5">
+          <CardHeader className="mb-3 p-0"><CardTitle>Action checklist</CardTitle><CardDescription>Use this when Vercel or Supabase checks fail after a push.</CardDescription></CardHeader>
+          <div className="grid gap-2">
+            {(health?.recommendations ?? ["Refresh health to load deployment action items."]).map((item) => <p className="rounded-2xl bg-muted p-3 text-sm font-semibold text-muted-foreground" key={item}>{item}</p>)}
+          </div>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+function DeploymentFact({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.07] p-3"><span className="text-white/55">{label}</span><span className="min-w-0 truncate text-right font-black">{value}</span></div>;
+}
+
+function humanizeHealthKey(key: string) {
+  return key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+}
 function HeroSignal({ label, tone, value }: { label: string; tone: "amber" | "lime" | "white"; value: number }) {
   const toneClass = { amber: "bg-amber-300 text-[#07110d]", lime: "bg-lime-300 text-[#07110d]", white: "bg-white/10 text-white" }[tone];
   return <div className={`rounded-2xl px-4 py-3 ${toneClass}`}><p className="text-3xl font-black">{value}</p><p className="text-xs font-black uppercase tracking-[0.14em] opacity-70">{label}</p></div>;
@@ -548,4 +649,9 @@ function sortByCreated<T extends { created_at?: string; updated_at?: string }>(i
     return new Date(right).getTime() - new Date(left).getTime();
   });
 }
+
+
+
+
+
 
