@@ -1,11 +1,47 @@
 # Taxiro Technology Stack And Engineering Assessment
 
-**Report date:** 14 July 2026
+**Report date:** 16 July 2026
 **Application:** Taxiro
 **Current version:** 0.1.0
 **Product stage:** Advanced full-stack web MVP approaching controlled pilot readiness
 
 ## Executive Assessment
+## 16 July 2026 Production Stabilization Update
+
+Today's work focused on deployment reliability and graceful failure handling instead of adding new UI-only features.
+
+Completed engineering changes:
+
+- Added frontend fallback behavior for missing operational Supabase tables.
+- Booking now continues with Taxiro fallback per-km pricing if production Supabase returns 404 for `service_areas` or `pricing_rules`.
+- Customer nearby-rider preview now disables quietly if `get_nearby_available_riders` is missing, preventing repeated preview RPC calls during the same session.
+- Admin Health now probes database readiness for:
+  - `service_areas`
+  - `pricing_rules`
+  - `get_nearby_available_riders`
+- Admin Health now displays `missing_migration` style status and the exact migration filename required for recovery.
+- `/api/health` returns deployment and readiness status without exposing Supabase keys, service-role secrets, or cron secrets.
+- Admin Operational Controls now show a migration-required panel instead of raw Supabase errors when operational tables are not present.
+- Vercel Hobby cron compatibility remains enforced through the daily `0 0 * * *` cron schedule.
+- Shortcut role routes `/admin`, `/user`, and `/rider` are part of the production route surface and redirect to their respective dashboards.
+
+Required operational migration files surfaced by Admin Health:
+
+| Feature | Migration file |
+|---|---|
+| Customer nearby rider preview | `20260701203000_customer_nearby_rider_preview.sql` |
+| Service areas and pricing rules | `20260703110000_operational_and_product_foundation.sql` |
+| Operational enforcement and fraud signals | `20260706100000_operational_enforcement_and_fraud.sql` |
+
+Verification completed:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Production build result: Next.js 16.2.7 build passed with 24 app routes, including `/admin`, `/user`, and `/rider` shortcut redirects.
 
 Taxiro is no longer a basic prototype or visual-only demo. It is a substantial real-data mobility web application with separate customer, rider, and administrator experiences.
 
@@ -631,4 +667,27 @@ Current deployment blockers/notes:
 - Supabase Preview still needs remote migration-history sync or working-directory correction in Supabase.
 - Supabase GitHub integration working directory should be blank or `.` for this repository.
 - Admin Health can be used after deployment to confirm environment readiness.
+## 15 July 2026 Engineering Update
+
+Completed today:
+
+- Added production shortcut routes for common access paths.
+- `/admin -> /dashboard/admin`.
+- `/user -> /dashboard/user`.
+- `/rider -> /dashboard/rider`.
+- Added noindex metadata for these alias routes to avoid duplicate indexable pages.
+- Verified the aliases are included in the production build.
+
+Verification completed today:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+- Next.js generated 24 app routes, including `/admin`, `/user`, and `/rider`.
+
+Reason:
+
+- Production testers naturally try short URLs like `/admin`. This update makes those URLs work while keeping the real dashboard routes under `/dashboard/*`.
+
+
 

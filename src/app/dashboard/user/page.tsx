@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,18 +48,44 @@ import { RideCard } from "@/components/RideCard";
 import { RideProgress } from "@/components/RideProgress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
-import { calculateFareBreakdown, formatMoney, getUserCancellationFine, getVehicleFareQuote } from "@/lib/fare";
-import { calculateConfiguredFare, findEffectivePricingRule, findServiceAreaForTrip } from "@/lib/operations";
-import { createSafetyAlert, usePanicTrigger, useRideSafetyMonitor } from "@/lib/safety";
+import {
+  calculateFareBreakdown,
+  formatMoney,
+  getUserCancellationFine,
+  getVehicleFareQuote,
+} from "@/lib/fare";
+import {
+  calculateConfiguredFare,
+  findEffectivePricingRule,
+  findServiceAreaForTrip,
+} from "@/lib/operations";
+import {
+  createSafetyAlert,
+  usePanicTrigger,
+  useRideSafetyMonitor,
+} from "@/lib/safety";
 import { getSupabase } from "@/lib/supabase";
-import { getPromptedCurrentLocation, MAX_USABLE_LOCATION_ACCURACY_M, PRECISE_TARGET_ACCURACY_M } from "@/lib/tracking";
+import {
+  getPromptedCurrentLocation,
+  MAX_USABLE_LOCATION_ACCURACY_M,
+  PRECISE_TARGET_ACCURACY_M,
+} from "@/lib/tracking";
 import { useLiveResync } from "@/lib/useLiveResync";
-import { normalizePhone, validateFullName, validatePhone } from "@/lib/validation";
+import {
+  normalizePhone,
+  validateFullName,
+  validatePhone,
+} from "@/lib/validation";
 import { VEHICLE_OPTIONS, getVehicleLabel } from "@/lib/vehicles";
 import type {
   AssignedRiderDetails,
@@ -71,18 +104,26 @@ import type {
 export default function UserDashboard() {
   const router = useRouter();
   const [bookingMode, setBookingMode] = useState<"now" | "advance">("now");
-  const [assignedRiderDetails, setAssignedRiderDetails] = useState<Record<string, AssignedRiderDetails>>({});
+  const [assignedRiderDetails, setAssignedRiderDetails] = useState<
+    Record<string, AssignedRiderDetails>
+  >({});
   const [bookingFor, setBookingFor] = useState<"self" | "other" | null>(null);
   const [cancelTarget, setCancelTarget] = useState<RideRequest | null>(null);
   const [clickTarget, setClickTarget] = useState<"pickup" | "drop">("pickup");
-  const [confirmationCodes, setConfirmationCodes] = useState<Record<string, string>>({});
+  const [confirmationCodes, setConfirmationCodes] = useState<
+    Record<string, string>
+  >({});
   const [drop, setDrop] = useState<LatLng | null>(null);
   const [deviceLocation, setDeviceLocation] = useState<LatLng | null>(null);
   const [detectingPickup, setDetectingPickup] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [mapPickMode, setMapPickMode] = useState<"pickup" | "drop" | null>(null);
+  const [mapPickMode, setMapPickMode] = useState<"pickup" | "drop" | null>(
+    null,
+  );
   const [mapCandidate, setMapCandidate] = useState<LatLng | null>(null);
-  const [mapSelectionStart, setMapSelectionStart] = useState<LatLng | null>(null);
+  const [mapSelectionStart, setMapSelectionStart] = useState<LatLng | null>(
+    null,
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [panelView, setPanelView] = useState<"book" | "rides">("book");
@@ -94,17 +135,30 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
   const [nearbyRiders, setNearbyRiders] = useState<RiderLocation[]>([]);
-  const [riderProfiles, setRiderProfiles] = useState<Record<string, RiderProfile>>({});
-  const [riderPhotoUrls, setRiderPhotoUrls] = useState<Record<string, string>>({});
-  const [readySignalMinutes, setReadySignalMinutes] = useState<15 | 30 | 60>(30);
+  const [nearbyRiderPreviewUnavailable, setNearbyRiderPreviewUnavailable] =
+    useState(false);
+  const [riderProfiles, setRiderProfiles] = useState<
+    Record<string, RiderProfile>
+  >({});
+  const [riderPhotoUrls, setRiderPhotoUrls] = useState<Record<string, string>>(
+    {},
+  );
+  const [readySignalMinutes, setReadySignalMinutes] = useState<15 | 30 | 60>(
+    30,
+  );
   const [readyRideId, setReadyRideId] = useState<string | null>(null);
   const [rideNote, setRideNote] = useState("");
   const [sosBusy, setSosBusy] = useState(false);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
-  const [routeSummary, setRouteSummary] = useState<{ distanceKm: number | null; durationMin: number | null } | null>(null);
+  const [routeSummary, setRouteSummary] = useState<{
+    distanceKm: number | null;
+    durationMin: number | null;
+  } | null>(null);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [operationalConfigUnavailable, setOperationalConfigUnavailable] =
+    useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [vehicleType, setVehicleType] = useState<VehicleType>("bike");
   const [showRideOptions, setShowRideOptions] = useState(false);
@@ -112,19 +166,30 @@ export default function UserDashboard() {
     toDateTimeLocalInput(new Date(Date.now() + 30 * 60 * 1000)),
   );
 
-  const loadNearbyRiders = useCallback(async (point: LatLng | null) => {
-    const supabase = getSupabase();
-    if (!supabase || !point) {
-      setNearbyRiders([]);
-      return;
-    }
-    const { data, error } = await supabase.rpc("get_nearby_available_riders", {
-      p_lat: point.lat,
-      p_lng: point.lng,
-      p_radius_km: 8,
-    });
-    if (!error) setNearbyRiders((data as RiderLocation[]) ?? []);
-  }, []);
+  const loadNearbyRiders = useCallback(
+    async (point: LatLng | null) => {
+      const supabase = getSupabase();
+      if (!supabase || !point || nearbyRiderPreviewUnavailable) {
+        setNearbyRiders([]);
+        return;
+      }
+      const { data, error } = await supabase.rpc(
+        "get_nearby_available_riders",
+        {
+          p_lat: point.lat,
+          p_lng: point.lng,
+          p_radius_km: 8,
+        },
+      );
+      if (isMissingSupabaseObject(error)) {
+        setNearbyRiderPreviewUnavailable(true);
+        setNearbyRiders([]);
+        return;
+      }
+      if (!error) setNearbyRiders((data as RiderLocation[]) ?? []);
+    },
+    [nearbyRiderPreviewUnavailable],
+  );
 
   const loadRides = useCallback(async (currentUserId: string) => {
     const supabase = getSupabase();
@@ -157,23 +222,37 @@ export default function UserDashboard() {
       return;
     }
 
-    const assignedRiderIds = Array.from(new Set(userRides.map((ride) => ride.assigned_rider_id).filter(Boolean) as string[]));
+    const assignedRiderIds = Array.from(
+      new Set(
+        userRides
+          .map((ride) => ride.assigned_rider_id)
+          .filter(Boolean) as string[],
+      ),
+    );
     const [riderResult, riderProfileResult] = await Promise.all([
       supabase.from("rider_locations").select("*"),
       assignedRiderIds.length
-        ? supabase.from("rider_profiles").select("*").in("rider_id", assignedRiderIds)
+        ? supabase
+            .from("rider_profiles")
+            .select("*")
+            .in("rider_id", assignedRiderIds)
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    const activeCodeRides = userRides.filter((ride) => ["assigned", "started"].includes(ride.status));
+    const activeCodeRides = userRides.filter((ride) =>
+      ["assigned", "started"].includes(ride.status),
+    );
     const nextCodes: Record<string, string> = {};
 
     if (activeCodeRides.length) {
       const codeResults = await Promise.all(
         activeCodeRides.map(async (ride) => {
-          const { data: code, error: codeError } = await supabase.rpc("get_or_create_ride_confirmation_code", {
-            p_ride_id: ride.id,
-          });
+          const { data: code, error: codeError } = await supabase.rpc(
+            "get_or_create_ride_confirmation_code",
+            {
+              p_ride_id: ride.id,
+            },
+          );
           return {
             code: typeof code === "string" ? code : null,
             error: codeError?.message ?? null,
@@ -197,10 +276,15 @@ export default function UserDashboard() {
     if (activeCodeRides.length) {
       const detailResults = await Promise.all(
         activeCodeRides.map(async (ride) => {
-          const { data: detailRows, error: detailError } = await supabase.rpc("get_assigned_rider_details", {
-            p_ride_id: ride.id,
-          });
-          const detail = (Array.isArray(detailRows) ? detailRows[0] : detailRows) as AssignedRiderDetails | null;
+          const { data: detailRows, error: detailError } = await supabase.rpc(
+            "get_assigned_rider_details",
+            {
+              p_ride_id: ride.id,
+            },
+          );
+          const detail = (
+            Array.isArray(detailRows) ? detailRows[0] : detailRows
+          ) as AssignedRiderDetails | null;
           let photoUrl = "";
           if (detail?.photo_path) {
             const { data: signedPhoto } = await supabase.storage
@@ -208,7 +292,12 @@ export default function UserDashboard() {
               .createSignedUrl(detail.photo_path, 900);
             photoUrl = signedPhoto?.signedUrl ?? "";
           }
-          return { detail, error: detailError?.message ?? null, photoUrl, rideId: ride.id };
+          return {
+            detail,
+            error: detailError?.message ?? null,
+            photoUrl,
+            rideId: ride.id,
+          };
         }),
       );
       detailResults.forEach((item) => {
@@ -227,15 +316,15 @@ export default function UserDashboard() {
     if (riderProfileResult.error) {
       setMessage(riderProfileResult.error.message);
     } else if (riderProfileResult.data) {
-      const nextProfiles = ((riderProfileResult.data as RiderProfile[]) ?? []).reduce<Record<string, RiderProfile>>((profiles, item) => {
+      const nextProfiles = (
+        (riderProfileResult.data as RiderProfile[]) ?? []
+      ).reduce<Record<string, RiderProfile>>((profiles, item) => {
         profiles[item.rider_id] = item;
         return profiles;
       }, {});
       setRiderProfiles(nextProfiles);
     }
   }, []);
-
-
 
   const loadOperationalConfig = useCallback(async () => {
     const supabase = getSupabase();
@@ -246,8 +335,20 @@ export default function UserDashboard() {
       supabase.from("pricing_rules").select("*").eq("is_active", true),
     ]);
 
-    if (!areasResult.error) setServiceAreas((areasResult.data as ServiceArea[]) ?? []);
-    if (!rulesResult.error) setPricingRules((rulesResult.data as PricingRule[]) ?? []);
+    if (
+      isMissingSupabaseObject(areasResult.error) ||
+      isMissingSupabaseObject(rulesResult.error)
+    ) {
+      setOperationalConfigUnavailable(true);
+      setServiceAreas([]);
+      setPricingRules([]);
+      return;
+    }
+    setOperationalConfigUnavailable(false);
+    if (!areasResult.error)
+      setServiceAreas((areasResult.data as ServiceArea[]) ?? []);
+    if (!rulesResult.error)
+      setPricingRules((rulesResult.data as PricingRule[]) ?? []);
   }, []);
   useEffect(() => {
     const supabase = getSupabase();
@@ -284,7 +385,9 @@ export default function UserDashboard() {
           if (payload.eventType === "DELETE") {
             const deleted = payload.old as Partial<RideRequest>;
             if (deleted.id) {
-              setRides((current) => current.filter((ride) => ride.id !== deleted.id));
+              setRides((current) =>
+                current.filter((ride) => ride.id !== deleted.id),
+              );
             }
             return;
           }
@@ -339,7 +442,10 @@ export default function UserDashboard() {
             return;
           }
           const incoming = payload.new as RiderProfile;
-          setRiderProfiles((current) => ({ ...current, [incoming.rider_id]: incoming }));
+          setRiderProfiles((current) => ({
+            ...current,
+            [incoming.rider_id]: incoming,
+          }));
         },
       )
       .on(
@@ -351,17 +457,23 @@ export default function UserDashboard() {
           if (payload.eventType === "DELETE") {
             const deleted = payload.old as Partial<RiderLocation>;
             if (deleted.rider_id) {
-              setRiderLocations((current) => current.filter((rider) => rider.rider_id !== deleted.rider_id));
+              setRiderLocations((current) =>
+                current.filter((rider) => rider.rider_id !== deleted.rider_id),
+              );
             }
             return;
           }
 
-          setRiderLocations((current) => upsertRiderLocation(current, payload.new as RiderLocation));
+          setRiderLocations((current) =>
+            upsertRiderLocation(current, payload.new as RiderLocation),
+          );
         },
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          setMessage("Live updates are reconnecting. Keep this page open for instant ride updates.");
+          setMessage(
+            "Live updates are reconnecting. Keep this page open for instant ride updates.",
+          );
         }
       });
 
@@ -373,7 +485,10 @@ export default function UserDashboard() {
   useEffect(() => {
     if (!pickup) return;
     const initial = window.setTimeout(() => void loadNearbyRiders(pickup), 0);
-    const interval = window.setInterval(() => void loadNearbyRiders(pickup), 12000);
+    const interval = window.setInterval(
+      () => void loadNearbyRiders(pickup),
+      12000,
+    );
     return () => {
       window.clearTimeout(initial);
       window.clearInterval(interval);
@@ -381,14 +496,17 @@ export default function UserDashboard() {
   }, [loadNearbyRiders, pickup]);
 
   function startMapPick(target: "pickup" | "drop") {
-    const start = target === "pickup"
-      ? pickup ?? { lat: 17.385, lng: 78.4867 }
-      : drop ?? pickup ?? { lat: 17.385, lng: 78.4867 };
+    const start =
+      target === "pickup"
+        ? (pickup ?? { lat: 17.385, lng: 78.4867 })
+        : (drop ?? pickup ?? { lat: 17.385, lng: 78.4867 });
     setClickTarget(target);
     setMapCandidate(start);
     setMapSelectionStart(start);
     setMapPickMode(target);
-    setMessage(`Move the map until the pin is exactly over your ${target}, then confirm.`);
+    setMessage(
+      `Move the map until the pin is exactly over your ${target}, then confirm.`,
+    );
   }
 
   async function confirmMapPick() {
@@ -397,7 +515,9 @@ export default function UserDashboard() {
     const address = await reverseGeocode(mapCandidate);
     const selected = {
       ...mapCandidate,
-      address: address ?? `Pinned location ${mapCandidate.lat.toFixed(5)}, ${mapCandidate.lng.toFixed(5)}`,
+      address:
+        address ??
+        `Pinned location ${mapCandidate.lat.toFixed(5)}, ${mapCandidate.lng.toFixed(5)}`,
     };
     if (mapPickMode === "pickup") {
       setPickup(selected);
@@ -406,11 +526,15 @@ export default function UserDashboard() {
     setMapPickMode(null);
     setMapCandidate(null);
     setMapSelectionStart(null);
-    setMessage(`${clickTarget === "pickup" ? "Pickup" : "Drop"} pinned on the map.`);
+    setMessage(
+      `${clickTarget === "pickup" ? "Pickup" : "Drop"} pinned on the map.`,
+    );
   }
   async function detectPickupLocation() {
     if (!activeRide && bookingFor === "other") {
-      setMessage("For another passenger, search their pickup or pin it on the map.");
+      setMessage(
+        "For another passenger, search their pickup or pin it on the map.",
+      );
       return;
     }
     if (!navigator.geolocation) {
@@ -434,7 +558,11 @@ export default function UserDashboard() {
       setDeviceLocation(detected);
       if (activeRide) {
         setPickupAccuracy(Math.round(position.coords.accuracy));
-        setMessage("Current location updated with +/-" + Math.round(position.coords.accuracy) + "m accuracy.");
+        setMessage(
+          "Current location updated with +/-" +
+            Math.round(position.coords.accuracy) +
+            "m accuracy.",
+        );
         return;
       }
       setPickupAccuracy(Math.round(position.coords.accuracy));
@@ -461,7 +589,11 @@ export default function UserDashboard() {
           : `Pickup detected within about ${Math.round(position.coords.accuracy)}m.`,
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Location permission denied. Search or choose on map.");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Location permission denied. Search or choose on map.",
+      );
     } finally {
       setDetectingPickup(false);
     }
@@ -480,9 +612,17 @@ export default function UserDashboard() {
       setMessage("Choose pickup and drop first.");
       return;
     }
-    const cleanPassengerName = bookingFor === "self" ? profile?.full_name?.trim() ?? "" : passengerName.trim().replace(/\s+/g, " ");
-    const rawPassengerPhone = bookingFor === "self" ? profile?.phone?.trim() ?? "" : passengerPhone.trim();
-    const passengerValidationError = validateFullName(cleanPassengerName, "Passenger name") ?? validatePhone(rawPassengerPhone, "Passenger phone");
+    const cleanPassengerName =
+      bookingFor === "self"
+        ? (profile?.full_name?.trim() ?? "")
+        : passengerName.trim().replace(/\s+/g, " ");
+    const rawPassengerPhone =
+      bookingFor === "self"
+        ? (profile?.phone?.trim() ?? "")
+        : passengerPhone.trim();
+    const passengerValidationError =
+      validateFullName(cleanPassengerName, "Passenger name") ??
+      validatePhone(rawPassengerPhone, "Passenger phone");
     if (passengerValidationError) {
       setMessage(passengerValidationError);
       return;
@@ -495,7 +635,10 @@ export default function UserDashboard() {
       return;
     }
 
-    if (bookingMode === "advance" && new Date(scheduledTime).getTime() <= Date.now()) {
+    if (
+      bookingMode === "advance" &&
+      new Date(scheduledTime).getTime() <= Date.now()
+    ) {
       setMessage("Choose a future date and time for an advance booking.");
       return;
     }
@@ -505,7 +648,12 @@ export default function UserDashboard() {
         ? new Date(Date.now() + 5 * 60 * 1000).toISOString()
         : new Date(scheduledTime).toISOString();
 
-    const serviceDecision = findServiceAreaForTrip(serviceAreas, pickup, drop, vehicleType);
+    const serviceDecision = findServiceAreaForTrip(
+      serviceAreas,
+      pickup,
+      drop,
+      vehicleType,
+    );
     if (serviceDecision.reason) {
       setMessage(serviceDecision.reason);
       return;
@@ -514,13 +662,29 @@ export default function UserDashboard() {
     setMessage("Finding route and fare...");
     const summary = await getRouteSummary(pickup, drop);
     const configuredRule = serviceDecision.area
-      ? findEffectivePricingRule(pricingRules, serviceDecision.area.id, vehicleType, rideTime)
+      ? findEffectivePricingRule(
+          pricingRules,
+          serviceDecision.area.id,
+          vehicleType,
+          rideTime,
+        )
       : null;
-    const fareQuote = getVehicleFareQuote(summary.distanceKm, rideTime, vehicleType);
+    const fareQuote = getVehicleFareQuote(
+      summary.distanceKm,
+      rideTime,
+      vehicleType,
+    );
     const fareEstimate = configuredRule
-      ? calculateConfiguredFare(summary.distanceKm, summary.durationMin, configuredRule)
+      ? calculateConfiguredFare(
+          summary.distanceKm,
+          summary.durationMin,
+          configuredRule,
+        )
       : fareQuote.fare;
-    const fareBreakdown = calculateFareBreakdown(fareEstimate, configuredRule?.company_commission_rate);
+    const fareBreakdown = calculateFareBreakdown(
+      fareEstimate,
+      configuredRule?.company_commission_rate,
+    );
     const { error } = await supabase.from("ride_requests").insert({
       assigned_rider_id: null,
       distance_km: summary.distanceKm,
@@ -530,7 +694,9 @@ export default function UserDashboard() {
       estimated_duration_min: summary.durationMin,
       fare_estimate: fareEstimate,
       fare_rate_per_km: configuredRule?.per_km_rate ?? fareQuote.baseRatePerKm,
-      vehicle_surcharge_per_km: configuredRule ? 0 : fareQuote.vehicleSurchargePerKm,
+      vehicle_surcharge_per_km: configuredRule
+        ? 0
+        : fareQuote.vehicleSurchargePerKm,
       vehicle_type: vehicleType,
       service_area_id: serviceDecision.area?.id ?? null,
       pricing_rule_id: configuredRule?.id ?? null,
@@ -577,7 +743,11 @@ export default function UserDashboard() {
         p_ride_id: ride.id,
         p_signal_minutes: readySignalMinutes,
       });
-      setMessage(error ? `Could not publish: ${error.message}` : "You are live. Nearby riders can accept this ride now.");
+      setMessage(
+        error
+          ? `Could not publish: ${error.message}`
+          : "You are live. Nearby riders can accept this ride now.",
+      );
       if (userId) {
         await loadRides(userId);
       }
@@ -586,7 +756,10 @@ export default function UserDashboard() {
     }
   }
 
-  async function cancelRide(ride: RideRequest, reason: string): Promise<string | null> {
+  async function cancelRide(
+    ride: RideRequest,
+    reason: string,
+  ): Promise<string | null> {
     if (!userId) {
       return "Please sign in again before cancelling this ride.";
     }
@@ -598,7 +771,9 @@ export default function UserDashboard() {
       p_reason: reason,
       p_ride_id: ride.id,
     });
-    setMessage(error ? `Could not cancel: ${error.message}` : "Ride cancelled.");
+    setMessage(
+      error ? `Could not cancel: ${error.message}` : "Ride cancelled.",
+    );
     if (!error) {
       setCancelTarget(null);
     }
@@ -625,8 +800,9 @@ export default function UserDashboard() {
   }
 
   const activeRide =
-    rides.find((ride) => ["assigned", "started", "ready"].includes(ride.status)) ??
-    rides.find((ride) => ride.status === "scheduled");
+    rides.find((ride) =>
+      ["assigned", "started", "ready"].includes(ride.status),
+    ) ?? rides.find((ride) => ride.status === "scheduled");
   const mapPickup = useMemo(
     () =>
       activeRide
@@ -650,22 +826,44 @@ export default function UserDashboard() {
     [activeRide, drop],
   );
   const assignedRiderLocation = activeRide
-    ? riderLocations.find((rider) => rider.rider_id === activeRide.assigned_rider_id)
+    ? riderLocations.find(
+        (rider) => rider.rider_id === activeRide.assigned_rider_id,
+      )
     : null;
   const mapRiders = useMemo(
-    () => (assignedRiderLocation ? [assignedRiderLocation] : activeRide ? [] : nearbyRiders),
+    () =>
+      assignedRiderLocation
+        ? [assignedRiderLocation]
+        : activeRide
+          ? []
+          : nearbyRiders,
     [activeRide, assignedRiderLocation, nearbyRiders],
   );
-  const assignedRiderProfile = activeRide?.assigned_rider_id ? riderProfiles[activeRide.assigned_rider_id] ?? null : null;
-  const assignedRiderDetail = activeRide ? assignedRiderDetails[activeRide.id] ?? null : null;
-  const AssignedVehicleIcon = assignedRiderDetail?.vehicle_type === "auto" ? CarTaxiFront : assignedRiderDetail?.vehicle_type === "car" ? CarFront : Bike;
+  const assignedRiderProfile = activeRide?.assigned_rider_id
+    ? (riderProfiles[activeRide.assigned_rider_id] ?? null)
+    : null;
+  const assignedRiderDetail = activeRide
+    ? (assignedRiderDetails[activeRide.id] ?? null)
+    : null;
+  const AssignedVehicleIcon =
+    assignedRiderDetail?.vehicle_type === "auto"
+      ? CarTaxiFront
+      : assignedRiderDetail?.vehicle_type === "car"
+        ? CarFront
+        : Bike;
   const mapRiderVehicleTypes: Partial<Record<string, VehicleType>> =
     activeRide?.assigned_rider_id && assignedRiderDetail
       ? { [activeRide.assigned_rider_id]: assignedRiderDetail.vehicle_type }
       : {};
-  const assignedRiderPhotoUrl = activeRide ? riderPhotoUrls[activeRide.id] ?? null : null;
+  const assignedRiderPhotoUrl = activeRide
+    ? (riderPhotoUrls[activeRide.id] ?? null)
+    : null;
   const routeFrom = useMemo(() => {
-    if (activeRide?.assigned_rider_id && assignedRiderLocation && ["assigned", "started"].includes(activeRide.status)) {
+    if (
+      activeRide?.assigned_rider_id &&
+      assignedRiderLocation &&
+      ["assigned", "started"].includes(activeRide.status)
+    ) {
       return { lat: assignedRiderLocation.lat, lng: assignedRiderLocation.lng };
     }
     return mapPickup;
@@ -683,26 +881,58 @@ export default function UserDashboard() {
   const completedRides = rides.filter((ride) =>
     ["completed", "cancelled"].includes(ride.status),
   );
-  const userCancelledRideCount = rides.filter((ride) => ride.status === "cancelled" && (!ride.cancelled_by || ride.cancelled_by === userId)).length;
+  const userCancelledRideCount = rides.filter(
+    (ride) =>
+      ride.status === "cancelled" &&
+      (!ride.cancelled_by || ride.cancelled_by === userId),
+  ).length;
   const displayedFare = useMemo(() => {
     const departure = bookingMode === "advance" ? scheduledTime : undefined;
-    const fallbackFare = getVehicleFareQuote(routeSummary?.distanceKm ?? null, departure, vehicleType);
+    const fallbackFare = getVehicleFareQuote(
+      routeSummary?.distanceKm ?? null,
+      departure,
+      vehicleType,
+    );
     if (!pickup || !drop) return fallbackFare;
-    const serviceDecision = findServiceAreaForTrip(serviceAreas, pickup, drop, vehicleType);
+    const serviceDecision = findServiceAreaForTrip(
+      serviceAreas,
+      pickup,
+      drop,
+      vehicleType,
+    );
     const configuredRule = serviceDecision.area
-      ? findEffectivePricingRule(pricingRules, serviceDecision.area.id, vehicleType, departure ?? new Date())
+      ? findEffectivePricingRule(
+          pricingRules,
+          serviceDecision.area.id,
+          vehicleType,
+          departure ?? new Date(),
+        )
       : null;
     if (!configuredRule) return fallbackFare;
     return {
       ...fallbackFare,
       baseRatePerKm: configuredRule.per_km_rate,
-      fare: calculateConfiguredFare(routeSummary?.distanceKm ?? null, routeSummary?.durationMin ?? null, configuredRule),
+      fare: calculateConfiguredFare(
+        routeSummary?.distanceKm ?? null,
+        routeSummary?.durationMin ?? null,
+        configuredRule,
+      ),
       isPeak: false,
       periodLabel: "Configured fare",
       ratePerKm: configuredRule.per_km_rate,
       vehicleSurchargePerKm: 0,
     };
-  }, [bookingMode, drop, pickup, pricingRules, routeSummary?.distanceKm, routeSummary?.durationMin, scheduledTime, serviceAreas, vehicleType]);
+  }, [
+    bookingMode,
+    drop,
+    pickup,
+    pricingRules,
+    routeSummary?.distanceKm,
+    routeSummary?.durationMin,
+    scheduledTime,
+    serviceAreas,
+    vehicleType,
+  ]);
   const safetyLocation = useMemo(
     () =>
       assignedRiderLocation
@@ -741,34 +971,47 @@ export default function UserDashboard() {
     };
   }, [routeFrom, routeTo]);
 
-  const triggerSafetyAlert = useCallback(async (alertType: SafetyAlertType, alertMessage: string) => {
-    if (!activeRide || !["assigned", "started"].includes(activeRide.status)) {
-      setMessage("Safety alerts are available after a rider is assigned.");
-      return;
-    }
+  const triggerSafetyAlert = useCallback(
+    async (alertType: SafetyAlertType, alertMessage: string) => {
+      if (!activeRide || !["assigned", "started"].includes(activeRide.status)) {
+        setMessage("Safety alerts are available after a rider is assigned.");
+        return;
+      }
 
-    setSosBusy(alertType === "sos");
-    const { alert, error } = await createSafetyAlert({
-      alertType,
-      location: safetyLocation,
-      message: alertMessage,
-      rideId: activeRide.id,
-    });
-    setSosBusy(false);
-    if (error) {
-      setMessage(error);
-    } else if (alert?.delivery_status === "in_app") {
-      setMessage("SOS delivered to your linked emergency contact in Taxiro.");
-    } else if (alert?.delivery_status === "no_contact") {
-      setMessage("SOS saved, but no emergency contact is configured. Add one in Profile.");
-    } else {
-      setMessage("SOS saved, but this emergency phone is not linked to a Taxiro account. Use Call or SMS now.");
-    }
-  }, [activeRide, safetyLocation]);
+      setSosBusy(alertType === "sos");
+      const { alert, error } = await createSafetyAlert({
+        alertType,
+        location: safetyLocation,
+        message: alertMessage,
+        rideId: activeRide.id,
+      });
+      setSosBusy(false);
+      if (error) {
+        setMessage(error);
+      } else if (alert?.delivery_status === "in_app") {
+        setMessage("SOS delivered to your linked emergency contact in Taxiro.");
+      } else if (alert?.delivery_status === "no_contact") {
+        setMessage(
+          "SOS saved, but no emergency contact is configured. Add one in Profile.",
+        );
+      } else {
+        setMessage(
+          "SOS saved, but this emergency phone is not linked to a Taxiro account. Use Call or SMS now.",
+        );
+      }
+    },
+    [activeRide, safetyLocation],
+  );
 
   usePanicTrigger({
-    enabled: Boolean(activeRide && ["assigned", "started"].includes(activeRide.status)),
-    onPanic: () => void triggerSafetyAlert("sos", "SOS triggered by triple volume-up while Taxiro was open."),
+    enabled: Boolean(
+      activeRide && ["assigned", "started"].includes(activeRide.status),
+    ),
+    onPanic: () =>
+      void triggerSafetyAlert(
+        "sos",
+        "SOS triggered by triple volume-up while Taxiro was open.",
+      ),
   });
 
   useRideSafetyMonitor({
@@ -787,7 +1030,9 @@ export default function UserDashboard() {
       <AppShell title="Book Taxiro">
         <Card className="mx-auto max-w-lg text-center">
           <CardHeader>
-            <CardTitle>{profile ? "User account required" : "Sign in required"}</CardTitle>
+            <CardTitle>
+              {profile ? "User account required" : "Sign in required"}
+            </CardTitle>
             <CardDescription>
               {profile
                 ? "This area is only for customers. Rider accounts use the driver app."
@@ -801,8 +1046,6 @@ export default function UserDashboard() {
       </AppShell>
     );
   }
-
-
 
   return (
     <AppShell immersive title="Book Taxiro">
@@ -821,49 +1064,74 @@ export default function UserDashboard() {
         />
 
         {!mapPickMode ? (
-        <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:gap-3 lg:inset-x-4">
-          <div className="pointer-events-auto min-w-0 max-w-[calc(100%-10.5rem)] overflow-hidden rounded-xl border border-white/80 bg-white/94 px-2.5 py-2 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-xs sm:px-3">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">Taxiro</p>
-            <p className="flex min-w-0 items-center gap-1.5 truncate text-xs font-black tracking-tight sm:text-base">
-              <Bike className="size-3.5 shrink-0 sm:size-4" />
-              {activeRide ? rideHeadline(activeRide.status) : "Where to?"}
-            </p>
+          <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 sm:gap-3 lg:inset-x-4">
+            <div className="pointer-events-auto min-w-0 max-w-[calc(100%-10.5rem)] overflow-hidden rounded-xl border border-white/80 bg-white/94 px-2.5 py-2 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-xs sm:px-3">
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
+                Taxiro
+              </p>
+              <p className="flex min-w-0 items-center gap-1.5 truncate text-xs font-black tracking-tight sm:text-base">
+                <Bike className="size-3.5 shrink-0 sm:size-4" />
+                {activeRide ? rideHeadline(activeRide.status) : "Where to?"}
+              </p>
+            </div>
+            <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+              <AppNotificationBell profileId={profile?.id ?? null} />
+              <ThemeToggle compact />
+              <button
+                aria-label={
+                  activeRide
+                    ? "Refresh current location"
+                    : "Detect pickup location"
+                }
+                aria-busy={detectingPickup}
+                className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-11"
+                disabled={
+                  detectingPickup || (!activeRide && bookingFor !== "self")
+                }
+                onClick={() => void detectPickupLocation()}
+                title={
+                  activeRide
+                    ? "Refresh your current location"
+                    : bookingFor === "self"
+                      ? "Detect pickup location"
+                      : "Choose Myself to use current location"
+                }
+                type="button"
+              >
+                <LocateFixed
+                  className={`size-4 text-primary sm:size-5 ${detectingPickup ? "animate-pulse" : ""}`}
+                />
+              </button>
+              <button
+                aria-label="Open menu"
+                className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 sm:size-11"
+                onClick={() => setMenuOpen(true)}
+                type="button"
+              >
+                <Menu className="size-4 text-primary sm:size-5" />
+              </button>
+            </div>
           </div>
-          <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
-            <AppNotificationBell profileId={profile?.id ?? null} />
-            <ThemeToggle compact />
-            <button
-              aria-label={activeRide ? "Refresh current location" : "Detect pickup location"}
-              aria-busy={detectingPickup}
-              className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-11"
-              disabled={detectingPickup || (!activeRide && bookingFor !== "self")}
-              onClick={() => void detectPickupLocation()}
-              title={activeRide ? "Refresh your current location" : bookingFor === "self" ? "Detect pickup location" : "Choose Myself to use current location"}
-              type="button"
-            >
-              <LocateFixed className={`size-4 text-primary sm:size-5 ${detectingPickup ? "animate-pulse" : ""}`} />
-            </button>
-            <button
-              aria-label="Open menu"
-              className="flex size-10 items-center justify-center rounded-xl border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur transition active:scale-95 sm:size-11"
-              onClick={() => setMenuOpen(true)}
-              type="button"
-            >
-              <Menu className="size-4 text-primary sm:size-5" />
-            </button>
-          </div>
-        </div>
         ) : null}
 
         {!mapPickMode && activeRide && assignedRiderLocation ? (
           <div className="pointer-events-none absolute inset-x-2 top-[calc(max(0.5rem,env(safe-area-inset-top))+4.35rem)] z-[1190] flex justify-center sm:inset-x-3 sm:top-[4.75rem] lg:inset-x-4">
             <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/80 bg-[#101713]/94 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-primary"><AssignedVehicleIcon className="size-4" /></span>
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-primary">
+                <AssignedVehicleIcon className="size-4" />
+              </span>
               <span className="min-w-0 truncate">
-                {getVehicleLabel(assignedRiderDetail?.vehicle_type ?? activeRide.vehicle_type)} live
+                {getVehicleLabel(
+                  assignedRiderDetail?.vehicle_type ?? activeRide.vehicle_type,
+                )}{" "}
+                live
                 <span className="mx-1.5 text-white/40">|</span>
-                {activeRide.status === "assigned" ? "Coming to pickup" : "Heading to destination"}
-                {routeSummary?.durationMin ? ` - ${routeSummary.durationMin} min` : ""}
+                {activeRide.status === "assigned"
+                  ? "Coming to pickup"
+                  : "Heading to destination"}
+                {routeSummary?.durationMin
+                  ? ` - ${routeSummary.durationMin} min`
+                  : ""}
               </span>
             </div>
           </div>
@@ -872,13 +1140,21 @@ export default function UserDashboard() {
           <div className="pointer-events-none absolute left-2 top-[4.15rem] z-[1190] sm:left-3 sm:top-[4.5rem] lg:left-4">
             <div className="flex items-center gap-2 rounded-full border border-white/80 bg-[#101713]/92 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
               <Radio className="size-3.5 text-lime-300" />
-              <span>{nearbyRiders.length} active {nearbyRiders.length === 1 ? "rider" : "riders"} within 8 km</span>
+              <span>
+                {nearbyRiderPreviewUnavailable
+                  ? "Nearby rider preview unavailable"
+                  : `${nearbyRiders.length} active ${nearbyRiders.length === 1 ? "rider" : "riders"} within 8 km`}
+              </span>
             </div>
           </div>
         ) : null}
 
         {!mapPickMode ? (
-        <ResponsiveRideSheet desktopSide="left" key={panelView} mobileLabel="booking and rides">
+          <ResponsiveRideSheet
+            desktopSide="left"
+            key={panelView}
+            mobileLabel="booking and rides"
+          >
             <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
               {(["book", "rides"] as const).map((view) => (
                 <button
@@ -888,7 +1164,9 @@ export default function UserDashboard() {
                   onClick={() => setPanelView(view)}
                   type="button"
                 >
-                  <span className="block truncate">{view === "book" ? "Book" : `My rides (${rides.length})`}</span>
+                  <span className="block truncate">
+                    {view === "book" ? "Book" : `My rides (${rides.length})`}
+                  </span>
                 </button>
               ))}
             </div>
@@ -911,7 +1189,12 @@ export default function UserDashboard() {
                 onReady={() => void markReady(activeRide)}
                 onReadySignalMinutesChange={setReadySignalMinutes}
                 readyBusy={readyRideId === activeRide.id}
-                onSos={() => void triggerSafetyAlert("sos", "SOS button pressed by the user during a Taxiro ride.")}
+                onSos={() =>
+                  void triggerSafetyAlert(
+                    "sos",
+                    "SOS button pressed by the user during a Taxiro ride.",
+                  )
+                }
                 readySignalMinutes={readySignalMinutes}
                 riderDetails={assignedRiderDetail}
                 riderLocation={assignedRiderLocation}
@@ -926,272 +1209,406 @@ export default function UserDashboard() {
               <div className="grid gap-3">
                 {panelView === "book" ? (
                   <>
-                <div className="min-w-0">
-                  <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">Where are you going?</h1>
-                  <p className="text-xs text-muted-foreground sm:text-sm">{getVehicleLabel(vehicleType)} ride - verified matching</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2" aria-label="Choose vehicle type">
-                  {VEHICLE_OPTIONS.map((option) => {
-                    const Icon = option.type === "bike" ? Bike : option.type === "auto" ? CarTaxiFront : CarFront;
-                    const quote = getVehicleFareQuote(routeSummary?.distanceKm ?? null, bookingMode === "advance" ? scheduledTime : undefined, option.type);
-                    return (
-                      <button
-                        aria-pressed={vehicleType === option.type}
-                        className={vehicleType === option.type ? "min-w-0 rounded-lg bg-primary p-3 text-primary-foreground" : "min-w-0 rounded-lg bg-muted p-3"}
-                        key={option.type}
-                        onClick={() => setVehicleType(option.type)}
-                        type="button"
-                      >
-                        <Icon className="mx-auto size-5" />
-                        <span className="mt-1 block truncate text-xs font-black">{option.label}</span>
-                        <span className="mt-0.5 block truncate text-[10px] opacity-70">{quote.fare === null ? (option.surchargePerKm ? `+ Rs ${option.surchargePerKm}/km` : "Base rate") : formatMoney(quote.fare)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-                  {(["now", "advance"] as const).map((mode) => (
-                    <button
-                      className={`rounded-md px-3 py-2.5 text-sm font-black transition ${
-                        bookingMode === mode
-                          ? "bg-[#101713] text-white shadow-sm"
-                          : "text-muted-foreground"
-                      }`}
-                      key={mode}
-                      onClick={() => setBookingMode(mode)}
-                      type="button"
+                    <div className="min-w-0">
+                      <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">
+                        Where are you going?
+                      </h1>
+                      <p className="text-xs text-muted-foreground sm:text-sm">
+                        {getVehicleLabel(vehicleType)} ride - verified matching
+                      </p>
+                    </div>
+                    <div
+                      className="grid grid-cols-3 gap-2"
+                      aria-label="Choose vehicle type"
                     >
-                      <span className="block truncate">{mode === "now" ? "Ride now" : "Advance booking"}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="rounded-lg border border-border bg-card p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                      <UserRound className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-black">Who is riding?</p>
-                      <p className="text-xs leading-5 text-muted-foreground">Tell the rider who they should meet at pickup.</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {(["self", "other"] as const).map((passengerType) => (
-                      <button
-                        className={bookingFor === passengerType ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground" : "rounded-lg bg-muted px-3 py-3 text-sm font-black"}
-                        key={passengerType}
-                        onClick={() => {
-                          setBookingFor(passengerType);
-                          if (passengerType === "other") {
-                            setPickup(null);
-                            setPickupAccuracy(null);
-                            setMessage("Choose the passenger's pickup using search or the map.");
-                          }
-                        }}
-                        type="button"
-                      >
-                        {passengerType === "self" ? "Myself" : "Someone else"}
-                      </button>
-                    ))}
-                  </div>
-                  {!bookingFor ? (
-                    <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">Select one option before choosing pickup.</p>
-                  ) : null}
-                  {bookingFor === "self" ? (
-                    <p className="mt-3 rounded-lg bg-secondary/70 px-3 py-2 text-xs font-semibold">
-                      Passenger: {profile?.full_name || "Your Taxiro profile"}{profile?.phone ? ` - ${profile.phone}` : ""}
-                    </p>
-                  ) : null}
-                  {bookingFor === "other" ? (
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <div>
-                        <Label htmlFor="passenger-name">Passenger name</Label>
-                        <Input autoComplete="name" id="passenger-name" maxLength={80} onChange={(event) => setPassengerName(event.target.value)} placeholder="Who will ride?" value={passengerName} />
-                      </div>
-                      <div>
-                        <Label htmlFor="passenger-phone">Passenger phone</Label>
-                        <Input autoComplete="tel" id="passenger-phone" inputMode="tel" maxLength={16} onChange={(event) => setPassengerPhone(event.target.value)} placeholder="Mobile number" value={passengerPhone} />
-                      </div>
-                      <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">Current-location detection is off for this booking. Search or pin the passenger&apos;s actual pickup.</p>
-                    </div>
-                  ) : null}
-                </div>
-                <div className="grid gap-3">
-                  <div className="min-w-0 rounded-lg border border-border bg-card p-3">
-                    <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-                        From
-                      </p>
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        {bookingFor !== "other" ? (
-                          <Button
-                            className="h-8 min-w-0 rounded-lg px-3 text-xs"
-                            disabled={detectingPickup || bookingFor !== "self"}
-                            onClick={detectPickupLocation}
-                            size="sm"
-                            variant="outline"
+                      {VEHICLE_OPTIONS.map((option) => {
+                        const Icon =
+                          option.type === "bike"
+                            ? Bike
+                            : option.type === "auto"
+                              ? CarTaxiFront
+                              : CarFront;
+                        const quote = getVehicleFareQuote(
+                          routeSummary?.distanceKm ?? null,
+                          bookingMode === "advance" ? scheduledTime : undefined,
+                          option.type,
+                        );
+                        return (
+                          <button
+                            aria-pressed={vehicleType === option.type}
+                            className={
+                              vehicleType === option.type
+                                ? "min-w-0 rounded-lg bg-primary p-3 text-primary-foreground"
+                                : "min-w-0 rounded-lg bg-muted p-3"
+                            }
+                            key={option.type}
+                            onClick={() => setVehicleType(option.type)}
+                            type="button"
                           >
-                            {detectingPickup ? "Detecting..." : "Detect me"}
-                          </Button>
-                        ) : (
-                          <span className="rounded-lg bg-muted px-2 py-1.5 text-[10px] font-bold text-muted-foreground">Passenger pickup</span>
-                        )}
-                        <Button
-                          className="h-8 min-w-0 rounded-lg px-3 text-xs"
-                          onClick={() => startMapPick("pickup")}
-                          size="sm"
-                          variant={mapPickMode === "pickup" ? "default" : "secondary"}
-                        >
-                          <span className="sm:hidden">Map</span>
-                          <span className="hidden sm:inline">Choose on map</span>
-                        </Button>
-                      </div>
+                            <Icon className="mx-auto size-5" />
+                            <span className="mt-1 block truncate text-xs font-black">
+                              {option.label}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[10px] opacity-70">
+                              {quote.fare === null
+                                ? option.surchargePerKm
+                                  ? `+ Rs ${option.surchargePerKm}/km`
+                                  : "Base rate"
+                                : formatMoney(quote.fare)}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    {pickupAccuracy ? (
-                      <p
-                        className={`mb-2 text-xs font-semibold ${!detectingPickup && pickupAccuracy > MAX_USABLE_LOCATION_ACCURACY_M ? "text-amber-700" : "text-muted-foreground"}`}
-                      >
-                        {detectingPickup
-                          ? `Improving GPS accuracy... +/-${pickupAccuracy}m`
-                          : `${pickupAccuracy > MAX_USABLE_LOCATION_ACCURACY_M ? "Low GPS accuracy" : "GPS accuracy"} +/-${pickupAccuracy}m`}
-                      </p>
-                    ) : null}
-                    <LocationSearch
-                      hideLabel
-                      key={`pickup-${pickup?.address ?? "empty"}`}
-                      label="Pickup"
-                      onSelect={(selected) => {
-                        setPickup(selected);
-                        setPickupAccuracy(null);
-                      }}
-                      selectedValue={pickup?.address}
-                    />
-                  </div>
-
-                  <div className="min-w-0 rounded-lg border border-border bg-card p-3">
-                    <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-                        To
-                      </p>
-                      <Button
-                        className="h-8 min-w-0 rounded-lg px-3 text-xs"
-                        onClick={() => startMapPick("drop")}
-                        size="sm"
-                        variant={mapPickMode === "drop" ? "default" : "secondary"}
-                      >
-                        <span className="sm:hidden">Map</span>
-                        <span className="hidden sm:inline">Choose on map</span>
-                      </Button>
-                    </div>
-                    <LocationSearch
-                      hideLabel
-                      key={`drop-${drop?.address ?? "empty"}`}
-                      label="Drop"
-                      onSelect={setDrop}
-                      selectedValue={drop?.address}
-                    />
-                  </div>
-                </div>
-                {mapPickMode ? (
-                  <div className="rounded-lg border border-[#101713]/20 bg-secondary p-3 text-sm font-semibold text-secondary-foreground">
-                    Tap the map to set {mapPickMode === "pickup" ? "From / pickup" : "To / drop"}.
-                  </div>
-                ) : null}
-                {bookingMode === "advance" ? (
-                  <div className="grid gap-3 rounded-lg bg-muted p-3">
-                    <div>
-                      <Label htmlFor="scheduled">Advance pickup date and time</Label>
-                      <Input
-                        className="mt-1 h-12 bg-card"
-                        id="scheduled"
-                        min={toDateTimeLocalInput(new Date())}
-                        onChange={(event) => setScheduledTime(event.target.value)}
-                        type="datetime-local"
-                        value={scheduledTime}
-                      />
-                    </div>
-                    <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
-                      <TimePreset
-                        label="+30 min"
-                        onClick={() => setScheduledTime(offsetDateTime(30))}
-                      />
-                      <TimePreset
-                        label="+1 hour"
-                        onClick={() => setScheduledTime(offsetDateTime(60))}
-                      />
-                      <TimePreset
-                        label="Tomorrow"
-                        onClick={() => setScheduledTime(tomorrowMorning())}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <p className="rounded-xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
-                    Book now, then tap I&apos;m Ready when you are at the pickup point.
-                  </p>
-                )}
-                <div className="grid gap-3 rounded-lg border border-border bg-card p-3">
-                  <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
-                    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
-                      <p className="text-xs text-muted-foreground">Fare</p>
-                      <p className="mt-1 font-black">{formatMoney(displayedFare.fare)}</p>
-                    </div>
-                    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
-                      <p className="text-xs text-muted-foreground">Distance</p>
-                      <p className="mt-1 font-black">{routeSummary?.distanceKm ?? "--"} km</p>
-                    </div>
-                    <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
-                      <p className="text-xs text-muted-foreground">ETA</p>
-                      <p className="mt-1 font-black">{routeSummary?.durationMin ?? "--"} min</p>
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-secondary/70 px-3 py-2 text-xs">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-black">{displayedFare.periodLabel}</span>
-                      <span className="font-semibold">Rs {displayedFare.ratePerKm}/km {getVehicleLabel(vehicleType)}{displayedFare.isPeak ? " peak" : ""}</span>
-                    </div>
-                    <p className="mt-1 leading-5 text-muted-foreground">Peak: 9:00-10:30 AM, 5:00-6:00 PM, and 10:00 PM-midnight.</p>
-                  </div>
-                  <div>
-                    <Label>Payment preference</Label>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      {(["cash", "upi"] as const).map((method) => (
+                    <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                      {(["now", "advance"] as const).map((mode) => (
                         <button
-                          className={paymentMethod === method ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground" : "rounded-lg bg-muted px-3 py-3 text-sm font-black"}
-                          key={method}
-                          onClick={() => setPaymentMethod(method)}
+                          className={`rounded-md px-3 py-2.5 text-sm font-black transition ${
+                            bookingMode === mode
+                              ? "bg-[#101713] text-white shadow-sm"
+                              : "text-muted-foreground"
+                          }`}
+                          key={mode}
+                          onClick={() => setBookingMode(mode)}
                           type="button"
                         >
-                          {method === "cash" ? "Cash" : "UPI after ride"}
+                          <span className="block truncate">
+                            {mode === "now" ? "Ride now" : "Advance booking"}
+                          </span>
                         </button>
                       ))}
                     </div>
-                  </div>
-                  <button
-                    className="flex w-full items-center justify-between rounded-xl bg-muted px-3 py-2.5 text-left text-sm font-bold"
-                    onClick={() => setShowRideOptions((current) => !current)}
-                    type="button"
-                  >
-                    <span>{rideNote ? "Pickup note added" : "Add pickup note"}</span>
-                    <ChevronDown className={`size-4 transition ${showRideOptions ? "rotate-180" : ""}`} />
-                  </button>
-                  {showRideOptions ? (
-                    <div className="animate-in">
-                      <Label htmlFor="rider-note">Note for rider</Label>
-                      <Input
-                        className="mt-1"
-                        id="rider-note"
-                        maxLength={180}
-                        onChange={(event) => setRideNote(event.target.value)}
-                        placeholder="Gate, landmark, or pickup instruction"
-                        value={rideNote}
-                      />
+                    <div className="rounded-lg border border-border bg-card p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                          <UserRound className="size-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-black">Who is riding?</p>
+                          <p className="text-xs leading-5 text-muted-foreground">
+                            Tell the rider who they should meet at pickup.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {(["self", "other"] as const).map((passengerType) => (
+                          <button
+                            className={
+                              bookingFor === passengerType
+                                ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground"
+                                : "rounded-lg bg-muted px-3 py-3 text-sm font-black"
+                            }
+                            key={passengerType}
+                            onClick={() => {
+                              setBookingFor(passengerType);
+                              if (passengerType === "other") {
+                                setPickup(null);
+                                setPickupAccuracy(null);
+                                setMessage(
+                                  "Choose the passenger's pickup using search or the map.",
+                                );
+                              }
+                            }}
+                            type="button"
+                          >
+                            {passengerType === "self"
+                              ? "Myself"
+                              : "Someone else"}
+                          </button>
+                        ))}
+                      </div>
+                      {!bookingFor ? (
+                        <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">
+                          Select one option before choosing pickup.
+                        </p>
+                      ) : null}
+                      {bookingFor === "self" ? (
+                        <p className="mt-3 rounded-lg bg-secondary/70 px-3 py-2 text-xs font-semibold">
+                          Passenger:{" "}
+                          {profile?.full_name || "Your Taxiro profile"}
+                          {profile?.phone ? ` - ${profile.phone}` : ""}
+                        </p>
+                      ) : null}
+                      {bookingFor === "other" ? (
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <Label htmlFor="passenger-name">
+                              Passenger name
+                            </Label>
+                            <Input
+                              autoComplete="name"
+                              id="passenger-name"
+                              maxLength={80}
+                              onChange={(event) =>
+                                setPassengerName(event.target.value)
+                              }
+                              placeholder="Who will ride?"
+                              value={passengerName}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="passenger-phone">
+                              Passenger phone
+                            </Label>
+                            <Input
+                              autoComplete="tel"
+                              id="passenger-phone"
+                              inputMode="tel"
+                              maxLength={16}
+                              onChange={(event) =>
+                                setPassengerPhone(event.target.value)
+                              }
+                              placeholder="Mobile number"
+                              value={passengerPhone}
+                            />
+                          </div>
+                          <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">
+                            Current-location detection is off for this booking.
+                            Search or pin the passenger&apos;s actual pickup.
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
-                <Button className="sticky bottom-2 z-10 h-14 rounded-lg text-base font-bold shadow-[0_12px_32px_rgb(16_23_19_/_0.24)]" onClick={() => void createRide()}>
-                  {bookingMode === "now" ? "Book ride now" : "Schedule advance ride"}
-                </Button>
+                    <div className="grid gap-3">
+                      <div className="min-w-0 rounded-lg border border-border bg-card p-3">
+                        <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                            From
+                          </p>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {bookingFor !== "other" ? (
+                              <Button
+                                className="h-8 min-w-0 rounded-lg px-3 text-xs"
+                                disabled={
+                                  detectingPickup || bookingFor !== "self"
+                                }
+                                onClick={detectPickupLocation}
+                                size="sm"
+                                variant="outline"
+                              >
+                                {detectingPickup ? "Detecting..." : "Detect me"}
+                              </Button>
+                            ) : (
+                              <span className="rounded-lg bg-muted px-2 py-1.5 text-[10px] font-bold text-muted-foreground">
+                                Passenger pickup
+                              </span>
+                            )}
+                            <Button
+                              className="h-8 min-w-0 rounded-lg px-3 text-xs"
+                              onClick={() => startMapPick("pickup")}
+                              size="sm"
+                              variant={
+                                mapPickMode === "pickup"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              <span className="sm:hidden">Map</span>
+                              <span className="hidden sm:inline">
+                                Choose on map
+                              </span>
+                            </Button>
+                          </div>
+                        </div>
+                        {pickupAccuracy ? (
+                          <p
+                            className={`mb-2 text-xs font-semibold ${!detectingPickup && pickupAccuracy > MAX_USABLE_LOCATION_ACCURACY_M ? "text-amber-700" : "text-muted-foreground"}`}
+                          >
+                            {detectingPickup
+                              ? `Improving GPS accuracy... +/-${pickupAccuracy}m`
+                              : `${pickupAccuracy > MAX_USABLE_LOCATION_ACCURACY_M ? "Low GPS accuracy" : "GPS accuracy"} +/-${pickupAccuracy}m`}
+                          </p>
+                        ) : null}
+                        <LocationSearch
+                          hideLabel
+                          key={`pickup-${pickup?.address ?? "empty"}`}
+                          label="Pickup"
+                          onSelect={(selected) => {
+                            setPickup(selected);
+                            setPickupAccuracy(null);
+                          }}
+                          selectedValue={pickup?.address}
+                        />
+                      </div>
+
+                      <div className="min-w-0 rounded-lg border border-border bg-card p-3">
+                        <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                            To
+                          </p>
+                          <Button
+                            className="h-8 min-w-0 rounded-lg px-3 text-xs"
+                            onClick={() => startMapPick("drop")}
+                            size="sm"
+                            variant={
+                              mapPickMode === "drop" ? "default" : "secondary"
+                            }
+                          >
+                            <span className="sm:hidden">Map</span>
+                            <span className="hidden sm:inline">
+                              Choose on map
+                            </span>
+                          </Button>
+                        </div>
+                        <LocationSearch
+                          hideLabel
+                          key={`drop-${drop?.address ?? "empty"}`}
+                          label="Drop"
+                          onSelect={setDrop}
+                          selectedValue={drop?.address}
+                        />
+                      </div>
+                    </div>
+                    {mapPickMode ? (
+                      <div className="rounded-lg border border-[#101713]/20 bg-secondary p-3 text-sm font-semibold text-secondary-foreground">
+                        Tap the map to set{" "}
+                        {mapPickMode === "pickup"
+                          ? "From / pickup"
+                          : "To / drop"}
+                        .
+                      </div>
+                    ) : null}
+                    {bookingMode === "advance" ? (
+                      <div className="grid gap-3 rounded-lg bg-muted p-3">
+                        <div>
+                          <Label htmlFor="scheduled">
+                            Advance pickup date and time
+                          </Label>
+                          <Input
+                            className="mt-1 h-12 bg-card"
+                            id="scheduled"
+                            min={toDateTimeLocalInput(new Date())}
+                            onChange={(event) =>
+                              setScheduledTime(event.target.value)
+                            }
+                            type="datetime-local"
+                            value={scheduledTime}
+                          />
+                        </div>
+                        <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
+                          <TimePreset
+                            label="+30 min"
+                            onClick={() => setScheduledTime(offsetDateTime(30))}
+                          />
+                          <TimePreset
+                            label="+1 hour"
+                            onClick={() => setScheduledTime(offsetDateTime(60))}
+                          />
+                          <TimePreset
+                            label="Tomorrow"
+                            onClick={() => setScheduledTime(tomorrowMorning())}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="rounded-xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+                        Book now, then tap I&apos;m Ready when you are at the
+                        pickup point.
+                      </p>
+                    )}
+                    <div className="grid gap-3 rounded-lg border border-border bg-card p-3">
+                      <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 text-center">
+                        <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
+                          <p className="text-xs text-muted-foreground">Fare</p>
+                          <p className="mt-1 font-black">
+                            {formatMoney(displayedFare.fare)}
+                          </p>
+                        </div>
+                        <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Distance
+                          </p>
+                          <p className="mt-1 font-black">
+                            {routeSummary?.distanceKm ?? "--"} km
+                          </p>
+                        </div>
+                        <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
+                          <p className="text-xs text-muted-foreground">ETA</p>
+                          <p className="mt-1 font-black">
+                            {routeSummary?.durationMin ?? "--"} min
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-secondary/70 px-3 py-2 text-xs">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-black">
+                            {displayedFare.periodLabel}
+                          </span>
+                          <span className="font-semibold">
+                            Rs {displayedFare.ratePerKm}/km{" "}
+                            {getVehicleLabel(vehicleType)}
+                            {displayedFare.isPeak ? " peak" : ""}
+                          </span>
+                        </div>
+                        <p className="mt-1 leading-5 text-muted-foreground">
+                          Peak: 9:00-10:30 AM, 5:00-6:00 PM, and 10:00
+                          PM-midnight.
+                        </p>
+                      </div>
+                      {operationalConfigUnavailable ? (
+                        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800">
+                          Configured service-area pricing is not available yet.
+                          Taxiro is using safe fallback per-km pricing for this
+                          booking.
+                        </p>
+                      ) : null}
+                      <div>
+                        <Label>Payment preference</Label>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {(["cash", "upi"] as const).map((method) => (
+                            <button
+                              className={
+                                paymentMethod === method
+                                  ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground"
+                                  : "rounded-lg bg-muted px-3 py-3 text-sm font-black"
+                              }
+                              key={method}
+                              onClick={() => setPaymentMethod(method)}
+                              type="button"
+                            >
+                              {method === "cash" ? "Cash" : "UPI after ride"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        className="flex w-full items-center justify-between rounded-xl bg-muted px-3 py-2.5 text-left text-sm font-bold"
+                        onClick={() =>
+                          setShowRideOptions((current) => !current)
+                        }
+                        type="button"
+                      >
+                        <span>
+                          {rideNote ? "Pickup note added" : "Add pickup note"}
+                        </span>
+                        <ChevronDown
+                          className={`size-4 transition ${showRideOptions ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {showRideOptions ? (
+                        <div className="animate-in">
+                          <Label htmlFor="rider-note">Note for rider</Label>
+                          <Input
+                            className="mt-1"
+                            id="rider-note"
+                            maxLength={180}
+                            onChange={(event) =>
+                              setRideNote(event.target.value)
+                            }
+                            placeholder="Gate, landmark, or pickup instruction"
+                            value={rideNote}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                    <Button
+                      className="sticky bottom-2 z-10 h-14 rounded-lg text-base font-bold shadow-[0_12px_32px_rgb(16_23_19_/_0.24)]"
+                      onClick={() => void createRide()}
+                    >
+                      {bookingMode === "now"
+                        ? "Book ride now"
+                        : "Schedule advance ride"}
+                    </Button>
                   </>
                 ) : (
                   <RideHistoryPanel
@@ -1204,36 +1621,55 @@ export default function UserDashboard() {
                 )}
               </div>
             )}
-            {message ? <p className="mt-3 text-center text-sm text-muted-foreground">{message}</p> : null}
-        </ResponsiveRideSheet>
+            {message ? (
+              <p className="mt-3 text-center text-sm text-muted-foreground">
+                {message}
+              </p>
+            ) : null}
+          </ResponsiveRideSheet>
         ) : null}
         {activeRide ? (
           <div className="absolute left-1/2 top-[max(0.5rem,env(safe-area-inset-top))] z-[1210] hidden w-[28rem] -translate-x-1/2 grid-cols-3 gap-1.5 xl:grid">
             <FloatingStat label="Status" value={activeRide.status} />
-            <FloatingStat label="ETA" value={`${activeRide.estimated_duration_min ?? "--"}m`} />
-            <FloatingStat label="KM" value={`${activeRide.distance_km ?? "--"}`} />
+            <FloatingStat
+              label="ETA"
+              value={`${activeRide.estimated_duration_min ?? "--"}m`}
+            />
+            <FloatingStat
+              label="KM"
+              value={`${activeRide.distance_km ?? "--"}`}
+            />
           </div>
         ) : null}
         {mapPickMode ? (
-          <div
-            className="absolute inset-x-2 top-3 z-[1300] rounded-lg bg-[#101713] px-4 py-3 text-center text-sm font-black text-white shadow-[var(--shadow-soft)] sm:left-1/2 sm:right-auto sm:w-[24rem] sm:max-w-[calc(100%-0.75rem)] sm:-translate-x-1/2"
-          >
-            Move the map under the pin to set {mapPickMode === "pickup" ? "your pickup" : "your drop"}.
+          <div className="absolute inset-x-2 top-3 z-[1300] rounded-lg bg-[#101713] px-4 py-3 text-center text-sm font-black text-white shadow-[var(--shadow-soft)] sm:left-1/2 sm:right-auto sm:w-[24rem] sm:max-w-[calc(100%-0.75rem)] sm:-translate-x-1/2">
+            Move the map under the pin to set{" "}
+            {mapPickMode === "pickup" ? "your pickup" : "your drop"}.
           </div>
         ) : null}
         {mapPickMode ? (
           <div className="absolute inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[1300] mx-auto max-w-sm rounded-lg border border-white/70 bg-white/95 p-3 shadow-[var(--shadow-soft)] backdrop-blur-xl">
-            <p className="text-sm font-black">Is the pin exactly where you need it?</p>
-            <p className="mt-1 text-xs text-muted-foreground">Zoom and move the map for a precise entrance or pickup point.</p>
+            <p className="text-sm font-black">
+              Is the pin exactly where you need it?
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Zoom and move the map for a precise entrance or pickup point.
+            </p>
             <div className="mt-3 grid grid-cols-[0.7fr_1.3fr] gap-2">
-              <Button onClick={() => {
-                setMapPickMode(null);
-                setMapCandidate(null);
-                setMapSelectionStart(null);
-              }} variant="outline">
+              <Button
+                onClick={() => {
+                  setMapPickMode(null);
+                  setMapCandidate(null);
+                  setMapSelectionStart(null);
+                }}
+                variant="outline"
+              >
                 Cancel
               </Button>
-              <Button disabled={!mapCandidate} onClick={() => void confirmMapPick()}>
+              <Button
+                disabled={!mapCandidate}
+                onClick={() => void confirmMapPick()}
+              >
                 Confirm {mapPickMode === "pickup" ? "pickup" : "drop"}
               </Button>
             </div>
@@ -1243,7 +1679,10 @@ export default function UserDashboard() {
           <CancelRideDialog
             onClose={() => setCancelTarget(null)}
             onConfirm={(reason) => cancelRide(cancelTarget, reason)}
-            penaltyAmount={getUserCancellationFine(userCancelledRideCount, Boolean(cancelTarget.assigned_rider_id))}
+            penaltyAmount={getUserCancellationFine(
+              userCancelledRideCount,
+              Boolean(cancelTarget.assigned_rider_id),
+            )}
             ride={cancelTarget}
           />
         ) : null}
@@ -1263,7 +1702,6 @@ export default function UserDashboard() {
           />
         ) : null}
       </div>
-
     </AppShell>
   );
 }
@@ -1275,7 +1713,9 @@ function LoadingRideShell({ label, title }: { label: string; title: string }) {
         <DynamicMapPicker className="taxiro-map-canvas overflow-hidden" />
         <div className="taxiro-overlay-bar pointer-events-none absolute inset-x-2 top-0 z-[1200] flex items-start justify-between gap-2 sm:inset-x-3 lg:inset-x-4">
           <div className="pointer-events-auto min-w-0 flex-1 overflow-hidden rounded-xl border border-white/80 bg-white/94 p-2.5 shadow-[var(--shadow-soft)] backdrop-blur-xl sm:max-w-sm sm:p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+              {label}
+            </p>
             <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-black tracking-tight sm:gap-2 sm:text-lg">
               <Bike className="size-4 sm:size-5" />
               {title}
@@ -1303,8 +1743,23 @@ function LoadingRideShell({ label, title }: { label: string; title: string }) {
   );
 }
 
+function isMissingSupabaseObject(
+  error: { code?: string; message?: string } | null | undefined,
+) {
+  if (!error) return false;
+  const text = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
+  return (
+    text.includes("404") ||
+    text.includes("not found") ||
+    text.includes("schema cache") ||
+    text.includes("could not find")
+  );
+}
+
 function toDateTimeLocalInput(date: Date) {
-  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  const localTime = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60_000,
+  );
   return localTime.toISOString().slice(0, 16);
 }
 
@@ -1319,7 +1774,13 @@ function tomorrowMorning() {
   return toDateTimeLocalInput(date);
 }
 
-function TimePreset({ label, onClick }: { label: string; onClick: () => void }) {
+function TimePreset({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       className="rounded-lg bg-card px-3 py-2 text-xs font-bold shadow-sm"
@@ -1355,7 +1816,12 @@ function RideHistoryPanel({
       <RideSection
         actionForRide={(ride) =>
           ["scheduled", "ready", "assigned"].includes(ride.status) ? (
-            <Button className="h-8 px-2.5 text-xs" onClick={() => onCancel(ride)} size="sm" variant="destructive">
+            <Button
+              className="h-8 px-2.5 text-xs"
+              onClick={() => onCancel(ride)}
+              size="sm"
+              variant="destructive"
+            >
               Cancel
             </Button>
           ) : null
@@ -1368,14 +1834,23 @@ function RideHistoryPanel({
       <RideSection
         actionForRide={(ride) =>
           ride.status === "scheduled" ? (
-            <Button className="h-8 px-2.5 text-xs" onClick={() => onReady(ride)} size="sm">
+            <Button
+              className="h-8 px-2.5 text-xs"
+              onClick={() => onReady(ride)}
+              size="sm"
+            >
               I&apos;m Ready
             </Button>
           ) : null
         }
         secondaryActionForRide={(ride) =>
           ride.status === "scheduled" ? (
-            <Button className="h-8 px-2.5 text-xs" onClick={() => onCancel(ride)} size="sm" variant="destructive">
+            <Button
+              className="h-8 px-2.5 text-xs"
+              onClick={() => onCancel(ride)}
+              size="sm"
+              variant="destructive"
+            >
               Cancel
             </Button>
           ) : null
@@ -1412,7 +1887,11 @@ function RideSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <details className="group rounded-lg border border-border bg-muted/60 p-2" onToggle={(event) => setOpen(event.currentTarget.open)} open={open}>
+    <details
+      className="group rounded-lg border border-border bg-muted/60 p-2"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      open={open}
+    >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-2 py-2">
         <h2 className="text-sm font-black tracking-tight">{title}</h2>
         <span className="ml-auto rounded-md bg-card px-2 py-1 text-[11px] font-bold text-muted-foreground">
@@ -1471,7 +1950,11 @@ function rideHeadline(status: RideRequest["status"]) {
 }
 
 function isReadySignalExpired(ride: RideRequest) {
-  return ride.status === "ready" && Boolean(ride.ready_expires_at) && new Date(ride.ready_expires_at as string).getTime() <= Date.now();
+  return (
+    ride.status === "ready" &&
+    Boolean(ride.ready_expires_at) &&
+    new Date(ride.ready_expires_at as string).getTime() <= Date.now()
+  );
 }
 
 function formatReadySignalTimeLeft(value: string | null) {
@@ -1515,16 +1998,23 @@ function ActiveUserRide({
   riderLocation?: RiderLocation | null;
   riderPhotoUrl?: string | null;
   riderProfile?: RiderProfile | null;
-  routeSummary: { distanceKm: number | null; durationMin: number | null } | null;
+  routeSummary: {
+    distanceKm: number | null;
+    durationMin: number | null;
+  } | null;
   ride: RideRequest;
   sosBusy: boolean;
   userId: string | null;
 }) {
   const hasLivePhase = ["assigned", "started"].includes(ride.status);
-  const trackingTitle = ride.status === "assigned" ? "Rider is coming to pickup" : "Tracking trip to destination";
-  const trackingText = ride.status === "assigned"
-    ? "After the rider reaches you, share the private code to start the trip."
-    : "Code verified. The live route now follows the trip toward your drop location.";
+  const trackingTitle =
+    ride.status === "assigned"
+      ? "Rider is coming to pickup"
+      : "Tracking trip to destination";
+  const trackingText =
+    ride.status === "assigned"
+      ? "After the rider reaches you, share the private code to start the trip."
+      : "Code verified. The live route now follows the trip toward your drop location.";
   const liveEta = routeSummary?.durationMin ?? ride.estimated_duration_min;
   const liveDistance = routeSummary?.distanceKm ?? ride.distance_km;
   const readyExpired = isReadySignalExpired(ride);
@@ -1536,20 +2026,36 @@ function ActiveUserRide({
     <div className="grid gap-4">
       <div className="grid gap-3 sm:flex sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <Badge className="bg-primary text-primary-foreground">{ride.status}</Badge>
-          <h1 className="mt-2 text-3xl font-black tracking-tight">{rideHeadline(ride.status)}</h1>
+          <Badge className="bg-primary text-primary-foreground">
+            {ride.status}
+          </Badge>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">
+            {rideHeadline(ride.status)}
+          </h1>
           <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
             {ride.pickup_address} to {ride.drop_address}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           {canPublishReady ? (
-            <Button className="rounded-lg" disabled={readyBusy} onClick={onReady}>
-              {readyBusy ? "Publishing..." : readyExpired ? "Publish again - " + readySignalMinutes + " min" : "I'm Ready - " + readySignalMinutes + " min"}
+            <Button
+              className="rounded-lg"
+              disabled={readyBusy}
+              onClick={onReady}
+            >
+              {readyBusy
+                ? "Publishing..."
+                : readyExpired
+                  ? "Publish again - " + readySignalMinutes + " min"
+                  : "I'm Ready - " + readySignalMinutes + " min"}
             </Button>
           ) : null}
           {["scheduled", "ready", "assigned"].includes(ride.status) ? (
-            <Button className="rounded-lg" onClick={onCancel} variant="destructive">
+            <Button
+              className="rounded-lg"
+              onClick={onCancel}
+              variant="destructive"
+            >
               Cancel
             </Button>
           ) : null}
@@ -1561,7 +2067,16 @@ function ActiveUserRide({
             <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3">
               <div className="relative size-16 overflow-hidden rounded-lg bg-secondary">
                 {riderPhotoUrl ? (
-                  <Image alt={(riderDetails.full_name ?? "Assigned rider") + " profile"} className="object-cover" fill sizes="64px" src={riderPhotoUrl} unoptimized />
+                  <Image
+                    alt={
+                      (riderDetails.full_name ?? "Assigned rider") + " profile"
+                    }
+                    className="object-cover"
+                    fill
+                    sizes="64px"
+                    src={riderPhotoUrl}
+                    unoptimized
+                  />
                 ) : (
                   <div className="flex size-full items-center justify-center text-2xl font-black">
                     {(riderDetails.full_name ?? "R").slice(0, 1).toUpperCase()}
@@ -1571,7 +2086,9 @@ function ActiveUserRide({
               <div className="min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-lg font-black">{riderDetails.full_name ?? "Taxiro rider"}</p>
+                    <p className="truncate text-lg font-black">
+                      {riderDetails.full_name ?? "Taxiro rider"}
+                    </p>
                     <div className="mt-1 flex min-w-0 flex-wrap gap-1.5 text-[11px] font-bold">
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-amber-800">
                         <Star className="size-3 fill-current" />
@@ -1584,36 +2101,61 @@ function ActiveUserRide({
                       </span>
                     </div>
                   </div>
-                  <Badge className="shrink-0 bg-secondary text-secondary-foreground">{getVehicleLabel(riderDetails.vehicle_type)}</Badge>
+                  <Badge className="shrink-0 bg-secondary text-secondary-foreground">
+                    {getVehicleLabel(riderDetails.vehicle_type)}
+                  </Badge>
                 </div>
-                <p className="mt-2 break-words text-sm font-semibold leading-5">{riderDetails.vehicle_make} {riderDetails.vehicle_model}</p>
-                <p className="mt-1 inline-flex max-w-full break-all rounded-md bg-[#101713] px-2.5 py-1 text-sm font-black tracking-[0.12em] text-white">{riderDetails.registration_number}</p>
+                <p className="mt-2 break-words text-sm font-semibold leading-5">
+                  {riderDetails.vehicle_make} {riderDetails.vehicle_model}
+                </p>
+                <p className="mt-1 inline-flex max-w-full break-all rounded-md bg-[#101713] px-2.5 py-1 text-sm font-black tracking-[0.12em] text-white">
+                  {riderDetails.registration_number}
+                </p>
               </div>
               {riderDetails.phone ? (
-                <a className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-sm font-black" href={"tel:" + riderDetails.phone}>
+                <a
+                  className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-sm font-black"
+                  href={"tel:" + riderDetails.phone}
+                >
                   <Phone className="size-4" /> Call rider
                 </a>
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Loading your assigned rider and vehicle details...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading your assigned rider and vehicle details...
+            </p>
           )}
         </div>
       ) : null}
       <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-secondary/60 p-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">Passenger</p>
-          <p className="truncate font-black">{ride.passenger_name || (ride.booking_for === "other" ? "Guest passenger" : "You")}</p>
-          <p className="text-xs text-muted-foreground">{ride.booking_for === "other" ? "Ride booked for someone else" : "Ride booked for yourself"}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+            Passenger
+          </p>
+          <p className="truncate font-black">
+            {ride.passenger_name ||
+              (ride.booking_for === "other" ? "Guest passenger" : "You")}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {ride.booking_for === "other"
+              ? "Ride booked for someone else"
+              : "Ride booked for yourself"}
+          </p>
         </div>
-        {ride.passenger_phone ? <span className="max-w-[10rem] shrink-0 truncate rounded-lg bg-card px-3 py-2 text-xs font-bold">{ride.passenger_phone}</span> : null}
+        {ride.passenger_phone ? (
+          <span className="max-w-[10rem] shrink-0 truncate rounded-lg bg-card px-3 py-2 text-xs font-bold">
+            {ride.passenger_phone}
+          </span>
+        ) : null}
       </div>
       {ride.status === "started" ? (
         <div className="rounded-lg bg-[#101713] p-4 text-white">
           <p className="text-sm font-semibold text-white/60">Trip live</p>
           <p className="mt-1 text-xl font-black">You are on your way</p>
           <p className="mt-2 text-sm leading-6 text-white/65">
-            The ride can be completed from the rider app after reaching the drop point.
+            The ride can be completed from the rider app after reaching the drop
+            point.
           </p>
         </div>
       ) : null}
@@ -1623,11 +2165,16 @@ function ActiveUserRide({
             <div className="min-w-0">
               <p className="text-sm font-black">Ready signal duration</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Choose how long nearby riders can see this request after you publish it.
+                Choose how long nearby riders can see this request after you
+                publish it.
               </p>
             </div>
             <Badge className="shrink-0 bg-secondary text-secondary-foreground">
-              {ride.status === "ready" ? (readyExpired ? "Expired" : readyTimeLeft) : `${readySignalMinutes} min`}
+              {ride.status === "ready"
+                ? readyExpired
+                  ? "Expired"
+                  : readyTimeLeft
+                : `${readySignalMinutes} min`}
             </Badge>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
@@ -1658,7 +2205,9 @@ function ActiveUserRide({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-black">{trackingTitle}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{trackingText}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {trackingText}
+              </p>
             </div>
             <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-black text-secondary-foreground">
               {ride.status === "assigned" ? "Pickup" : "Drop"}
@@ -1666,12 +2215,20 @@ function ActiveUserRide({
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Live ETA</p>
-              <p className="mt-1 text-lg font-black">{liveEta ? `${liveEta} min` : "--"}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Live ETA
+              </p>
+              <p className="mt-1 text-lg font-black">
+                {liveEta ? `${liveEta} min` : "--"}
+              </p>
             </div>
             <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Route</p>
-              <p className="mt-1 text-lg font-black">{liveDistance ? `${liveDistance} km` : "--"}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Route
+              </p>
+              <p className="mt-1 text-lg font-black">
+                {liveDistance ? `${liveDistance} km` : "--"}
+              </p>
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
@@ -1686,7 +2243,8 @@ function ActiveUserRide({
           <div>
             <p className="text-sm font-black">Your fare</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              This is the customer fare saved when the ride was booked. Rider earning and Taxiro share are shown only in the rider/admin views.
+              This is the customer fare saved when the ride was booked. Rider
+              earning and Taxiro share are shown only in the rider/admin views.
             </p>
           </div>
           <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-[11px] font-black uppercase text-secondary-foreground">
@@ -1695,17 +2253,30 @@ function ActiveUserRide({
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-center">
           <div className="min-w-0 rounded-lg bg-muted p-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Fare</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Fare
+            </p>
             <p className="mt-1 font-black">{formatMoney(ride.fare_estimate)}</p>
           </div>
           <div className="min-w-0 rounded-lg bg-muted p-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Pay by</p>
-            <p className="mt-1 font-black uppercase">{ride.payment_method ?? "cash"}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Pay by
+            </p>
+            <p className="mt-1 font-black uppercase">
+              {ride.payment_method ?? "cash"}
+            </p>
           </div>
         </div>
         {ride.fare_rate_per_km ? (
           <p className="mt-3 rounded-lg bg-secondary/70 px-3 py-2 text-xs font-semibold">
-            {getVehicleLabel(ride.vehicle_type)} {ride.fare_pricing_period === "standard" ? "standard fare" : "peak fare"}: Rs {(ride.fare_rate_per_km ?? 0) + (ride.vehicle_surcharge_per_km ?? 0)}/km
+            {getVehicleLabel(ride.vehicle_type)}{" "}
+            {ride.fare_pricing_period === "standard"
+              ? "standard fare"
+              : "peak fare"}
+            : Rs{" "}
+            {(ride.fare_rate_per_km ?? 0) +
+              (ride.vehicle_surcharge_per_km ?? 0)}
+            /km
           </p>
         ) : null}
         <p className="mt-3 text-xs text-muted-foreground">
@@ -1721,14 +2292,20 @@ function ActiveUserRide({
             {ride.payment_method === "upi" ? (
               <div className="mt-2 grid gap-2">
                 <p className="rounded-xl bg-card p-3 text-sm font-semibold">
-                  Ask the rider to show their Taxiro UPI QR, then scan it with your payment app and pay {formatMoney(ride.fare_estimate)}.
+                  Ask the rider to show their Taxiro UPI QR, then scan it with
+                  your payment app and pay {formatMoney(ride.fare_estimate)}.
                 </p>
                 {riderProfile?.upi_id ? (
-                  <p className="rounded-xl bg-card p-3 text-sm text-muted-foreground">UPI ID fallback: {riderProfile.upi_id}</p>
+                  <p className="rounded-xl bg-card p-3 text-sm text-muted-foreground">
+                    UPI ID fallback: {riderProfile.upi_id}
+                  </p>
                 ) : null}
               </div>
             ) : (
-              <p className="mt-2 rounded-xl bg-card p-3 text-sm font-semibold">Cash selected. Pay {formatMoney(ride.fare_estimate)} directly to the rider.</p>
+              <p className="mt-2 rounded-xl bg-card p-3 text-sm font-semibold">
+                Cash selected. Pay {formatMoney(ride.fare_estimate)} directly to
+                the rider.
+              </p>
             )}
           </div>
         ) : null}
@@ -1739,7 +2316,9 @@ function ActiveUserRide({
             <Clock3 className="size-3" />
             ETA
           </p>
-          <p className="mt-1 font-semibold">{ride.estimated_duration_min ?? "--"} min</p>
+          <p className="mt-1 font-semibold">
+            {ride.estimated_duration_min ?? "--"} min
+          </p>
         </div>
         <div className="min-w-0 rounded-lg bg-muted p-2 sm:p-3">
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -1751,9 +2330,13 @@ function ActiveUserRide({
       </div>
       {ride.status === "assigned" ? (
         <div className="rounded-lg border border-primary/25 bg-secondary p-4">
-          <p className="text-sm font-semibold">Show this code only to your rider</p>
+          <p className="text-sm font-semibold">
+            Show this code only to your rider
+          </p>
           <div className="mt-2 grid gap-3 sm:flex sm:items-end sm:justify-between">
-            <p className="text-xs text-muted-foreground">Required before the ride starts.</p>
+            <p className="text-xs text-muted-foreground">
+              Required before the ride starts.
+            </p>
             <span className="font-mono text-3xl font-semibold tracking-[0.28em] text-primary sm:tracking-[0.35em]">
               {code ?? "Loading..."}
             </span>
@@ -1762,7 +2345,10 @@ function ActiveUserRide({
       ) : ride.status === "started" ? (
         <div className="rounded-lg border border-primary/20 bg-secondary p-4">
           <p className="text-sm font-black">Code verified</p>
-          <p className="mt-1 text-xs text-muted-foreground">The rider entered the private code. Destination tracking is now active.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The rider entered the private code. Destination tracking is now
+            active.
+          </p>
         </div>
       ) : (
         <div className="rounded-lg bg-muted p-4">
@@ -1779,25 +2365,47 @@ function ActiveUserRide({
             <div className="min-w-0">
               <p className="text-sm font-black">Safety alert</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Use SOS if you feel unsafe. Taxiro saves your current ride location and notifies your emergency contact in-app if that phone number has a Taxiro account.
+                Use SOS if you feel unsafe. Taxiro saves your current ride
+                location and notifies your emergency contact in-app if that
+                phone number has a Taxiro account.
               </p>
             </div>
           </div>
-          <Button className="mt-3 h-12 w-full rounded-lg" disabled={sosBusy} onClick={onSos} variant="destructive">
+          <Button
+            className="mt-3 h-12 w-full rounded-lg"
+            disabled={sosBusy}
+            onClick={onSos}
+            variant="destructive"
+          >
             {sosBusy ? "Sending SOS..." : "SOS - notify emergency contact"}
           </Button>
           {emergencyContactPhone ? (
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <a className="flex h-10 items-center justify-center gap-1 rounded-lg border border-red-200 bg-white text-xs font-black text-red-800" href={"tel:" + emergencyContactPhone}>
-                <Phone className="size-3.5" /> Call {emergencyContactName || "contact"}
+              <a
+                className="flex h-10 items-center justify-center gap-1 rounded-lg border border-red-200 bg-white text-xs font-black text-red-800"
+                href={"tel:" + emergencyContactPhone}
+              >
+                <Phone className="size-3.5" /> Call{" "}
+                {emergencyContactName || "contact"}
               </a>
-              <a className="flex h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-2 text-center text-xs font-black text-red-800" href={"sms:" + emergencyContactPhone + "?body=" + encodeURIComponent("Taxiro SOS: I may need help. Please open Taxiro to view my ride alert.")}>
+              <a
+                className="flex h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-2 text-center text-xs font-black text-red-800"
+                href={
+                  "sms:" +
+                  emergencyContactPhone +
+                  "?body=" +
+                  encodeURIComponent(
+                    "Taxiro SOS: I may need help. Please open Taxiro to view my ride alert.",
+                  )
+                }
+              >
                 Prepare SOS SMS
               </a>
             </div>
           ) : null}
           <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-            Triple volume-up is best-effort only in browsers. Keep the visible SOS button as the reliable safety action.
+            Triple volume-up is best-effort only in browsers. Keep the visible
+            SOS button as the reliable safety action.
           </p>
         </div>
       ) : null}
@@ -1829,12 +2437,23 @@ function UserMenu({
 
   return (
     <div className="fixed inset-0 z-[1500] bg-[#101713]/48 backdrop-blur-sm">
-      <button aria-label="Close menu" className="absolute inset-0 cursor-default" onClick={onClose} type="button" />
+      <button
+        aria-label="Close menu"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+        type="button"
+      />
       <aside
         className="absolute inset-x-0 bottom-0 top-[max(0.5rem,env(safe-area-inset-top))] grid touch-pan-y gap-3 overflow-y-auto overflow-x-clip rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-soft)] sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-3 sm:max-h-[calc(100dvh-1.5rem)] sm:w-[27rem] sm:max-w-[calc(100%-1.5rem)] sm:gap-4 sm:rounded-xl"
-        onPointerDown={(event) => { swipeStartX.current = event.clientX; }}
+        onPointerDown={(event) => {
+          swipeStartX.current = event.clientX;
+        }}
         onPointerUp={(event) => {
-          if (swipeStartX.current !== null && event.clientX - swipeStartX.current > 72) onClose();
+          if (
+            swipeStartX.current !== null &&
+            event.clientX - swipeStartX.current > 72
+          )
+            onClose();
           swipeStartX.current = null;
         }}
       >
@@ -1862,7 +2481,9 @@ function UserMenu({
             <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-card">
               <UserRound className="size-4" />
             </span>
-            <span className="min-w-0 flex-1 font-black">Profile and account</span>
+            <span className="min-w-0 flex-1 font-black">
+              Profile and account
+            </span>
             <ChevronDown className="size-4 shrink-0 transition group-open:rotate-180" />
           </summary>
           <div className="mx-3 mb-3 max-h-[min(62dvh,30rem)] overflow-y-auto overscroll-contain rounded-lg bg-white p-2">
@@ -1879,14 +2500,26 @@ function UserMenu({
         </button>
         <details className="group rounded-lg border border-border bg-muted">
           <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-card"><Settings className="size-4" /></span>
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-card">
+              <Settings className="size-4" />
+            </span>
             <span className="min-w-0 flex-1 font-black">App settings</span>
             <ChevronDown className="size-4 shrink-0 transition group-open:rotate-180" />
           </summary>
           <div className="mx-3 mb-3 grid gap-2 rounded-lg bg-white p-3 text-sm text-muted-foreground">
-            <p><strong className="text-foreground">Location:</strong> use Detect on the booking screen. If blocked, enable Location in browser site settings.</p>
-            <p><strong className="text-foreground">Notifications:</strong> open the bell on the home map for ride and SOS updates.</p>
-            <p><strong className="text-foreground">Ride history:</strong> tap My rides, then expand the section you need.</p>
+            <p>
+              <strong className="text-foreground">Location:</strong> use Detect
+              on the booking screen. If blocked, enable Location in browser site
+              settings.
+            </p>
+            <p>
+              <strong className="text-foreground">Notifications:</strong> open
+              the bell on the home map for ride and SOS updates.
+            </p>
+            <p>
+              <strong className="text-foreground">Ride history:</strong> tap My
+              rides, then expand the section you need.
+            </p>
           </div>
         </details>
         <MenuLink
@@ -1935,7 +2568,10 @@ function MenuLink({
   title: string;
 }) {
   return (
-    <Link className="block rounded-lg border border-border bg-muted p-4 transition hover:border-primary/20 hover:bg-secondary" href={href}>
+    <Link
+      className="block rounded-lg border border-border bg-muted p-4 transition hover:border-primary/20 hover:bg-secondary"
+      href={href}
+    >
       <div className="mb-2 flex items-center gap-2">
         <span className="flex size-9 items-center justify-center rounded-lg bg-card">
           <Icon className="size-4" />
@@ -1968,19 +2604,6 @@ function MenuCard({
   );
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 function upsertById<T extends { id: string }>(items: T[], incoming: T) {
   const exists = items.some((item) => item.id === incoming.id);
   if (!exists) return [incoming, ...items];
@@ -1990,14 +2613,22 @@ function upsertById<T extends { id: string }>(items: T[], incoming: T) {
 function upsertRiderLocation(items: RiderLocation[], incoming: RiderLocation) {
   const exists = items.some((item) => item.rider_id === incoming.rider_id);
   if (!exists) return [incoming, ...items];
-  return items.map((item) => (item.rider_id === incoming.rider_id ? incoming : item));
+  return items.map((item) =>
+    item.rider_id === incoming.rider_id ? incoming : item,
+  );
 }
 
 function sortRides(items: RideRequest[]) {
-  return [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  return [...items].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 }
 function formatTrackingAge(value: string) {
-  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  const seconds = Math.max(
+    0,
+    Math.round((Date.now() - new Date(value).getTime()) / 1000),
+  );
   if (seconds < 10) return "live now";
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.round(seconds / 60)}m ago`;

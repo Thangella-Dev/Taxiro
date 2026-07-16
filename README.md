@@ -99,14 +99,19 @@ The MVP currently includes:
 - Public landing page now includes a premium glass-style map hero, animated glow layers, live service badge, trust chips, and smoother capsule CTAs.
 - Deployment troubleshooting is documented for Vercel author/team mismatch and Supabase Preview migration-history mismatch.
 - Admin dashboard now includes a real System Health workspace backed by `/api/health` for deployment diagnostics, environment readiness, Vercel metadata, and Supabase/Vercel action items.
+- Production-friendly shortcut routes now redirect `/admin`, `/user`, and `/rider` to their correct dashboard URLs.
+- Booking now gracefully falls back to safe per-km pricing when production Supabase is missing `service_areas` or `pricing_rules` migrations.
+- Customer nearby-rider preview now disables quietly when `get_nearby_available_riders` is missing, preventing repeated 404 console/API spam.
+- Admin Health now checks database readiness for `service_areas`, `pricing_rules`, and `get_nearby_available_riders`, and shows the exact migration file needed when production Supabase is behind.
+- Vercel Hobby cron compatibility is preserved with the daily `0 0 * * *` schedule; five-minute ready-signal expiry is documented as requiring Vercel Pro or an external scheduler.
 
 ## Main Routes
 
 - Landing page: `/`
 - Auth: `/auth`
-- User app: `/dashboard/user`
-- Rider app: `/dashboard/rider`
-- Admin dashboard: `/dashboard/admin`
+- User app: `/dashboard/user` `(/user redirects here)`
+- Rider app: `/dashboard/rider` `(/rider redirects here)`
+- Admin dashboard: `/dashboard/admin` `(/admin redirects here)`
 - Ride details: `/rides/[id]`
 - Information pages: `/about`, `/help`, `/privacy`, `/rules`
 
@@ -795,3 +800,48 @@ Deployment requirements:
 3. If Supabase Preview still fails, run `npx supabase migration list --linked`, identify remote-only migration versions, then restore missing files or carefully repair migration history.
 4. Configure `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, and `NEXT_PUBLIC_SITE_URL` in Vercel Production so Admin Health shows a complete operational state.
 5. Re-run Vercel and Supabase checks after the Supabase migration-history issue is resolved.
+## July 15, 2026 Production Route Access Update
+
+- Added direct shortcut routes for common production access paths:
+  - `/admin` redirects to `/dashboard/admin`.
+  - `/user` redirects to `/dashboard/user`.
+  - `/rider` redirects to `/dashboard/rider`.
+- Added noindex metadata for the shortcut routes because they are access aliases, not independent content pages.
+- This fixes confusion when opening `https://taxiro.vercel.app/admin` and makes production URLs easier to share during testing.
+
+Latest verified checks:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run build`: passed.
+- Next.js 16.2.7 generated 24 app routes, including `/admin`, `/user`, and `/rider`.
+
+Deployment note:
+
+- The correct admin dashboard remains `/dashboard/admin`; `/admin` is now a convenience redirect for production users and testers.
+
+
+## 16 July 2026 Production Stabilization Notes
+
+Today's production work focused on keeping Taxiro usable when deployed code is ahead of the Supabase production database.
+
+- `/admin`, `/user`, and `/rider` are production-friendly shortcut routes that redirect to the role dashboards.
+- If `service_areas` or `pricing_rules` are missing in Supabase, booking continues with Taxiro fallback per-km pricing instead of failing.
+- If `get_nearby_available_riders` is missing, the user map hides live nearby-rider preview and shows a quiet unavailable state.
+- `/api/health` now checks environment readiness and database readiness without returning secret values.
+- Admin Health lists the missing migration filename for production recovery:
+  - `20260701203000_customer_nearby_rider_preview.sql`
+  - `20260703110000_operational_and_product_foundation.sql`
+  - `20260706100000_operational_enforcement_and_fraud.sql`
+- `vercel.json` remains Hobby-plan compatible with daily cron: `0 0 * * *`.
+
+Verification completed on 16 July 2026:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Build result: Next.js 16.2.7 production build passed with 24 app routes.
+
