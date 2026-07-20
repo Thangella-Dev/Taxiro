@@ -99,6 +99,8 @@ The MVP currently includes:
 - Public landing page now includes a premium glass-style map hero, animated glow layers, live service badge, trust chips, and smoother capsule CTAs.
 - Deployment troubleshooting is documented for Vercel author/team mismatch and Supabase Preview migration-history mismatch.
 - Admin dashboard now includes a real System Health workspace backed by `/api/health` for deployment diagnostics, environment readiness, Vercel metadata, and Supabase/Vercel action items.
+- Admin overview now includes an operations control map for Command, Verification, People, Ride Audit, Support, and System Health workspaces.
+- Admin People Control now supports role/status filters, profile search, priority queues, account health chips, and safe suspend/reactivate actions.
 - Production-friendly shortcut routes now redirect `/admin`, `/user`, and `/rider` to their correct dashboard URLs.
 - Booking now gracefully falls back to safe per-km pricing when production Supabase is missing `service_areas` or `pricing_rules` migrations.
 - Customer nearby-rider preview now disables quietly when `get_nearby_available_riders` is missing, preventing repeated 404 console/API spam.
@@ -904,3 +906,29 @@ npm run build
 ```
 
 Result: TypeScript passed, ESLint passed, 11 unit tests passed, and the Next.js 16.2.7 production build passed with 24 app routes.
+
+## 20 July 2026 Admin Control System Upgrade
+
+Additional high-level admin work completed today:
+
+- Added an Admin Overview control map that routes admins directly into Command, Verification, People, Ride Audit, Support, and Health workspaces.
+- Rebuilt the People section into a stronger account control center with:
+  - user/rider/admin totals,
+  - active and suspended totals,
+  - priority queue for suspended accounts or accounts missing phone numbers,
+  - search by name, phone, role, or profile ID,
+  - role filters,
+  - status filters,
+  - reset filters action,
+  - smoother account cards with account health chips,
+  - safe suspend/reactivate controls.
+- Improved the admin control experience with more premium cards, rounded surfaces, hover lift, and clearer workspace guidance.
+
+Verification completed for this admin upgrade:
+
+```bash
+npm run typecheck
+npm run lint
+```
+
+Full production build verification is recorded after the final build step.

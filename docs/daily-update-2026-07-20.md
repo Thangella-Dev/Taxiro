@@ -60,3 +60,26 @@ Taxiro now has a stronger production diagnostics layer. Admin users can use Admi
 - Configure real service areas and vehicle pricing rules.
 - Run two-device user/rider QA against production.
 - Expand authenticated E2E tests for booking, ready signal, rider acceptance, tracking, payment, notifications, and admin verification.
+
+## Additional Admin Control-System Work
+
+After the production health upgrade, I completed another high-impact admin-panel improvement.
+
+Completed:
+
+- Added an Admin Overview control map for fast access to Command, Verification, People, Ride Audit, Support, and Health workspaces.
+- Upgraded the People section into an account control center.
+- Added profile search by name, phone, role, or profile ID.
+- Added role filters for all, user, rider, and admin accounts.
+- Added status filters for all, active, and suspended accounts.
+- Added user/rider/admin/active/suspended/total account metrics.
+- Added a priority queue for suspended accounts and accounts missing phone numbers.
+- Added smoother account cards with account health chips and safe suspend/reactivate actions.
+- Improved the admin UI with more premium rounded cards, hover lift, and clearer command hierarchy.
+
+Additional verification:
+
+```bash
+npm run typecheck
+npm run lint
+```

@@ -624,62 +624,80 @@ export default function AdminDashboard() {
         </nav>
 
         {activeSection === "overview" ? (
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricTile
-              icon={Users}
-              label="Customers"
-              value={profiles.filter((item) => item.role === "user").length}
-              helper="Active app accounts"
-            />
-            <MetricTile
-              icon={Bike}
-              label="Riders"
-              value={profiles.filter((item) => item.role === "rider").length}
-              helper="Registered riders"
-            />
-            <MetricTile
-              icon={MapPin}
-              label="Online riders"
-              value={
-                riderLocations.filter((rider) => rider.is_available).length
+          <div className="grid gap-5">
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricTile
+                icon={Users}
+                label="Customers"
+                value={profiles.filter((item) => item.role === "user").length}
+                helper="Active app accounts"
+              />
+              <MetricTile
+                icon={Bike}
+                label="Riders"
+                value={profiles.filter((item) => item.role === "rider").length}
+                helper="Registered riders"
+              />
+              <MetricTile
+                icon={MapPin}
+                label="Online riders"
+                value={
+                  riderLocations.filter((rider) => rider.is_available).length
+                }
+                helper="Available right now"
+                tone="green"
+              />
+              <MetricTile
+                icon={CalendarClock}
+                label="Scheduled"
+                value={
+                  rides.filter((ride) => ride.status === "scheduled").length
+                }
+                helper="Advance bookings"
+              />
+              <MetricTile
+                icon={CreditCard}
+                label="Awaiting payment"
+                value={moneyStats.awaitingPayment}
+                helper="Drop reached"
+                tone="amber"
+              />
+              <MetricTile
+                icon={Users}
+                label="Guest rides"
+                value={moneyStats.guestBookings}
+                helper="Booked for others"
+              />
+              <MetricTile
+                icon={Flame}
+                label="Peak-rate rides"
+                value={moneyStats.peakFareRides}
+                helper="Surge windows"
+                tone="lime"
+              />
+              <MetricTile
+                icon={XCircle}
+                label="Suspended"
+                value={dashboardStats.suspendedAccounts}
+                helper="Accounts restricted"
+                tone="red"
+              />
+            </section>
+            <AdminControlMap
+              activeRides={dashboardStats.activeRides}
+              healthStatus={health?.status ?? "degraded"}
+              onSelect={setActiveSection}
+              readyRides={dashboardStats.readyRides}
+              suspendedAccounts={dashboardStats.suspendedAccounts}
+              supportTickets={
+                supportTickets.filter(
+                  (ticket) =>
+                    ticket.status !== "closed" && ticket.status !== "resolved",
+                ).length
               }
-              helper="Available right now"
-              tone="green"
+              verificationQueue={dashboardStats.verificationQueue}
             />
-            <MetricTile
-              icon={CalendarClock}
-              label="Scheduled"
-              value={rides.filter((ride) => ride.status === "scheduled").length}
-              helper="Advance bookings"
-            />
-            <MetricTile
-              icon={CreditCard}
-              label="Awaiting payment"
-              value={moneyStats.awaitingPayment}
-              helper="Drop reached"
-              tone="amber"
-            />
-            <MetricTile
-              icon={Users}
-              label="Guest rides"
-              value={moneyStats.guestBookings}
-              helper="Booked for others"
-            />
-            <MetricTile
-              icon={Flame}
-              label="Peak-rate rides"
-              value={moneyStats.peakFareRides}
-              helper="Surge windows"
-              tone="lime"
-            />
-            <MetricTile
-              icon={XCircle}
-              label="Suspended"
-              value={dashboardStats.suspendedAccounts}
-              helper="Accounts restricted"
-              tone="red"
-            />
-          </section>
+          </div>
         ) : null}
 
         {activeSection === "command" ? (
@@ -1129,6 +1147,154 @@ function MetricTile({
   );
 }
 
+function AdminControlMap({
+  activeRides,
+  healthStatus,
+  onSelect,
+  readyRides,
+  suspendedAccounts,
+  supportTickets,
+  verificationQueue,
+}: {
+  activeRides: number;
+  healthStatus: HealthPayload["status"];
+  onSelect: (section: AdminSection) => void;
+  readyRides: number;
+  suspendedAccounts: number;
+  supportTickets: number;
+  verificationQueue: number;
+}) {
+  const controls: {
+    description: string;
+    icon: LucideIcon;
+    label: string;
+    metric: string;
+    section: AdminSection;
+    tone: "dark" | "lime" | "amber" | "red" | "soft";
+  }[] = [
+    {
+      description:
+        "Send broadcasts, review safety alerts, and watch current platform load.",
+      icon: ShieldCheck,
+      label: "Command",
+      metric: `${readyRides} ready signals`,
+      section: "command",
+      tone: "dark",
+    },
+    {
+      description:
+        "Approve rider live identity and vehicle access before riders receive jobs.",
+      icon: UserCheck,
+      label: "Verify riders",
+      metric: `${verificationQueue} pending`,
+      section: "verification",
+      tone: verificationQueue ? "amber" : "lime",
+    },
+    {
+      description:
+        "Search accounts, filter users/riders/admins, suspend or restore access.",
+      icon: Users,
+      label: "Control people",
+      metric: `${suspendedAccounts} suspended`,
+      section: "people",
+      tone: suspendedAccounts ? "red" : "soft",
+    },
+    {
+      description:
+        "Audit active, scheduled, ready, completed, and cancelled trips.",
+      icon: Bike,
+      label: "Ride audit",
+      metric: `${activeRides} active`,
+      section: "rides",
+      tone: activeRides ? "lime" : "soft",
+    },
+    {
+      description: "Resolve support queues and keep issue handling traceable.",
+      icon: Headphones,
+      label: "Support desk",
+      metric: `${supportTickets} open`,
+      section: "support",
+      tone: supportTickets ? "amber" : "soft",
+    },
+    {
+      description:
+        "Check deployment blockers, migrations, Supabase readiness, and Vercel state.",
+      icon: Activity,
+      label: "System health",
+      metric: healthStatus,
+      section: "health",
+      tone: healthStatus === "ok" ? "lime" : "amber",
+    },
+  ];
+
+  return (
+    <section className="grid gap-4 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
+      <Card className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-lime-200 via-lime-100 to-card p-5">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#07110d]/60">
+          Admin operating model
+        </p>
+        <h2 className="mt-2 text-3xl font-black tracking-tight text-[#07110d]">
+          Control Taxiro from one flow
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-[#07110d]/70">
+          Start with live demand, then move into verification, account control,
+          ride audit, support, or health. Each tile opens the exact workspace.
+        </p>
+        <div className="mt-5 grid gap-2 text-sm font-black text-[#07110d]">
+          <div className="rounded-2xl bg-white/70 p-3">
+            1. Verify rider identity and vehicles.
+          </div>
+          <div className="rounded-2xl bg-white/70 p-3">
+            2. Monitor ready demand and active jobs.
+          </div>
+          <div className="rounded-2xl bg-white/70 p-3">
+            3. Control accounts, support, and deployment blockers.
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {controls.map((control) => {
+          const Icon = control.icon;
+          return (
+            <button
+              className={`group rounded-[1.5rem] border p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${controlToneClass(control.tone)}`}
+              key={control.section}
+              onClick={() => onSelect(control.section)}
+              type="button"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="grid size-11 place-items-center rounded-2xl bg-white/80 text-[#07110d] shadow-sm">
+                  <Icon className="size-5" />
+                </span>
+                <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-black uppercase text-[#07110d]/70">
+                  {control.metric}
+                </span>
+              </div>
+              <p className="mt-4 text-xl font-black">{control.label}</p>
+              <p className="mt-2 text-sm leading-6 opacity-75">
+                {control.description}
+              </p>
+              <p className="mt-4 text-sm font-black opacity-70 transition group-hover:translate-x-1">
+                Open workspace
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function controlToneClass(tone: "dark" | "lime" | "amber" | "red" | "soft") {
+  return {
+    amber: "border-amber-200 bg-amber-50 text-amber-950",
+    dark: "border-[#07110d] bg-[#07110d] text-white",
+    lime: "border-lime-200 bg-lime-100 text-lime-950",
+    red: "border-red-200 bg-red-50 text-red-950",
+    soft: "border-border bg-card text-foreground",
+  }[tone];
+}
 function OperationsSnapshot({
   activeRides,
   profiles,
@@ -1254,76 +1420,306 @@ function PeoplePanel({
   ) => Promise<void>;
   profiles: Profile[];
 }) {
+  const [roleFilter, setRoleFilter] = useState<"all" | Profile["role"]>("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "suspended"
+  >("all");
+  const [peopleQuery, setPeopleQuery] = useState("");
+
+  const peopleStats = useMemo(
+    () => ({
+      active: profiles.filter((item) => item.account_status !== "suspended")
+        .length,
+      admins: profiles.filter((item) => item.role === "admin").length,
+      riders: profiles.filter((item) => item.role === "rider").length,
+      suspended: profiles.filter((item) => item.account_status === "suspended")
+        .length,
+      users: profiles.filter((item) => item.role === "user").length,
+    }),
+    [profiles],
+  );
+
+  const filteredProfiles = useMemo(() => {
+    const normalized = peopleQuery.trim().toLowerCase();
+    return profiles.filter((item) => {
+      const matchesRole = roleFilter === "all" || item.role === roleFilter;
+      const accountStatus = item.account_status ?? "active";
+      const matchesStatus =
+        statusFilter === "all" || accountStatus === statusFilter;
+      const matchesQuery =
+        !normalized ||
+        item.id.toLowerCase().includes(normalized) ||
+        (item.full_name ?? "").toLowerCase().includes(normalized) ||
+        (item.phone ?? "").toLowerCase().includes(normalized) ||
+        item.role.toLowerCase().includes(normalized);
+      return matchesRole && matchesStatus && matchesQuery;
+    });
+  }, [peopleQuery, profiles, roleFilter, statusFilter]);
+
+  const priorityProfiles = useMemo(
+    () =>
+      profiles
+        .filter((item) => item.account_status === "suspended" || !item.phone)
+        .slice(0, 6),
+    [profiles],
+  );
+
   return (
-    <Card className="rounded-[1.5rem]" id="admin-people">
-      <CardHeader className="mb-3 flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle>People control</CardTitle>
-          <CardDescription>
-            Suspend risky accounts or reactivate trusted accounts.
-          </CardDescription>
+    <section
+      className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]"
+      id="admin-people"
+    >
+      <Card className="overflow-hidden rounded-[1.75rem] border-primary/10 bg-[#07110d] p-5 text-white">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">
+              People command
+            </p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight">
+              Account control center
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-white/65">
+              Search, segment, suspend, and restore Taxiro users, riders, and
+              admins from one focused control surface.
+            </p>
+          </div>
+          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-lime-300 text-[#07110d]">
+            <Users className="size-5" />
+          </span>
         </div>
-        <span className="rounded-full bg-muted px-3 py-1 text-xs font-black">
-          {profiles.length} total
-        </span>
-      </CardHeader>
-      <div className="grid max-h-[28rem] gap-2 overflow-y-auto pr-1">
-        {profiles.length ? (
-          profiles.map((item) => {
-            const suspended = item.account_status === "suspended";
-            return (
-              <div
-                className="rounded-2xl border border-border bg-muted/70 p-3"
-                key={item.id}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-black">
-                      {item.full_name ?? item.id}
-                    </p>
-                    <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
-                      {item.phone ?? "No phone"}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase ${suspended ? "bg-red-100 text-red-700" : "bg-lime-100 text-lime-800"}`}
-                  >
-                    {item.account_status ?? "active"}
-                  </span>
-                </div>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <span className="rounded-full bg-card px-2 py-1 text-xs font-black uppercase text-muted-foreground">
-                    {item.role}
-                  </span>
-                  {item.id !== currentAdminId ? (
-                    <Button
-                      onClick={() =>
-                        void onUpdateStatus(
-                          item.id,
-                          suspended ? "active" : "suspended",
-                        )
-                      }
-                      size="sm"
-                      variant={suspended ? "default" : "outline"}
-                    >
-                      {suspended ? "Activate" : "Suspend"}
-                    </Button>
-                  ) : (
-                    <span className="text-xs font-black text-muted-foreground">
-                      You
+
+        <div className="mt-5 grid grid-cols-2 gap-2 text-[#07110d] sm:grid-cols-3 xl:grid-cols-2">
+          <PeopleMetric label="Users" value={peopleStats.users} />
+          <PeopleMetric label="Riders" value={peopleStats.riders} />
+          <PeopleMetric label="Admins" value={peopleStats.admins} />
+          <PeopleMetric label="Active" value={peopleStats.active} />
+          <PeopleMetric
+            label="Suspended"
+            value={peopleStats.suspended}
+            tone="red"
+          />
+          <PeopleMetric label="Total" value={profiles.length} />
+        </div>
+
+        <div className="mt-5 rounded-3xl bg-white/8 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-black">Priority queue</p>
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black uppercase text-white/70">
+              {priorityProfiles.length} items
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {priorityProfiles.length ? (
+              priorityProfiles.map((item) => (
+                <div
+                  className="rounded-2xl bg-white/10 p-3 text-sm"
+                  key={item.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-black">
+                        {item.full_name ?? item.id.slice(0, 8)}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-white/55">
+                        {item.account_status === "suspended"
+                          ? "Suspended account"
+                          : "Missing phone number"}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase text-white/70">
+                      {item.role}
                     </span>
-                  )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
-        ) : (
-          <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
-            No visible profiles yet.
+              ))
+            ) : (
+              <p className="rounded-2xl bg-white/10 p-3 text-sm text-white/65">
+                No priority people issues right now.
+              </p>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="rounded-[1.75rem] p-4 sm:p-5">
+        <CardHeader className="mb-4 p-0">
+          <CardTitle>Account directory</CardTitle>
+          <CardDescription>
+            Filter by role or account state, then take safe account actions.
+          </CardDescription>
+        </CardHeader>
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
+          <label className="relative min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground" />
+            <Input
+              className="h-12 rounded-full pl-9"
+              onChange={(event) => setPeopleQuery(event.target.value)}
+              placeholder="Search name, phone, role, or profile ID"
+              value={peopleQuery}
+            />
+          </label>
+          <FilterPills
+            label="Role"
+            options={["all", "user", "rider", "admin"]}
+            value={roleFilter}
+            onChange={(value) =>
+              setRoleFilter(value as "all" | Profile["role"])
+            }
+          />
+          <FilterPills
+            label="Status"
+            options={["all", "active", "suspended"]}
+            value={statusFilter}
+            onChange={(value) =>
+              setStatusFilter(value as "all" | "active" | "suspended")
+            }
+          />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-muted px-4 py-3 text-sm">
+          <p className="font-black">
+            {filteredProfiles.length} visible accounts
           </p>
-        )}
+          <button
+            className="rounded-full bg-card px-3 py-1.5 text-xs font-black text-muted-foreground shadow-sm transition hover:text-foreground"
+            onClick={() => {
+              setPeopleQuery("");
+              setRoleFilter("all");
+              setStatusFilter("all");
+            }}
+            type="button"
+          >
+            Reset filters
+          </button>
+        </div>
+
+        <div className="mt-4 grid max-h-[min(70dvh,42rem)] gap-3 overflow-y-auto pr-1">
+          {filteredProfiles.length ? (
+            filteredProfiles.map((item) => {
+              const suspended = item.account_status === "suspended";
+              const missingPhone = !item.phone;
+              return (
+                <article
+                  className="rounded-3xl border border-border bg-muted/55 p-4 transition hover:-translate-y-0.5 hover:bg-muted/80 hover:shadow-lg"
+                  key={item.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-black">
+                        {item.full_name ?? item.id}
+                      </p>
+                      <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
+                        {item.phone ?? "No phone on profile"}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${suspended ? "bg-red-100 text-red-700" : "bg-lime-100 text-lime-800"}`}
+                    >
+                      {item.account_status ?? "active"}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+                    <span className="w-fit rounded-full bg-card px-2.5 py-1 text-xs font-black uppercase text-muted-foreground shadow-sm">
+                      {item.role}
+                    </span>
+                    <div className="flex flex-wrap gap-2 text-xs font-bold text-muted-foreground">
+                      {missingPhone ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">
+                          Needs phone
+                        </span>
+                      ) : null}
+                      {item.emergency_contact_phone ? (
+                        <span className="rounded-full bg-lime-100 px-2 py-1 text-lime-800">
+                          Emergency contact
+                        </span>
+                      ) : null}
+                      <span className="rounded-full bg-card px-2 py-1">
+                        Joined {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {item.id !== currentAdminId ? (
+                      <Button
+                        className="rounded-full"
+                        onClick={() =>
+                          void onUpdateStatus(
+                            item.id,
+                            suspended ? "active" : "suspended",
+                          )
+                        }
+                        size="sm"
+                        variant={suspended ? "default" : "outline"}
+                      >
+                        {suspended ? "Activate" : "Suspend"}
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-black text-muted-foreground">
+                        You
+                      </span>
+                    )}
+                  </div>
+                </article>
+              );
+            })
+          ) : (
+            <p className="rounded-2xl bg-muted p-6 text-sm text-muted-foreground">
+              No accounts match these filters.
+            </p>
+          )}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function PeopleMetric({
+  label,
+  tone = "lime",
+  value,
+}: {
+  label: string;
+  tone?: "lime" | "red";
+  value: number;
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-3 ${tone === "red" ? "bg-red-100 text-red-800" : "bg-lime-300 text-[#07110d]"}`}
+    >
+      <p className="text-2xl font-black">{value}</p>
+      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] opacity-70">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function FilterPills({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: string[];
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-full bg-muted p-1">
+      <div className="sr-only">{label}</div>
+      <div className="flex gap-1 overflow-x-auto">
+        {options.map((option) => (
+          <button
+            className={`shrink-0 rounded-full px-3 py-2 text-xs font-black capitalize transition ${value === option ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-card hover:text-foreground"}`}
+            key={option}
+            onClick={() => onChange(option)}
+            type="button"
+          >
+            {option}
+          </button>
+        ))}
       </div>
-    </Card>
+    </div>
   );
 }
 

@@ -75,3 +75,15 @@ Result:
 - Run complete two-device user/rider QA.
 - Expand authenticated E2E tests for the full ride lifecycle.
 - Continue hardening location accuracy, notifications, safety delivery, and operational admin actions.
+
+## Additional 20 July 2026 Admin Control-System Work
+
+Completed after the production-health upgrade:
+
+- Added Admin Overview control map for fast workspace navigation.
+- Added stronger People Control workspace with search, role filters, status filters, account metrics, and priority queue.
+- Added account health chips for missing phone/emergency contact signals.
+- Preserved safe account suspension/reactivation through the existing admin RPC.
+- Improved admin panel smoothness with more premium rounded controls and hover states.
+
+This improves the admin panel from a basic monitoring dashboard toward a more complete Taxiro control system for users, riders, rides, support, verification, health, and operations.

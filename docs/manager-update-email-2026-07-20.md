@@ -20,6 +20,13 @@ Completed:
 - Kept all health diagnostics secret-safe. No Supabase keys, service-role values, cron secrets, or raw sensitive env values are exposed.
 - Updated README, Tech Stack, daily update, and progress documentation.
 
+
+Additional admin control-system work completed today:
+
+- Added an Admin Overview control map for Command, Verification, People, Ride Audit, Support, and Health workspaces.
+- Upgraded the People section into a stronger account control center.
+- Added search, role filters, status filters, account metrics, priority queue, account health chips, and safe suspend/reactivate actions.
+- Improved admin panel usability with smoother rounded cards, clearer action hierarchy, and more premium control-room UX.
 Verification completed:
 
 - `npm run typecheck` passed.

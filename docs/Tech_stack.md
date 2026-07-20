@@ -8,6 +8,18 @@
 ## Executive Assessment
 
 
+
+## 20 July 2026 Admin Control System Update
+
+Additional admin engineering work completed today:
+
+- Added an operational control map to the Admin Overview so admins can jump into the correct command surface quickly.
+- Upgraded the People workspace from a simple profile list into an account control center.
+- Added account search, role filters, account-status filters, reset action, account-health chips, and a priority queue.
+- Preserved safe non-destructive account controls through the existing `admin_set_account_status` RPC.
+- Improved admin-panel usability with smoother cards, rounded controls, premium dark command surface, and clearer action hierarchy.
+
+This improves Taxiro's control-system maturity: admins can now manage user/rider/admin access more quickly and understand operational risk from the overview before entering detailed sections.
 ## 20 July 2026 Engineering Update
 
 Today's real engineering work improved Taxiro's production operations layer.
