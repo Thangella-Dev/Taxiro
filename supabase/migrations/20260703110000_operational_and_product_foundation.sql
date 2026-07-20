@@ -218,6 +218,10 @@ alter table public.rider_incentives enable row level security;
 alter table public.business_accounts enable row level security;
 alter table public.business_account_members enable row level security;
 
+drop policy if exists "owners and admins read support tickets" on public.support_tickets;
+drop policy if exists "users create support tickets" on public.support_tickets;
+drop policy if exists "admins update support tickets" on public.support_tickets;
+
 create policy "owners and admins read support tickets" on public.support_tickets for select to authenticated using (created_by = auth.uid() or public.is_admin());
 create policy "users create support tickets" on public.support_tickets for insert to authenticated with check (created_by = auth.uid());
 create policy "admins update support tickets" on public.support_tickets for update to authenticated using (public.is_admin()) with check (public.is_admin());
