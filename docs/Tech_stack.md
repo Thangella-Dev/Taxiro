@@ -10,6 +10,26 @@
 
 
 
+
+## 20 July 2026 Final Engineering Addendum
+
+Additional work completed today after the production-health and admin-control upgrades:
+
+- Repaired Supabase Preview migration-history mismatch.
+- Removed SQL UTF-8 BOM parser issues and added validator enforcement.
+- Made operational RLS policies idempotent for replay-safe preview/staging runs.
+- Added information-page Back navigation.
+- Moved theme switching into the app header for standard pages.
+- Restricted rider demand signals to matching active vehicle demand within about 2 km of the rider's live/current location.
+- Added active ready-signal expiry refresh while the rider dashboard is open.
+
+Final checks completed today:
+
+- `npm run db:validate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+- `git diff --check`
 ## 20 July 2026 Supabase Preview Migration Repair
 
 Completed today:

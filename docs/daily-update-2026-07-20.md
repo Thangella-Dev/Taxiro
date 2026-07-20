@@ -97,3 +97,44 @@ Completed after the Admin Health work:
 - Re-ran `npm run db:validate`; 28 additive migrations passed.
 - Fixed the follow-up Supabase Preview parser failure by removing hidden UTF-8 BOM bytes from affected SQL migrations.
 - Upgraded `npm run db:validate` to fail if any future migration includes a UTF-8 BOM.
+## Supabase Preview Policy Idempotency Fixes
+
+After the migration-history and BOM fixes, Supabase Preview exposed duplicate-policy replay errors. I fixed those properly instead of handling only one policy at a time.
+
+Completed:
+
+- Added `drop policy if exists` guards before recreating support-ticket RLS policies.
+- Expanded the fix to the full operational foundation policy block, including audit logs, service areas, pricing rules, fraud signals, saved places, ride stops, recurring rides, trip shares, promos, wallets, rider incentives, and business account policies.
+- Updated `supabase/schema.sql` to match the migration behavior.
+
+## App UX And Demand-Signal Fixes
+
+Completed after the deployment fixes:
+
+- Added a Back button to About, Help, Support, Privacy, and Rules pages.
+- Moved light/dark mode switching into the top app header so it no longer floats at the lower-right corner on info pages.
+- Changed rider demand visibility to behave more like real ride apps:
+  - only matching active vehicle type,
+  - only ready or near-future scheduled demand,
+  - only within about 2 km of the rider's current/live location,
+  - expired ready signals are hidden immediately.
+- Added active rider-dashboard expiry refresh so stale ready signals do not remain visible while the rider app is open.
+- Updated Help/About/Rules copy to explain 2 km nearby demand and ready-signal expiry behavior.
+
+## Final Verification Completed Today
+
+```bash
+npm run db:validate
+npm run typecheck
+npm run lint
+npm run build
+git diff --check
+```
+
+Result:
+
+- 28 additive Supabase migrations validated.
+- TypeScript passed.
+- ESLint passed.
+- Next.js 16.2.7 production build passed with 24 app routes.
+- Git whitespace/diff check passed.

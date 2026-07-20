@@ -4,58 +4,57 @@ Hi Sir,
 
 This update covers the Taxiro work completed today, 20 July 2026.
 
-Today I focused on production reliability and Admin Health improvements. The main goal was to make deployment and Supabase migration issues easier to detect from inside the app, without depending only on browser console errors or external logs.
+Today I focused on production reliability, Supabase Preview stability, Admin Health diagnostics, and important app UX fixes around information-page navigation and rider demand signals.
 
 Completed:
 
 - Hardened `/api/health` Supabase readiness probes with a 6-second timeout.
-- Added no-store cache behavior for `/api/health` so the admin panel shows fresh health data.
+- Added no-store cache behavior for `/api/health` so Admin Health shows fresh deployment and database status.
 - Added a structured readiness summary showing passing checks, required failures, missing database objects, missing local migration files, and pilot-ready status.
-- Added a deployment-blocker list so admins can immediately see what is stopping production readiness.
-- Added a migration manifest showing local SQL migration count, latest migration file, and required operational migration file availability.
-- Upgraded the Admin Health UI with:
-  - Readiness summary card,
-  - Deployment blockers card,
-  - Migration recovery card.
+- Added deployment blockers and migration recovery details inside Admin Health.
 - Kept all health diagnostics secret-safe. No Supabase keys, service-role values, cron secrets, or raw sensitive env values are exposed.
-- Updated README, Tech Stack, daily update, and progress documentation.
 
-
-Additional admin control-system work completed today:
+Admin control-system work completed:
 
 - Added an Admin Overview control map for Command, Verification, People, Ride Audit, Support, and Health workspaces.
-- Upgraded the People section into a stronger account control center.
-- Added search, role filters, status filters, account metrics, priority queue, account health chips, and safe suspend/reactivate actions.
+- Upgraded People Control with search, role filters, status filters, account metrics, priority queue, account health chips, and safe suspend/reactivate actions.
 - Improved admin panel usability with smoother rounded cards, clearer action hierarchy, and more premium control-room UX.
+
+Supabase Preview fixes completed:
+
+- Fixed the migration-history mismatch by matching local migration filenames to the exact remote Supabase migration versions.
+- Split the realtime migration into the two versions already recorded in Supabase.
+- Removed hidden UTF-8 BOM bytes from affected SQL migrations after Supabase Preview failed at statement 0.
+- Added a local migration validator guard so future BOM-encoded SQL files are caught before push.
+- Made the operational foundation migration's RLS policies idempotent using `drop policy if exists` guards, fixing duplicate-policy failures for support tickets, audit logs, service areas, pricing, fraud signals, saved places, ride stops, promos, wallets, incentives, and business account policies.
+
+App UX and rider-demand fixes completed:
+
+- Added Back navigation to About, Help, Support, Privacy, and Rules pages.
+- Moved the light/dark theme switch into the app header so it no longer appears at the lower-right corner on information pages.
+- Updated rider demand signals to show only matching vehicle demand within about 2 km of the rider's current/live location.
+- Added active rider-dashboard expiry refresh so expired ready signals disappear while the rider app is open, instead of waiting only for the daily cron.
+- Updated Help/About/Rules copy to explain nearby demand and ready-signal expiry behavior.
+
 Verification completed:
 
+- `npm run db:validate` passed with 28 additive Supabase migrations.
 - `npm run typecheck` passed.
 - `npm run lint` passed.
-- `npm run test` passed with 11 unit tests.
-- `npm run build` passed.
-- Next.js 16.2.7 production build completed successfully with 24 app routes.
+- `npm run test` passed earlier today with 11 unit tests.
+- `npm run build` passed with 24 Next.js app routes.
+- `git diff --check` passed.
 
-
-Supabase Preview repair completed:
-
-- Investigated the Supabase Preview error: `Remote migration versions not found in local migrations directory`.
-- Read remote migration history in read-only mode.
-- Found 7 remote migration versions missing from local migration filenames.
-- Repaired local migration history by matching the exact remote versions and splitting the realtime migration into the two remote versions.
-- Verified remote-vs-local comparison: 0 remote versions are now missing locally.
-- `npm run db:validate` passed with 28 additive Supabase migrations.
-- Removed hidden UTF-8 BOM bytes from affected SQL migrations after Supabase Preview reported a parser error at statement 0.
-- Upgraded migration validation so future BOM-encoded SQL files are caught locally before GitHub/Supabase Preview.
 Current deployment note:
 
-The app now has stronger Admin Health diagnostics for production support. The next important step is to apply any pending Supabase migrations and then re-check Admin Health in the deployed app.
+The latest code has been pushed to GitHub. Supabase Preview should now progress beyond the migration-history, BOM parser, and duplicate-policy errors. After deployment, Admin Health should be rechecked in production.
 
 Next planned work:
 
-- Apply pending Supabase migrations in production.
+- Re-run GitHub/Supabase/Vercel checks after the latest push.
+- Apply or confirm pending Supabase production migrations.
 - Configure real service areas and pricing rules.
-- Run two-device user/rider QA on production.
-- Expand authenticated E2E tests for the full ride lifecycle.
+- Run two-device user/rider QA for booking, ready signal, matching, tracking, payment, notifications, and admin controls.
 
 Regards,
 

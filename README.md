@@ -108,6 +108,11 @@ The MVP currently includes:
 - Admin Health now includes a migration recovery manifest that confirms required SQL files are present in the deployed source, shows local migration count, and displays the latest local migration.
 - Admin Health now includes timeout-safe Supabase probes, a pilot readiness summary, and a deployment-blocker list so production issues are visible without reading raw logs.
 - Vercel Hobby cron compatibility is preserved with the daily `0 0 * * *` schedule; five-minute ready-signal expiry is documented as requiring Vercel Pro or an external scheduler.
+- Supabase Preview migrations are now aligned with the remote migration history and guarded against BOM-encoded SQL files.
+- Operational migration RLS policies are now idempotent so preview/staging replays do not fail on existing policies.
+- Info pages now include a header Back action, and the theme toggle is placed in the app header instead of the lower mobile corner.
+- Rider demand signals now show only nearby matching-vehicle demand within about 2 km of the rider's current location.
+- Expired ready signals are hidden immediately in the rider app and refreshed while the rider dashboard is open.
 
 ## Main Routes
 
@@ -960,3 +965,27 @@ Repair completed:
 - Added a local migration validator guard so BOM-encoded SQL files fail before push.
 
 This repair changes local migration history files only. It does not delete production tables, rows, users, or Supabase data.
+## 20 July 2026 Final Daily Work Update
+
+Additional production and app-flow fixes completed today:
+
+- Fixed Supabase Preview migration-history mismatch by matching local migration filenames to remote migration versions.
+- Removed hidden UTF-8 BOM bytes from SQL migrations and added a validator guard to prevent the same parser failure before push.
+- Made the operational foundation migration's RLS policy block idempotent with `drop policy if exists` guards, fixing duplicate-policy preview failures for support tickets, audit logs, service areas, pricing, fraud signals, saved places, ride stops, promos, wallets, incentives, and business account policies.
+- Added Back navigation to About, Help, Support, Privacy, and Rules pages.
+- Moved the light/dark mode toggle into the app header so it no longer appears at the lower-right corner on information pages.
+- Updated rider demand-signal behavior so riders see only matching vehicle demand within about 2 km of their live/current location.
+- Added active rider-dashboard expiry refresh so expired ready signals disappear from the rider experience without waiting for the daily Vercel Hobby cron.
+- Updated information-page copy to explain nearby demand behavior and ready-signal expiry.
+
+Final verification completed on 20 July 2026:
+
+```bash
+npm run db:validate
+npm run typecheck
+npm run lint
+npm run build
+git diff --check
+```
+
+Result: all checks passed, 28 additive Supabase migrations validated, and the production build completed with 24 app routes.

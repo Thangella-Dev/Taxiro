@@ -87,3 +87,22 @@ Completed after the production-health upgrade:
 - Improved admin panel smoothness with more premium rounded controls and hover states.
 
 This improves the admin panel from a basic monitoring dashboard toward a more complete Taxiro control system for users, riders, rides, support, verification, health, and operations.
+## Additional 20 July 2026 Supabase Preview And UX Fixes
+
+Completed after the Admin Control work:
+
+- Repaired Supabase Preview migration-history mismatch by aligning local migration versions to the remote project history.
+- Removed hidden UTF-8 BOM bytes from SQL migrations and added validation to prevent future BOM parser failures.
+- Made operational foundation RLS policies idempotent so preview/staging replays do not fail when policies already exist.
+- Added Back navigation to About, Help, Support, Privacy, and Rules pages.
+- Moved the theme toggle into the header for information pages.
+- Limited rider demand signals to matching vehicle demand within about 2 km of the rider's current/live location.
+- Added active ready-signal expiry refresh on the rider dashboard so stale demand is removed while the app is open.
+
+Final 20 July verification:
+
+- `npm run db:validate` passed with 28 additive migrations.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed with 24 app routes.
+- `git diff --check` passed.
