@@ -31,7 +31,7 @@ export default function AboutPage() {
           items={[
             "Realtime Supabase updates keep user, rider, admin, chat, payment, notification, and ride status screens fresh without manual refresh.",
             "Rider GPS is foreground browser tracking, so the rider app should stay open during assigned and started rides.",
-            "Demand signals help riders see ready-now and scheduled ride areas while they are available; signals are hidden during active jobs to reduce clutter.",
+            "Demand signals show nearby ready-now and scheduled ride areas around the rider, limited to about 2 km from their current location; signals are hidden during active jobs to reduce clutter.",
           ]}
         />
         <InfoSection

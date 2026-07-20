@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Bike,
   CalendarClock,
   Home,
@@ -118,6 +119,17 @@ export function AppShell({
   }
 
   const navigation = role ? roleNavigation[role] : [];
+  const isInfoPage = ["/about", "/help", "/privacy", "/rules", "/support"].includes(pathname);
+
+  function goBack() {
+    if (window.history.length > 1) {
+      router.back();
+    } else if (role) {
+      router.push(roleNavigation[role][0].href);
+    } else {
+      router.push("/");
+    }
+  }
 
   if (immersive) {
     return (
@@ -159,7 +171,13 @@ export function AppShell({
             ))}
           </nav>
           <div className="flex shrink-0 items-center gap-1.5">
-            <ThemeToggle className="hidden sm:inline-flex" />
+            {isInfoPage ? (
+              <Button aria-label="Go back" className="h-10 rounded-full px-3" onClick={goBack} size="sm" type="button" variant="ghost">
+                <ArrowLeft className="size-4" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
+            ) : null}
+            <ThemeToggle className="inline-flex" compact />
             {email ? (
               <>
                 <span className="hidden max-w-[180px] truncate text-xs text-muted-foreground lg:inline">
@@ -189,9 +207,6 @@ export function AppShell({
 
       {navigation.length ? (
         <>
-          <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-3 z-40 md:hidden">
-            <ThemeToggle compact />
-          </div>
           <nav className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/96 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_rgb(16_23_19_/_0.08)] backdrop-blur-xl md:hidden"
           style={{ gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))` }}
         >

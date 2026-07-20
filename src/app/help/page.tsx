@@ -22,7 +22,7 @@ export default function HelpPage() {
           items={[
             "Use the assigned-ride chat only after a rider is assigned or a trip has started.",
             "Share the private 4-digit ride code only with the rider shown in the app and only after they reach pickup.",
-            "Ready signals last 15, 30, or 60 minutes. If a signal expires before acceptance, publish it again from the ride card.",
+            "Ready signals last 15, 30, or 60 minutes. If a signal expires before acceptance, publish it again from the ride card. Riders normally see only matching vehicle demand within about 2 km of their live location.",
           ]}
         />
         <InfoSection

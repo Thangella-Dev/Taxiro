@@ -42,6 +42,9 @@ import { useLiveResync } from "@/lib/useLiveResync";
 import { getVehicleLabel } from "@/lib/vehicles";
 import type { LatLng, Profile, RideRequest, RiderLocation, RiderProfile, RiderVehicle, VehicleType } from "@/types/database";
 
+const DEMAND_RADIUS_KM = 2;
+const SCHEDULED_DEMAND_LOOKAHEAD_HOURS = 6;
+
 export default function RiderDashboard() {
   const router = useRouter();
   const [cancelTarget, setCancelTarget] = useState<RideRequest | null>(null);
@@ -338,6 +341,23 @@ export default function RiderDashboard() {
     intervalMs: 5000,
     onResync: resyncRiderData,
   });
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const expireAndRefresh = async () => {
+      await supabase.rpc("expire_ready_signals");
+      await loadRiderData(profile.id);
+    };
+
+    const interval = window.setInterval(() => {
+      void expireAndRefresh();
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, [loadRiderData, profile?.id]);
   async function updateLocation(point: LatLng & Partial<RiderTrackingUpdate>, source: "gps" | "manual" = "manual") {
     if (!profile) {
       setMessage("Please sign in as a rider.");
@@ -562,19 +582,19 @@ export default function RiderDashboard() {
     };
   }, [hasVerifiedActiveVehicle, persistAvailability, profile, riderHasActiveJob]);
 
-  const readyRides = rides
-    .filter((ride) => isReadyRideVisible(ride) && ride.vehicle_type === activeVehicleType)
-    .sort((a, b) => approxDistanceKm(location, a) - approxDistanceKm(location, b));
-  const scheduledRides = rides
-    .filter((ride) => ride.status === "scheduled" && ride.vehicle_type === activeVehicleType)
-    .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
-  const demandMapRides = rides
-    .filter((ride) => ride.vehicle_type === activeVehicleType && (isReadyRideVisible(ride) || ride.status === "scheduled"))
+  const visibleDemandRides = rides
+    .filter((ride) =>
+      isRideDemandVisibleNearRider(ride, location, activeVehicleType, DEMAND_RADIUS_KM),
+    )
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === "ready" ? -1 : 1;
-      return approxDistanceKm(location, a) - approxDistanceKm(location, b);
-    })
-    .slice(0, 18);
+      const distanceDelta = approxDistanceKm(location, a) - approxDistanceKm(location, b);
+      if (distanceDelta !== 0) return distanceDelta;
+      return new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime();
+    });
+  const readyRides = visibleDemandRides.filter((ride) => ride.status === "ready");
+  const scheduledRides = visibleDemandRides.filter((ride) => ride.status === "scheduled");
+  const demandMapRides = visibleDemandRides.slice(0, 18);
   const activeRide = rides.find(
     (ride) =>
       ride.assigned_rider_id === profile?.id &&
@@ -804,7 +824,7 @@ export default function RiderDashboard() {
                       ) : (
                         <RiderEmptyState
                           title="No ready jobs right now"
-                          text="Stay online with live GPS on. Ready requests will appear here instantly and pulse on the map."
+                          text="Stay online with live GPS on. Ready requests within 2 km will appear here instantly and pulse on the map."
                         />
                       )}
                     </div>
@@ -819,7 +839,7 @@ export default function RiderDashboard() {
                       ) : (
                         <RiderEmptyState
                           title="No advance bookings yet"
-                          text="Scheduled pickup demand will appear here before it becomes ready. Use it to plan where to wait."
+                          text="Scheduled pickup demand within 2 km will appear here before it becomes ready. Use it to plan where to wait."
                         />
                       )}
                     </div>
@@ -846,7 +866,7 @@ export default function RiderDashboard() {
                       ) : (
                         <RiderEmptyState
                           title="No ready jobs right now"
-                          text="Keep live GPS on. Timed ready signals appear here and pulse on the map until they expire."
+                          text="Keep live GPS on. Timed ready signals within 2 km appear here and pulse on the map until they expire."
                         />
                       )}
                     </div>
@@ -861,7 +881,7 @@ export default function RiderDashboard() {
                       ) : (
                         <RiderEmptyState
                           title="No advance demand yet"
-                          text="Scheduled pickup demand will appear here before riders can accept it."
+                          text="Nearby scheduled pickup demand appears here before riders can accept it."
                         />
                       )}
                     </div>
@@ -913,6 +933,25 @@ function isReadyRideVisible(ride: RideRequest) {
   if (ride.status !== "ready") return false;
   if (!ride.ready_expires_at) return true;
   return new Date(ride.ready_expires_at).getTime() > Date.now();
+}
+
+function isScheduledDemandVisible(ride: RideRequest) {
+  if (ride.status !== "scheduled") return false;
+  const scheduledAt = new Date(ride.scheduled_time).getTime();
+  const now = Date.now();
+  const lookaheadMs = SCHEDULED_DEMAND_LOOKAHEAD_HOURS * 60 * 60 * 1000;
+  return scheduledAt >= now && scheduledAt <= now + lookaheadMs;
+}
+
+function isRideDemandVisibleNearRider(
+  ride: RideRequest,
+  location: LatLng,
+  activeVehicleType: VehicleType | null,
+  radiusKm: number,
+) {
+  if (!activeVehicleType || ride.vehicle_type !== activeVehicleType) return false;
+  if (!isReadyRideVisible(ride) && !isScheduledDemandVisible(ride)) return false;
+  return approxDistanceKm(location, ride) <= radiusKm;
 }
 
 function formatReadySignalTimeLeft(value: string | null) {

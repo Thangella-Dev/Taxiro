@@ -77,7 +77,7 @@ export function DemandSignals({
             {compact ? "Advance demand signals" : "Demand signals"}
           </p>
           <p className="text-sm text-muted-foreground">
-            Ready jobs first, then upcoming pickup demand
+            Nearby ready jobs first, then upcoming demand within 2 km
           </p>
         </div>
         <Flame className="size-5 shrink-0 text-amber-500" />
@@ -154,7 +154,7 @@ export function DemandSignals({
           })
         ) : (
           <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-            No ready or scheduled demand signals yet.
+            No nearby ready or scheduled demand signals within 2 km.
           </p>
         )}
       </div>

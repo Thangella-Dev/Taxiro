@@ -305,12 +305,12 @@ export function MapPicker({
                   opacity={1}
                   permanent
                 >
-                  {ready ? "Ready demand" : "Advance demand"}
+                  {ready ? "Nearby ready" : "Nearby advance"}
                 </Tooltip>
                 <Popup>
                   <div className="grid gap-1 text-sm">
                     <strong>
-                      {ready ? "Ready ride - accept now" : "Scheduled demand"}
+                      {ready ? "Nearby ready ride - accept now" : "Nearby scheduled demand"}
                     </strong>
                     <span>
                       Fare: {formatMoney(ride.fare_estimate)} | Earn:{" "}

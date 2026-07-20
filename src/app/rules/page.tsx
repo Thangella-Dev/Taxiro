@@ -22,7 +22,7 @@ export default function RulesPage() {
           items={[
             "Users can publish a ready signal for 15, 30, or 60 minutes, with 30 minutes as the default.",
             "Riders can accept only active, unexpired ready signals.",
-            "Expired ready signals return to scheduled state and must be published again if the user still wants the ride.",
+            "Expired ready signals return to scheduled state and must be published again if the user still wants the ride. Rider apps also hide expired and far-away signals immediately while open.",
           ]}
         />
         <InfoSection
