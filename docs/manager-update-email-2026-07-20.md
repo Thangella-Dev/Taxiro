@@ -35,6 +35,15 @@ Verification completed:
 - `npm run build` passed.
 - Next.js 16.2.7 production build completed successfully with 24 app routes.
 
+
+Supabase Preview repair completed:
+
+- Investigated the Supabase Preview error: `Remote migration versions not found in local migrations directory`.
+- Read remote migration history in read-only mode.
+- Found 7 remote migration versions missing from local migration filenames.
+- Repaired local migration history by matching the exact remote versions and splitting the realtime migration into the two remote versions.
+- Verified remote-vs-local comparison: 0 remote versions are now missing locally.
+- `npm run db:validate` passed with 28 additive Supabase migrations.
 Current deployment note:
 
 The app now has stronger Admin Health diagnostics for production support. The next important step is to apply any pending Supabase migrations and then re-check Admin Health in the deployed app.

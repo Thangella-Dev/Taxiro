@@ -1,4 +1,4 @@
--- Enable Supabase Realtime for Taxiro live ride updates.
+-- Enable full replica identity for Taxiro Realtime row-change payloads.
 -- Additive only: no tables or rows are deleted.
 
 do $$
@@ -18,17 +18,5 @@ declare
 begin
   foreach v_table_name in array table_names loop
     execute format('alter table public.%I replica identity full', v_table_name);
-
-    if not exists (
-      select 1
-      from pg_publication_tables
-      where pubname = 'supabase_realtime'
-        and schemaname = 'public'
-        and tablename = v_table_name
-    ) then
-      execute format('alter publication supabase_realtime add table public.%I', v_table_name);
-    end if;
   end loop;
 end $$;
-
-

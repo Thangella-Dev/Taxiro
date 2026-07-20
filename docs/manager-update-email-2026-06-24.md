@@ -17,7 +17,7 @@ Completed today:
 - Added live subscriptions to the admin dashboard for rides, profiles, rider locations, and rider verification data.
 - Improved the ride chat system so messages update live, recover when the tab becomes visible again, and recover after browser reconnect.
 - Added reconnect/live status messaging for realtime dashboard and chat flows.
-- Added the additive Supabase migration `20260624093000_enable_realtime_publication.sql`.
+- Added the additive Supabase migration `20260624055901_enable_realtime_publication_tables.sql and 20260624055920_enable_realtime_replica_identity.sql`.
 - Updated the consolidated Supabase schema file with the realtime publication changes.
 - Verified through Supabase MCP that the required Taxiro tables are now in the realtime publication.
 - Fixed the GitHub push protection issue caused by `.mcp.json` containing a Supabase Personal Access Token.

@@ -149,11 +149,11 @@ Not in MVP yet:
 
 ## Database/Migrations Added
 
-- `20260608112450_readyride_core_schema.sql`
-- `20260608143000_rider_scheduled_visibility.sql`
-- `20260608145500_rider_role_rls.sql`
-- `20260608153000_ride_execution_flow.sql`
-- `20260608154500_explicit_rider_acceptance.sql`
+- `20260608072034_readyride_core_schema.sql`
+- `20260608085429_rider_scheduled_visibility.sql`
+- `20260608085806_rider_role_rls.sql`
+- `20260608090823_ride_execution_flow.sql`
+- `20260608091235_explicit_rider_acceptance.sql`
 - `20260622123000_daily_use_hardening.sql`
 - `20260622142000_ride_chat_and_code_repair.sql`
 
@@ -203,4 +203,3 @@ Pending manual QA:
 5. Add admin operational controls for ride intervention and support workflows.
 6. Add notification preferences and eventual push notification support.
 7. Prepare Vercel deployment checklist and production environment review.
-

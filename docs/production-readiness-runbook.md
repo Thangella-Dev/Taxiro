@@ -27,6 +27,33 @@ The release is blocked if migrations, TypeScript, ESLint, unit tests, build, per
 
 Never run destructive SQL against production without a reviewed backup and explicit approval.
 
+
+## Supabase Preview Migration-History Repair
+
+If Supabase Preview fails with:
+
+```text
+Remote migration versions not found in local migrations directory.
+```
+
+Use this safe process:
+
+1. Read remote migration versions from `supabase_migrations.schema_migrations`.
+2. Compare the 14-digit remote versions with local filenames in `supabase/migrations`.
+3. Restore or rename local migration files so every remote version has a matching local SQL file.
+4. Do not edit production data or delete migration history unless a rollback plan is reviewed.
+5. Run `npm run db:validate`.
+6. Push the repaired migration files and re-run Supabase Preview.
+
+For Taxiro, the repaired remote versions are:
+
+- `20260608072034_readyride_core_schema.sql`
+- `20260608085429_rider_scheduled_visibility.sql`
+- `20260608085806_rider_role_rls.sql`
+- `20260608090823_ride_execution_flow.sql`
+- `20260608091235_explicit_rider_acceptance.sql`
+- `20260624055901_enable_realtime_publication_tables.sql`
+- `20260624055920_enable_realtime_replica_identity.sql`
 ## Backup And Recovery
 
 ### Managed backups

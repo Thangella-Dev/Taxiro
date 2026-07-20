@@ -267,15 +267,16 @@ Sign out and sign in again. Admin accounts now route directly to `/dashboard/adm
 Schema files:
 
 - `supabase/schema.sql`
-- `supabase/migrations/20260608112450_readyride_core_schema.sql`
-- `supabase/migrations/20260608143000_rider_scheduled_visibility.sql`
-- `supabase/migrations/20260608145500_rider_role_rls.sql`
-- `supabase/migrations/20260608153000_ride_execution_flow.sql`
-- `supabase/migrations/20260608154500_explicit_rider_acceptance.sql`
+- `supabase/migrations/20260608072034_readyride_core_schema.sql`
+- `supabase/migrations/20260608085429_rider_scheduled_visibility.sql`
+- `supabase/migrations/20260608085806_rider_role_rls.sql`
+- `supabase/migrations/20260608090823_ride_execution_flow.sql`
+- `supabase/migrations/20260608091235_explicit_rider_acceptance.sql`
 - `supabase/migrations/20260622123000_daily_use_hardening.sql`
 - `supabase/migrations/20260622142000_ride_chat_and_code_repair.sql`
 - `supabase/migrations/20260623093000_live_tracking_metadata.sql`
-- `supabase/migrations/20260624093000_enable_realtime_publication.sql`
+- `supabase/migrations/20260624055901_enable_realtime_publication_tables.sql`
+- `supabase/migrations/20260624055920_enable_realtime_replica_identity.sql`
 - `supabase/migrations/20260629093000_taxiro_fare_payment_flow.sql`
 - `supabase/migrations/20260629113000_accepted_ride_cancellation_fine.sql`
 - `supabase/migrations/20260630093000_signal_expiry_and_safety_alerts.sql`
@@ -678,7 +679,7 @@ Apply supabase/migrations/20260701203000_customer_nearby_rider_preview.sql befor
 
 Latest verified checks:
 
-- 27 additive migrations validated.
+- 28 additive migrations validated.
 - TypeScript and ESLint passed.
 - 11 unit tests passed.
 - Next.js 16.2.7 production build passed.
@@ -708,7 +709,7 @@ Native background tracking, FCM/APNs, SMS escalation, integrated payment operati
 
 Latest verified checks:
 
-- 27 additive migrations validated.
+- 28 additive migrations validated.
 - TypeScript and ESLint passed.
 - 11 unit tests passed.
 - Next.js 16.2.7 production build passed with 21 app routes.
@@ -788,7 +789,7 @@ Corrected after visual review:
 - Confirmed local verification passes with TypeScript, ESLint, and production build.
 - Investigated Vercel deployment blocking caused by old deployments authored by `inphroneofficial`, which is not a member of the Vercel team.
 - Confirmed latest local commits are authored correctly as `Thangella-Dev <thangella.charani@gmail.com>`.
-- Investigated Supabase Preview migration mismatch and confirmed the local repository contains 27 tracked migration files with no deleted migration files in local git history.
+- Investigated Supabase Preview migration mismatch and confirmed the local repository contains 28 tracked migration files with no deleted migration files in local git history.
 
 Latest verified checks:
 
@@ -932,3 +933,28 @@ npm run lint
 ```
 
 Full production build verification is recorded after the final build step.
+
+## 20 July 2026 Supabase Preview Migration History Repair
+
+The Supabase Preview check was failing with:
+
+```text
+Remote migration versions not found in local migrations directory.
+```
+
+Root cause:
+
+- The connected remote Supabase project had 7 migration versions recorded in `supabase_migrations.schema_migrations` that did not exist as matching local filenames.
+- Five early migrations had the same names but different timestamps locally.
+- The realtime migration was stored remotely as two migration versions, while the repo had one combined local migration.
+
+Repair completed:
+
+- Renamed the first five local migrations to match the exact remote versions.
+- Split the realtime migration into:
+  - `20260624055901_enable_realtime_publication_tables.sql`
+  - `20260624055920_enable_realtime_replica_identity.sql`
+- Verified remote-vs-local migration comparison: **0 remote versions missing locally**.
+- Verified local migration safety with `npm run db:validate`: **28 additive Supabase migrations validated**.
+
+This repair changes local migration history files only. It does not delete production tables, rows, users, or Supabase data.

@@ -83,3 +83,15 @@ Additional verification:
 npm run typecheck
 npm run lint
 ```
+
+## Supabase Preview Migration Repair
+
+Completed after the Admin Health work:
+
+- Investigated the Supabase Preview failure: `Remote migration versions not found in local migrations directory`.
+- Read the remote Supabase migration history through the Supabase Management API in read-only mode.
+- Found 7 remote migration versions missing from local filenames.
+- Renamed five early local migration files to match the exact remote Supabase versions.
+- Split the combined realtime migration into the two remote migration versions.
+- Re-ran remote-vs-local comparison and confirmed **0 remote versions are missing locally**.
+- Re-ran `npm run db:validate`; 28 additive migrations passed.

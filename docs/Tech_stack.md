@@ -9,6 +9,19 @@
 
 
 
+
+## 20 July 2026 Supabase Preview Migration Repair
+
+Completed today:
+
+- Read remote Supabase migration history in read-only mode.
+- Identified 7 remote migration versions missing locally.
+- Renamed five early local migration files to match remote history exactly.
+- Split the realtime migration into the two remote migration versions.
+- Confirmed remote-vs-local comparison now has 0 missing remote versions.
+- Validated 28 additive Supabase migrations locally.
+
+This should unblock Supabase Preview checks caused by migration history mismatch.
 ## 20 July 2026 Admin Control System Update
 
 Additional admin engineering work completed today:
@@ -145,7 +158,7 @@ The cumulative schema snapshot repeats SQL already represented in migration hist
 - 11 application pages.
 - 3 role-specific dashboards.
 - 41 React components.
-- 27 additive Supabase migrations.
+- 28 additive Supabase migrations.
 - 30 application database tables represented across migration history.
 - 40 unique PostgreSQL/RPC functions across migration history.
 - 2 Supabase Storage buckets.
@@ -631,7 +644,7 @@ In short:
 
 ### Verification
 
-- `npm run db:validate`: 27 additive migrations passed.
+- `npm run db:validate`: 28 additive migrations passed.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run test`: 3 files and 11 tests passed.
@@ -659,7 +672,7 @@ Taxiro now has a stronger operations layer: service areas, configurable pricing,
 
 `npm run check` passed on 13 July 2026:
 
-- 27 additive Supabase migrations validated.
+- 28 additive Supabase migrations validated.
 - TypeScript passed.
 - ESLint passed.
 - 3 unit test files passed.
