@@ -59,7 +59,6 @@ import { Label } from "@/components/ui/label";
 import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
 import { getRoutePath, getRouteSummary, reverseGeocode } from "@/lib/maps";
 import {
-  calculateFareBreakdown,
   formatMoney,
   getUserCancellationFine,
   getVehicleFareQuote,
@@ -74,6 +73,7 @@ import {
   usePanicTrigger,
   useRideSafetyMonitor,
 } from "@/lib/safety";
+import { calculateTaxiroFareEstimate } from "@/lib/pricing";
 import { getSupabase } from "@/lib/supabase";
 import {
   getPromptedCurrentLocation,
@@ -89,6 +89,7 @@ import {
 import { VEHICLE_OPTIONS, getVehicleLabel } from "@/lib/vehicles";
 import type {
   AssignedRiderDetails,
+  FareCalculationBreakdown,
   LatLng,
   PricingRule,
   Profile,
@@ -154,6 +155,8 @@ export default function UserDashboard() {
     distanceKm: number | null;
     durationMin: number | null;
   } | null>(null);
+  const [liveFareEstimate, setLiveFareEstimate] = useState<FareCalculationBreakdown | null>(null);
+  const [fareLoading, setFareLoading] = useState(false);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
@@ -661,31 +664,25 @@ export default function UserDashboard() {
 
     setMessage("Finding route and fare...");
     const summary = await getRouteSummary(pickup, drop);
-    const configuredRule = serviceDecision.area
-      ? findEffectivePricingRule(
-          pricingRules,
-          serviceDecision.area.id,
-          vehicleType,
-          rideTime,
-        )
-      : null;
-    const fareQuote = getVehicleFareQuote(
-      summary.distanceKm,
-      rideTime,
-      vehicleType,
-    );
-    const fareEstimate = configuredRule
-      ? calculateConfiguredFare(
-          summary.distanceKm,
-          summary.durationMin,
-          configuredRule,
-        )
-      : fareQuote.fare;
-    const fareBreakdown = calculateFareBreakdown(
-      fareEstimate,
-      configuredRule?.company_commission_rate,
-    );
-    const { error } = await supabase.from("ride_requests").insert({
+    let fareBreakdown: FareCalculationBreakdown;
+    try {
+      fareBreakdown = await calculateTaxiroFareEstimate({
+        at: rideTime,
+        distanceKm: summary.distanceKm,
+        drop,
+        durationMin: summary.durationMin,
+        pickup,
+        profileId: userId,
+        vehicleType,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Pricing engine is unavailable.";
+      setMessage(`Could not calculate fare: ${message}. Apply the latest Supabase pricing migration and try again.`);
+      return;
+    }
+    setLiveFareEstimate(fareBreakdown);
+    const fareEstimate = fareBreakdown.final_fare;
+    const { data: createdRide, error } = await supabase.from("ride_requests").insert({
       assigned_rider_id: null,
       distance_km: summary.distanceKm,
       drop_address: drop.address ?? "Selected destination",
@@ -693,16 +690,14 @@ export default function UserDashboard() {
       drop_lng: drop.lng,
       estimated_duration_min: summary.durationMin,
       fare_estimate: fareEstimate,
-      fare_rate_per_km: configuredRule?.per_km_rate ?? fareQuote.baseRatePerKm,
-      vehicle_surcharge_per_km: configuredRule
-        ? 0
-        : fareQuote.vehicleSurchargePerKm,
+      fare_rate_per_km: fareBreakdown.distance_charge && summary.distanceKm ? fareBreakdown.distance_charge / summary.distanceKm : 0,
+      vehicle_surcharge_per_km: 0,
       vehicle_type: vehicleType,
-      service_area_id: serviceDecision.area?.id ?? null,
-      pricing_rule_id: configuredRule?.id ?? null,
-      fare_pricing_period: configuredRule ? null : fareQuote.period,
-      company_commission: fareBreakdown.companyCommission,
-      rider_earning: fareBreakdown.riderEarning,
+      service_area_id: fareBreakdown.service_area_id ?? serviceDecision.area?.id ?? null,
+      pricing_rule_id: fareBreakdown.pricing_rule_id,
+      fare_pricing_period: null,
+      company_commission: fareBreakdown.platform_commission,
+      rider_earning: fareBreakdown.driver_earning,
       booking_for: bookingFor,
       passenger_name: cleanPassengerName || null,
       passenger_phone: cleanPassengerPhone || null,
@@ -716,11 +711,18 @@ export default function UserDashboard() {
       scheduled_time: rideTime,
       status: "scheduled",
       user_id: userId,
-    });
+    }).select("id").single();
 
     if (error) {
       setMessage(error.message);
       return;
+    }
+
+    if (createdRide?.id) {
+      await supabase.rpc("attach_ride_fare_breakdown", {
+        p_breakdown: fareBreakdown,
+        p_ride_id: createdRide.id,
+      });
     }
 
     setMessage(
@@ -848,7 +850,7 @@ export default function UserDashboard() {
   const AssignedVehicleIcon =
     assignedRiderDetail?.vehicle_type === "auto"
       ? CarTaxiFront
-      : assignedRiderDetail?.vehicle_type === "car"
+      : assignedRiderDetail?.vehicle_type && ["car", "hatchback", "sedan", "suv"].includes(assignedRiderDetail.vehicle_type)
         ? CarFront
         : Bike;
   const mapRiderVehicleTypes: Partial<Record<string, VehicleType>> =
@@ -893,6 +895,24 @@ export default function UserDashboard() {
       departure,
       vehicleType,
     );
+    if (liveFareEstimate) {
+      return {
+        ...fallbackFare,
+        baseRatePerKm: routeSummary?.distanceKm
+          ? liveFareEstimate.distance_charge / routeSummary.distanceKm
+          : 0,
+        fare: liveFareEstimate.final_fare,
+        isPeak: liveFareEstimate.surge_multiplier > 1,
+        periodLabel:
+          liveFareEstimate.surge_multiplier > 1
+            ? `${liveFareEstimate.surge_multiplier.toFixed(2)}x surge applied`
+            : "Admin configured fare",
+        ratePerKm: routeSummary?.distanceKm
+          ? liveFareEstimate.distance_charge / routeSummary.distanceKm
+          : 0,
+        vehicleSurchargePerKm: 0,
+      };
+    }
     if (!pickup || !drop) return fallbackFare;
     const serviceDecision = findServiceAreaForTrip(
       serviceAreas,
@@ -918,17 +938,17 @@ export default function UserDashboard() {
         configuredRule,
       ),
       isPeak: false,
-      periodLabel: "Configured fare",
+      periodLabel: "Admin configured fare",
       ratePerKm: configuredRule.per_km_rate,
       vehicleSurchargePerKm: 0,
     };
   }, [
     bookingMode,
     drop,
+    liveFareEstimate,
     pickup,
     pricingRules,
-    routeSummary?.distanceKm,
-    routeSummary?.durationMin,
+    routeSummary,
     scheduledTime,
     serviceAreas,
     vehicleType,
@@ -970,6 +990,41 @@ export default function UserDashboard() {
       ignore = true;
     };
   }, [routeFrom, routeTo]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadLiveFare() {
+      if (activeRide || !pickup || !drop || !routeSummary?.distanceKm) {
+        setLiveFareEstimate(null);
+        return;
+      }
+
+      setFareLoading(true);
+      try {
+        const fare = await calculateTaxiroFareEstimate({
+          at: bookingMode === "advance" ? scheduledTime : new Date(),
+          distanceKm: routeSummary.distanceKm,
+          drop,
+          durationMin: routeSummary.durationMin,
+          pickup,
+          profileId: userId,
+          vehicleType,
+        });
+        if (!ignore) setLiveFareEstimate(fare);
+      } catch {
+        if (!ignore) setLiveFareEstimate(null);
+      } finally {
+        if (!ignore) setFareLoading(false);
+      }
+    }
+
+    void loadLiveFare();
+
+    return () => {
+      ignore = true;
+    };
+  }, [activeRide, bookingMode, drop, pickup, routeSummary?.distanceKm, routeSummary?.durationMin, scheduledTime, userId, vehicleType]);
 
   const triggerSafetyAlert = useCallback(
     async (alertType: SafetyAlertType, alertMessage: string) => {
@@ -1218,7 +1273,7 @@ export default function UserDashboard() {
                       </p>
                     </div>
                     <div
-                      className="grid grid-cols-3 gap-2"
+                      className="grid grid-cols-2 gap-2 sm:grid-cols-5"
                       aria-label="Choose vehicle type"
                     >
                       {VEHICLE_OPTIONS.map((option) => {
@@ -1228,11 +1283,6 @@ export default function UserDashboard() {
                             : option.type === "auto"
                               ? CarTaxiFront
                               : CarFront;
-                        const quote = getVehicleFareQuote(
-                          routeSummary?.distanceKm ?? null,
-                          bookingMode === "advance" ? scheduledTime : undefined,
-                          option.type,
-                        );
                         return (
                           <button
                             aria-pressed={vehicleType === option.type}
@@ -1250,11 +1300,9 @@ export default function UserDashboard() {
                               {option.label}
                             </span>
                             <span className="mt-0.5 block truncate text-[10px] opacity-70">
-                              {quote.fare === null
-                                ? option.surchargePerKm
-                                  ? `+ Rs ${option.surchargePerKm}/km`
-                                  : "Base rate"
-                                : formatMoney(quote.fare)}
+                              {vehicleType === option.type && liveFareEstimate
+                                ? formatMoney(liveFareEstimate.final_fare)
+                                : option.description}
                             </span>
                           </button>
                         );
@@ -1545,6 +1593,11 @@ export default function UserDashboard() {
                           PM-midnight.
                         </p>
                       </div>
+                      {fareLoading ? (
+                        <p className="rounded-lg bg-muted px-3 py-2 text-xs font-semibold leading-5 text-muted-foreground">
+                          Calculating live fare from Taxiro pricing engine...
+                        </p>
+                      ) : null}
                       {operationalConfigUnavailable ? (
                         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800">
                           Configured service-area pricing is not available yet.
@@ -1728,7 +1781,7 @@ function LoadingRideShell({ label, title }: { label: string; title: string }) {
             <div className="grid gap-3" aria-busy="true" aria-live="polite">
               <div className="h-8 w-3/4 animate-pulse rounded-lg bg-muted" />
               <div className="h-4 w-11/12 animate-pulse rounded-lg bg-muted" />
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                 <div className="h-16 animate-pulse rounded-lg bg-muted" />
                 <div className="h-16 animate-pulse rounded-lg bg-muted" />
                 <div className="h-16 animate-pulse rounded-lg bg-muted" />

@@ -36,7 +36,7 @@ The MVP currently includes:
 - Scheduled ride creation.
 - **I'm Ready** ride activation with 15/30/60-minute signals, in-button progress, and visible error feedback.
 - Rider online/offline availability.
-- Verified active vehicle switcher for Bike, Auto, and Car.
+- Verified active vehicle switcher for Bike, Auto, Hatchback, Sedan, and SUV.
 - Rider location update.
 - Rider ride acceptance.
 - Private ride confirmation code with repair fallback if the code row is missing or not returned.
@@ -48,14 +48,11 @@ The MVP currently includes:
 - Assigned-ride chat between user and rider.
 - Rider map demand markers for scheduled and ready ride pickup signals.
 - Fare estimate, distance, ETA, payment preference, and pickup note capture before booking.
-- Fare locked at booking time with Taxiro 7% company commission and 93% rider earning split.
-- Exact distance pricing: Rs 7/km normally and Rs 8/km during configured IST peak windows.
-- Vehicle-based ride selection and fare uplift:
-  - Bike: base rate.
-  - Auto: base rate + Rs 1/km.
-  - Car: base rate + Rs 2/km.
+- Fare locked at booking time from the Supabase pricing engine with saved platform commission and driver earning split.
+- Backend-owned fare calculation supports base fare, per-km, per-minute, waiting, airport, toll, night, surge, coupon, wallet, tax, commission, cashback, and driver earning breakdowns.
+- Vehicle-based ride selection now supports Bike, Auto, Hatchback, Sedan, and SUV as separate admin-priced categories.
 - Rider matching now respects the requested vehicle type and the rider's currently active verified vehicle.
-- Rider multi-vehicle profile setup for Bike, Auto, and Car with verification-controlled switching.
+- Rider multi-vehicle profile setup for Bike, Auto, Hatchback, Sedan, and SUV with verification-controlled switching.
 - Rider UPI ID and UPI QR image upload in rider account settings.
 - UPI/cash payment status flow: pending, awaiting payment, and paid.
 - Completed-ride rating and feedback capture.
@@ -93,7 +90,7 @@ The MVP currently includes:
 - Rider rating and completed-rides summaries are derived from real ride and rating records and synchronized by database triggers; unrated riders display New rider.
 - Service-area aware booking can enforce pickup/drop inside active Taxiro operating zones once configured.
 - Configurable pricing rules can override fallback per-km fare logic by service area and vehicle type.
-- Admin Controls workspace manages service areas, pricing rules, commission preview, and fraud signal review.
+- Admin Controls workspace manages service areas, enterprise pricing rules, surge rules, coupons, subscriptions, driver bonuses, commission preview, and fraud signal review.
 - Rider GPS jump anomalies can be recorded as fraud signals with evidence for admin review.
 - Premium light/dark mode is available across public, standard, and immersive app surfaces.
 - Public landing page now includes a premium glass-style map hero, animated glow layers, live service badge, trust chips, and smoother capsule CTAs.
@@ -102,7 +99,7 @@ The MVP currently includes:
 - Admin overview now includes an operations control map for Command, Verification, People, Ride Audit, Support, and System Health workspaces.
 - Admin People Control now supports role/status filters, profile search, priority queues, account health chips, and safe suspend/reactivate actions.
 - Production-friendly shortcut routes now redirect `/admin`, `/user`, and `/rider` to their correct dashboard URLs.
-- Booking now gracefully falls back to safe per-km pricing when production Supabase is missing `service_areas` or `pricing_rules` migrations.
+- Booking now requires the backend pricing engine for production fare creation and shows a clear migration-required message if commercial pricing is unavailable.
 - Customer nearby-rider preview now disables quietly when `get_nearby_available_riders` is missing, preventing repeated 404 console/API spam.
 - Admin Health now checks database readiness for `service_areas`, `pricing_rules`, and `get_nearby_available_riders`, and shows the exact migration file needed when production Supabase is behind.
 - Admin Health now includes a migration recovery manifest that confirms required SQL files are present in the deployed source, shows local migration count, and displays the latest local migration.
@@ -113,6 +110,10 @@ The MVP currently includes:
 - Info pages now include a header Back action, and the theme toggle is placed in the app header instead of the lower mobile corner.
 - Rider demand signals now show only nearby matching-vehicle demand within about 2 km of the rider's current location.
 - Expired ready signals are hidden immediately in the rider app and refreshed while the rider dashboard is open.
+- Enterprise pricing/revenue migration added with normalized tables for surge rules, coupon campaigns, driver bonus rules, referral reward rules, subscription plans, user subscriptions, tax rules, airport pricing, ride fare breakdowns, fare audit logs, and driver payouts.
+- Supabase RPC `calculate_taxiro_fare` now calculates complete fare breakdowns from admin-managed pricing rules and logs every calculation for audit.
+- Supabase RPC `attach_ride_fare_breakdown` stores the final fare breakdown against the booked ride for later admin/revenue review.
+- Admin commercial controls now create service areas, full vehicle pricing rules, surge rules, coupons, Taxiro Plus-style subscriptions, and driver bonus rules from the dashboard.
 
 ## Main Routes
 
@@ -176,7 +177,7 @@ Implemented:
 - Role-protected user dashboard.
 - Map-first booking screen.
 - Ride now and advance booking modes.
-- Bike, Auto, and Car selection before booking.
+- Bike, Auto, Hatchback, Sedan, and SUV selection before booking.
 - Pickup via search, current location, or map selection.
 - Drop via search or map selection.
 - Focused map-only choose-on-map mode.
@@ -192,7 +193,7 @@ Implemented:
   - Upcoming / advance bookings
   - Completed / cancelled history
 - Fare estimate, payment preference, and rider pickup note before confirming.
-- Vehicle-based fare quote shown before booking and saved with the ride.
+- Backend fare quote shown before booking and saved with the ride, including pricing rule id, service area id, platform commission, and driver earning.
 - Completed ride rating from the ride detail screen.
 - Ride detail screen also shows private code and chat for assigned/started rides.
 - User menu:
@@ -211,7 +212,7 @@ Implemented:
 
 - Role-protected rider dashboard.
 - Rider online/offline availability.
-- Verified active vehicle switcher for Bike, Auto, and Car.
+- Verified active vehicle switcher for Bike, Auto, Hatchback, Sedan, and SUV.
 - Foreground rider GPS tracking with map-click/manual refresh fallback.
 - Ready ride request queue.
 - Map demand signals for scheduled and ready pickups.

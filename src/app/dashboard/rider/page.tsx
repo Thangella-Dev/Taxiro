@@ -1327,7 +1327,7 @@ function ActiveRiderJob({
           <p className="text-sm font-semibold text-white/60">Payment collection</p>
           <p className="mt-1 text-xl font-black">Collect fare before completing</p>
           <p className="mt-2 text-sm leading-6 text-white/65">
-            Total fare {formatMoney(ride.fare_estimate)}. Company gets {formatMoney(companyCommission)} (7%); you earn {formatMoney(riderEarning)}.
+            Total fare {formatMoney(ride.fare_estimate)}. Taxiro commission is {formatMoney(companyCommission)}; you earn {formatMoney(riderEarning)}.
           </p>
           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[#101713]">
             <div className="rounded-lg bg-white/90 p-2"><p className="text-[10px] font-bold uppercase">Fare</p><p className="font-black">{formatMoney(ride.fare_estimate)}</p></div>

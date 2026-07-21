@@ -1,10 +1,5 @@
-import { getVehicleSurcharge } from "@/lib/vehicles";
 import type { VehicleType } from "@/types/database";
 
-export const COMPANY_COMMISSION_RATE = 0.07;
-export const ACCEPTED_RIDE_CANCELLATION_FINE = 50;
-export const STANDARD_RATE_PER_KM = 7;
-export const PEAK_RATE_PER_KM = 8;
 export const FARE_TIME_ZONE = "Asia/Kolkata";
 
 export type FarePricingPeriod =
@@ -34,19 +29,14 @@ export function getVehicleFareQuote(
 ): VehicleFareQuote {
   const minutes = getIndiaMinutesOfDay(departureAt);
   const period = getPricingPeriod(minutes);
-  const isPeak = period !== "standard";
-  const baseRatePerKm = isPeak ? PEAK_RATE_PER_KM : STANDARD_RATE_PER_KM;
-  const vehicleSurchargePerKm = getVehicleSurcharge(vehicleType);
-  const ratePerKm = baseRatePerKm + vehicleSurchargePerKm;
-
   return {
-    fare: distanceKm === null ? null : Math.round(distanceKm * ratePerKm),
-    baseRatePerKm,
-    isPeak,
+    fare: distanceKm === null ? null : null,
+    baseRatePerKm: 0,
+    isPeak: period !== "standard",
     period,
-    periodLabel: getPricingPeriodLabel(period),
-    ratePerKm,
-    vehicleSurchargePerKm,
+    periodLabel: "Admin pricing required",
+    ratePerKm: 0,
+    vehicleSurchargePerKm: 0,
     vehicleType,
   };
 }
@@ -66,12 +56,20 @@ export function estimateBikeFare(
 
 export function calculateFareBreakdown(
   fare: number | null,
-  commissionRate = COMPANY_COMMISSION_RATE,
+  commissionRate?: number | null,
 ): FareBreakdown {
-  if (fare === null) {
+  if (fare === null || fare === undefined) {
     return {
       companyCommission: null,
       fare: null,
+      riderEarning: null,
+    };
+  }
+
+  if (commissionRate === null || commissionRate === undefined) {
+    return {
+      companyCommission: null,
+      fare,
       riderEarning: null,
     };
   }
@@ -95,7 +93,7 @@ export function formatMoney(value: number | null | undefined) {
 export function getFarePricingLabel(
   period: FarePricingPeriod | null | undefined,
 ) {
-  if (!period) return "Fare rate";
+  if (!period) return "Configured fare";
   return getPricingPeriodLabel(period);
 }
 
@@ -103,11 +101,9 @@ export function getUserCancellationFine(
   previousCancelledRideCount: number,
   rideWasAccepted: boolean,
 ) {
-  if (!rideWasAccepted || previousCancelledRideCount < 2) {
-    return 0;
-  }
-
-  return ACCEPTED_RIDE_CANCELLATION_FINE;
+  void previousCancelledRideCount;
+  void rideWasAccepted;
+  return 0;
 }
 
 function getIndiaMinutesOfDay(value: Date | string) {

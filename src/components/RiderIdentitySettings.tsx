@@ -40,11 +40,12 @@ export function RiderIdentitySettings({ riderId }: { riderId: string }) {
   const [uploading, setUploading] = useState(false);
   const [upiId, setUpiId] = useState("");
   const [upiQrImageUrl, setUpiQrImageUrl] = useState("");
-  const [vehicles, setVehicles] = useState<Record<VehicleType, VehicleDraft>>({
-    auto: { ...emptyDraft },
-    bike: { ...emptyDraft },
-    car: { ...emptyDraft },
-  });
+  const [vehicles, setVehicles] = useState<Record<VehicleType, VehicleDraft>>(() =>
+    VEHICLE_OPTIONS.reduce(
+      (drafts, option) => ({ ...drafts, [option.type]: { ...emptyDraft } }),
+      { car: { ...emptyDraft } } as Record<VehicleType, VehicleDraft>,
+    ),
+  );
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -234,7 +235,7 @@ export function RiderIdentitySettings({ riderId }: { riderId: string }) {
           {livePhotoUrl ? <Image alt="Submitted live rider identity" className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" height={480} src={livePhotoUrl} unoptimized width={640} /> : null}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {VEHICLE_OPTIONS.map((option) => {
           const Icon = option.type === "bike" ? Bike : option.type === "auto" ? CarTaxiFront : CarFront;
           const status = vehicles[option.type].status;

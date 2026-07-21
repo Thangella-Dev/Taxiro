@@ -32,7 +32,8 @@ export function findServiceAreaForTrip(
 
   const pickupAreas = activeAreas.filter(
     (area) =>
-      area.supported_vehicle_types.includes(vehicleType) &&
+      (area.supported_vehicle_types.includes(vehicleType) ||
+        (vehicleType === "sedan" && area.supported_vehicle_types.includes("car"))) &&
       distanceKmBetween(pickup, { lat: area.center_lat, lng: area.center_lng }) <= area.radius_km,
   );
   if (!pickupAreas.length) {
@@ -68,7 +69,8 @@ export function findEffectivePricingRule(
   return (
     rules
       .filter((rule) => {
-        if (!rule.is_active || rule.service_area_id !== serviceAreaId || rule.vehicle_type !== vehicleType) return false;
+        const sameVehicle = rule.vehicle_type === vehicleType || (vehicleType === "sedan" && rule.vehicle_type === "car");
+        if (!rule.is_active || rule.service_area_id !== serviceAreaId || !sameVehicle) return false;
         const starts = new Date(rule.effective_from).getTime();
         const ends = rule.effective_until ? new Date(rule.effective_until).getTime() : Number.POSITIVE_INFINITY;
         return timestamp >= starts && timestamp < ends;
@@ -113,6 +115,8 @@ export function assessLocationJump({
 
 function vehicleLabel(vehicleType: VehicleType) {
   if (vehicleType === "auto") return "Auto";
-  if (vehicleType === "car") return "Car";
+  if (vehicleType === "hatchback") return "Hatchback";
+  if (vehicleType === "sedan" || vehicleType === "car") return "Sedan";
+  if (vehicleType === "suv") return "SUV";
   return "Bike";
 }

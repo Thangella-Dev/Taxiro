@@ -1916,7 +1916,7 @@ function RiderVerificationPanel({
                 <Car className="size-4" /> Vehicle review
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Verify each submitted Bike, Auto, and Car separately
+                Verify each submitted Bike, Auto, Hatchback, Sedan, and SUV separately
               </p>
             </div>
             <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-black">

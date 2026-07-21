@@ -54,7 +54,7 @@ const scheduledDemandIcon = L.divIcon({
 
 function vehicleIconComponent(vehicleType?: VehicleType): LucideIcon {
   if (vehicleType === "auto") return CarTaxiFront;
-  if (vehicleType === "car") return CarFront;
+  if (["car", "hatchback", "sedan", "suv"].includes(vehicleType ?? "")) return CarFront;
   return Bike;
 }
 

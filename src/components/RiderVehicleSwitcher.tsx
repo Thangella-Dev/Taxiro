@@ -29,7 +29,7 @@ export function RiderVehicleSwitcher({
         </div>
         <ShieldCheck className="size-4 shrink-0 text-muted-foreground" />
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {VEHICLE_OPTIONS.map((option) => {
           const Icon = option.type === "bike" ? Bike : option.type === "auto" ? CarTaxiFront : CarFront;
           const vehicle = vehicles.find((item) => item.vehicle_type === option.type);

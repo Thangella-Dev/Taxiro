@@ -284,9 +284,9 @@ export default function AuthPage() {
                   <div className="grid gap-3 rounded-lg border border-border bg-muted p-3 sm:col-span-2">
                     <div>
                       <p className="text-sm font-black">First vehicle for verification</p>
-                      <p className="text-xs leading-5 text-muted-foreground">You can add Bike, Auto, and Car later. Only admin-verified vehicles can be selected for jobs.</p>
+                      <p className="text-xs leading-5 text-muted-foreground">You can add Bike, Auto, Hatchback, Sedan, and SUV later. Only admin-verified vehicles can be selected for jobs.</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                       {VEHICLE_OPTIONS.map((option) => {
                         const Icon = option.type === "bike" ? Bike : option.type === "auto" ? CarTaxiFront : CarFront;
                         return (

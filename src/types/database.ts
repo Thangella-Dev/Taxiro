@@ -1,5 +1,5 @@
 export type UserRole = "user" | "rider" | "admin";
-export type VehicleType = "bike" | "auto" | "car";
+export type VehicleType = "bike" | "auto" | "car" | "hatchback" | "sedan" | "suv";
 export type RideStatus =
   | "scheduled"
   | "ready"
@@ -254,11 +254,117 @@ export type PricingRule = {
   per_km_rate: number;
   per_minute_rate: number;
   minimum_fare: number;
+  waiting_charge_per_minute: number;
+  free_waiting_minutes: number;
+  cancellation_fee: number;
+  driver_cancellation_rules: Record<string, unknown>;
+  passenger_cancellation_rules: Record<string, unknown>;
+  night_charge_type: "none" | "flat" | "percent";
+  night_charge_value: number;
+  airport_pickup_fee: number;
+  toll_charge: number;
+  tax_percentage: number;
   company_commission_rate: number;
+  dynamic_surge_multiplier: number;
+  max_surge_multiplier: number;
+  subscription_discount_percentage: number;
+  cashback_percentage: number;
+  referral_reward_amount: number;
+  driver_bonus_pool: number;
+  currency: "INR";
   peak_windows: unknown[];
   is_active: boolean;
   effective_from: string;
   effective_until: string | null;
+  created_at: string;
+};
+
+export type FareCalculationBreakdown = {
+  airport_fee: number;
+  base_fare: number;
+  cashback_amount: number;
+  company_commission_rate: number;
+  coupon_discount: number;
+  currency: "INR";
+  distance_charge: number;
+  driver_earning: number;
+  final_fare: number;
+  free_waiting_minutes: number;
+  minimum_fare: number;
+  night_charge: number;
+  platform_commission: number;
+  pricing_rule_id: string | null;
+  rule_snapshot: Record<string, unknown>;
+  service_area_id: string | null;
+  subtotal_before_surge: number;
+  surge_charge: number;
+  surge_multiplier: number;
+  tax_amount: number;
+  time_charge: number;
+  toll_charge: number;
+  vehicle_type: VehicleType;
+  waiting_charge: number;
+  wallet_credit_applied: number;
+};
+
+export type SurgeRule = {
+  id: string;
+  service_area_id: string | null;
+  vehicle_type: VehicleType | null;
+  surge_type: "morning_peak" | "evening_peak" | "rain" | "holiday" | "festival" | "demand" | "night";
+  multiplier: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  weekdays: number[] | null;
+  local_start_time: string | null;
+  local_end_time: string | null;
+  priority: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type CouponCampaign = {
+  id: string;
+  code: string;
+  discount_type: "flat" | "percent";
+  discount_value: number;
+  max_discount: number | null;
+  min_fare: number;
+  service_area_id: string | null;
+  allowed_vehicle_types: VehicleType[];
+  first_ride_only: boolean;
+  usage_limit: number | null;
+  per_profile_limit: number;
+  starts_at: string;
+  ends_at: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type SubscriptionPlan = {
+  id: string;
+  name: string;
+  monthly_price: number;
+  discount_percentage: number;
+  priority_matching: boolean;
+  priority_support: boolean;
+  free_cancellations_per_month: number;
+  benefits: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type DriverBonusRule = {
+  id: string;
+  title: string;
+  bonus_type: "daily_rides" | "weekly_rides" | "peak_hour" | "airport" | "night" | "new_driver" | "referral" | "manual";
+  vehicle_type: VehicleType | null;
+  service_area_id: string | null;
+  target_rides: number | null;
+  reward_amount: number;
+  starts_at: string;
+  ends_at: string | null;
+  is_active: boolean;
   created_at: string;
 };
 

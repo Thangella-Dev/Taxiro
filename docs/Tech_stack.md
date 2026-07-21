@@ -1,11 +1,48 @@
 # Taxiro Technology Stack And Engineering Assessment
 
-**Report date:** 20 July 2026
+**Report date:** 21 July 2026
 **Application:** Taxiro
 **Current version:** 0.1.0
 **Product stage:** Advanced full-stack web MVP approaching controlled pilot readiness
 
 ## Executive Assessment
+
+## 21 July 2026 Enterprise Pricing And Revenue System Update
+
+Completed real engineering work today:
+
+- Added additive Supabase migration `20260721100000_enterprise_pricing_revenue_system.sql`.
+- Expanded Taxiro vehicle categories from the older Bike/Auto/Car model to Bike, Auto, Hatchback, Sedan, and SUV, while keeping legacy `car` compatibility for existing data.
+- Added normalized commercial tables for surge rules, coupon campaigns, driver bonus rules, referral reward rules, subscription plans, user subscriptions, tax rules, airport pricing, ride fare breakdowns, fare audit logs, and driver payouts.
+- Extended `pricing_rules` with base fare, per-km, per-minute, minimum fare, waiting charge, free waiting minutes, cancellation fee, night charge, airport pickup fee, toll charge, tax percentage, commission, surge cap, subscription discount, cashback, referral reward, driver bonus pool, and currency fields.
+- Added backend RPC `calculate_taxiro_fare` so fare calculation runs in Supabase from admin-managed rules and returns the complete passenger fare, platform commission, driver earning, surge, tax, discount, wallet, and cashback breakdown.
+- Added backend RPC `attach_ride_fare_breakdown` so booked rides store an auditable fare breakdown record.
+- Updated user booking to call the backend pricing engine before creating a ride and to save pricing rule/service area/commission/driver earning data returned by Supabase.
+- Reworked Admin Operational Controls into commercial controls for service areas, enterprise pricing rules, surge, coupons, subscriptions, driver bonuses, and fraud review.
+- Updated rider vehicle setup/switching and user vehicle selection for Bike, Auto, Hatchback, Sedan, and SUV.
+- Removed hardcoded frontend fare rates and fixed 7% default commission behavior from the client fare helper. The client now displays backend quotes and only calculates splits when an explicit commission is supplied.
+
+Verification completed today:
+
+```bash
+npm run db:validate
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+Results:
+
+- 29 additive Supabase migrations validated.
+- TypeScript passed.
+- ESLint passed.
+- 11 unit tests passed.
+- Next.js 16.2.7 production build passed with 24 app routes.
+
+Deployment note:
+
+Apply `supabase/migrations/20260721100000_enterprise_pricing_revenue_system.sql` to the Supabase project before testing production fare estimates, commercial admin controls, or new vehicle categories on live data.
 
 
 
@@ -168,7 +205,7 @@ Measurements were generated from the repository on 07 July 2026.
 | TypeScript and test tooling (.ts/.mjs) | 22 | 2,069 | 1,850 |
 | React/TypeScript (.tsx) | 54 | 9,854 | 9,172 |
 | Global CSS (.css) | 1 | 1,403 | 1,203 |
-| Supabase migration history and schema snapshot (.sql) | 28 | 7,872 | 7,065 |
+| Supabase migration history and schema snapshot (.sql) | 29 | 7,872 | 7,065 |
 | CI YAML | 1 | 51 | 47 |
 | **Tracked source/config total** | **106 measured source/config files** | **21,249** | **19,287** |
 
@@ -179,7 +216,7 @@ The cumulative schema snapshot repeats SQL already represented in migration hist
 - 11 application pages.
 - 3 role-specific dashboards.
 - 41 React components.
-- 28 additive Supabase migrations.
+- 29 additive Supabase migrations.
 - 30 application database tables represented across migration history.
 - 40 unique PostgreSQL/RPC functions across migration history.
 - 2 Supabase Storage buckets.
