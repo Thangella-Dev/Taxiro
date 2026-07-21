@@ -811,3 +811,22 @@ Verification completed today:
 Reason:
 
 - Production testers naturally try short URLs like `/admin`. This update makes those URLs work while keeping the real dashboard routes under `/dashboard/*`.
+
+## 22 July 2026 Vehicle-Aware Supply And Payment Foundation Addendum
+
+Additional real engineering work completed today:
+
+- Added vehicle-aware nearby rider preview RPC with pickup-radius filtering and requested vehicle filtering.
+- Added frontend support for showing verified nearby riders around the booking pickup based on Bike/Auto/Hatchback/Sedan/SUV selection.
+- Added `payments`, `payment_events`, and `driver_settlement_items` as the foundation for gateway, wallet, direct-driver payment, and reconciliation flows.
+- Expanded ride payment method/status types and wallet ledger metadata.
+- Added backend payment order creation and payment-complete settlement recording.
+- Applied and smoke-tested the new migrations on the live Supabase project.
+
+Verification completed:
+
+- `npm run db:validate`: 32 additive migrations validated.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 11 tests passed.
+- `npm run build`: passed with 24 app routes.

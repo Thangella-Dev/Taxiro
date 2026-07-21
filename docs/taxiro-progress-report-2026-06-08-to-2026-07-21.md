@@ -24,4 +24,4 @@ Verification completed:
 
 Deployment requirement:
 
-Apply `supabase/migrations/20260721100000_enterprise_pricing_revenue_system.sql` to Supabase before using these features in production.
+Apply `supabase/migrations/20260721100000_enterprise_pricing_revenue_system.sql` to Supabase before using these features in production.`n

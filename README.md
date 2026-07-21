@@ -52,9 +52,12 @@ The MVP currently includes:
 - Backend-owned fare calculation supports base fare, per-km, per-minute, waiting, airport, toll, night, surge, coupon, wallet, tax, commission, cashback, and driver earning breakdowns.
 - Vehicle-based ride selection now supports Bike, Auto, Hatchback, Sedan, and SUV as separate admin-priced categories.
 - Rider matching now respects the requested vehicle type and the rider's currently active verified vehicle.
+- Customer maps preview nearby verified riders around the selected pickup, filtered by selected vehicle type, before assignment.
 - Rider multi-vehicle profile setup for Bike, Auto, Hatchback, Sedan, and SUV with verification-controlled switching.
 - Rider UPI ID and UPI QR image upload in rider account settings.
-- UPI/cash payment status flow: pending, awaiting payment, and paid.
+- UPI/cash/payment status flow: pending, payment pending, awaiting payment, paid, failed, refunded, and disputed.
+- Payment foundation with backend payment orders, payment events, wallet-aware completion, and driver settlement item records.
+- Taxiro Wallet payment preference foundation with wallet debit validation and rider earning ledger credit for Taxiro-collected payment methods.
 - Completed-ride rating and feedback capture.
 - Rider vehicle identity, licence details, verification status, rating, and completed-rides foundation.
 - Mobile compatibility improvements across the main app surfaces, including corrected vertical flow and side-scroll prevention.

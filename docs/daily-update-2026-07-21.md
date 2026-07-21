@@ -102,4 +102,4 @@ supabase/migrations/20260721100000_enterprise_pricing_revenue_system.sql
 - Configure real service-area pricing for Bike, Auto, Hatchback, Sedan, and SUV.
 - Run two-device user/rider booking QA against live Supabase data.
 - Add admin edit/deactivate flows for existing pricing, surge, coupon, subscription, and bonus rules.
-- Add wallet balance application and withdrawal request UI on top of the new backend foundation.
+- Add wallet balance application and withdrawal request UI on top of the new backend foundation.`n

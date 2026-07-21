@@ -91,6 +91,8 @@ import type {
   AssignedRiderDetails,
   FareCalculationBreakdown,
   LatLng,
+  NearbyRiderPreview,
+  PaymentMethod,
   PricingRule,
   Profile,
   RideConfirmationCode,
@@ -130,12 +132,12 @@ export default function UserDashboard() {
   const [panelView, setPanelView] = useState<"book" | "rides">("book");
   const [passengerName, setPassengerName] = useState("");
   const [passengerPhone, setPassengerPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [pickup, setPickup] = useState<LatLng | null>(null);
   const [pickupAccuracy, setPickupAccuracy] = useState<number | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [riderLocations, setRiderLocations] = useState<RiderLocation[]>([]);
-  const [nearbyRiders, setNearbyRiders] = useState<RiderLocation[]>([]);
+  const [nearbyRiders, setNearbyRiders] = useState<NearbyRiderPreview[]>([]);
   const [nearbyRiderPreviewUnavailable, setNearbyRiderPreviewUnavailable] =
     useState(false);
   const [riderProfiles, setRiderProfiles] = useState<
@@ -155,7 +157,8 @@ export default function UserDashboard() {
     distanceKm: number | null;
     durationMin: number | null;
   } | null>(null);
-  const [liveFareEstimate, setLiveFareEstimate] = useState<FareCalculationBreakdown | null>(null);
+  const [liveFareEstimate, setLiveFareEstimate] =
+    useState<FareCalculationBreakdown | null>(null);
   const [fareLoading, setFareLoading] = useState(false);
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
@@ -182,6 +185,7 @@ export default function UserDashboard() {
           p_lat: point.lat,
           p_lng: point.lng,
           p_radius_km: 8,
+          p_vehicle_type: vehicleType,
         },
       );
       if (isMissingSupabaseObject(error)) {
@@ -189,9 +193,9 @@ export default function UserDashboard() {
         setNearbyRiders([]);
         return;
       }
-      if (!error) setNearbyRiders((data as RiderLocation[]) ?? []);
+      if (!error) setNearbyRiders((data as NearbyRiderPreview[]) ?? []);
     },
-    [nearbyRiderPreviewUnavailable],
+    [nearbyRiderPreviewUnavailable, vehicleType],
   );
 
   const loadRides = useCallback(async (currentUserId: string) => {
@@ -676,42 +680,52 @@ export default function UserDashboard() {
         vehicleType,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Pricing engine is unavailable.";
-      setMessage(`Could not calculate fare: ${message}. Apply the latest Supabase pricing migration and try again.`);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Pricing engine is unavailable.";
+      setMessage(
+        `Could not calculate fare: ${message}. Apply the latest Supabase pricing migration and try again.`,
+      );
       return;
     }
     setLiveFareEstimate(fareBreakdown);
     const fareEstimate = fareBreakdown.final_fare;
-    const { data: createdRide, error } = await supabase.from("ride_requests").insert({
-      assigned_rider_id: null,
-      distance_km: summary.distanceKm,
-      drop_address: drop.address ?? "Selected destination",
-      drop_lat: drop.lat,
-      drop_lng: drop.lng,
-      estimated_duration_min: summary.durationMin,
-      fare_estimate: fareEstimate,
-      fare_rate_per_km: null,
-      vehicle_surcharge_per_km: 0,
-      vehicle_type: vehicleType,
-      service_area_id: fareBreakdown.service_area_id ?? serviceDecision.area?.id ?? null,
-      pricing_rule_id: fareBreakdown.pricing_rule_id,
-      fare_pricing_period: null,
-      company_commission: fareBreakdown.platform_commission,
-      rider_earning: fareBreakdown.driver_earning,
-      booking_for: bookingFor,
-      passenger_name: cleanPassengerName || null,
-      passenger_phone: cleanPassengerPhone || null,
-      payment_status: "pending",
-      passenger_count: 1,
-      payment_method: paymentMethod,
-      pickup_address: pickup.address ?? "Selected pickup",
-      pickup_lat: pickup.lat,
-      pickup_lng: pickup.lng,
-      rider_note: rideNote.trim() || null,
-      scheduled_time: rideTime,
-      status: "scheduled",
-      user_id: userId,
-    }).select("id").single();
+    const { data: createdRide, error } = await supabase
+      .from("ride_requests")
+      .insert({
+        assigned_rider_id: null,
+        distance_km: summary.distanceKm,
+        drop_address: drop.address ?? "Selected destination",
+        drop_lat: drop.lat,
+        drop_lng: drop.lng,
+        estimated_duration_min: summary.durationMin,
+        fare_estimate: fareEstimate,
+        fare_rate_per_km: null,
+        vehicle_surcharge_per_km: 0,
+        vehicle_type: vehicleType,
+        service_area_id:
+          fareBreakdown.service_area_id ?? serviceDecision.area?.id ?? null,
+        pricing_rule_id: fareBreakdown.pricing_rule_id,
+        fare_pricing_period: null,
+        company_commission: fareBreakdown.platform_commission,
+        rider_earning: fareBreakdown.driver_earning,
+        booking_for: bookingFor,
+        passenger_name: cleanPassengerName || null,
+        passenger_phone: cleanPassengerPhone || null,
+        payment_status: "pending",
+        passenger_count: 1,
+        payment_method: paymentMethod,
+        pickup_address: pickup.address ?? "Selected pickup",
+        pickup_lat: pickup.lat,
+        pickup_lng: pickup.lng,
+        rider_note: rideNote.trim() || null,
+        scheduled_time: rideTime,
+        status: "scheduled",
+        user_id: userId,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       setMessage(error.message);
@@ -836,7 +850,7 @@ export default function UserDashboard() {
     () =>
       assignedRiderLocation
         ? [assignedRiderLocation]
-        : activeRide
+        : activeRide && ["assigned", "started"].includes(activeRide.status)
           ? []
           : nearbyRiders,
     [activeRide, assignedRiderLocation, nearbyRiders],
@@ -850,13 +864,23 @@ export default function UserDashboard() {
   const AssignedVehicleIcon =
     assignedRiderDetail?.vehicle_type === "auto"
       ? CarTaxiFront
-      : assignedRiderDetail?.vehicle_type && ["car", "hatchback", "sedan", "suv"].includes(assignedRiderDetail.vehicle_type)
+      : assignedRiderDetail?.vehicle_type &&
+          ["car", "hatchback", "sedan", "suv"].includes(
+            assignedRiderDetail.vehicle_type,
+          )
         ? CarFront
         : Bike;
-  const mapRiderVehicleTypes: Partial<Record<string, VehicleType>> =
-    activeRide?.assigned_rider_id && assignedRiderDetail
+  const mapRiderVehicleTypes: Partial<Record<string, VehicleType>> = {
+    ...Object.fromEntries(
+      nearbyRiders.map((rider) => [
+        rider.rider_id,
+        rider.vehicle_type ?? vehicleType,
+      ]),
+    ),
+    ...(activeRide?.assigned_rider_id && assignedRiderDetail
       ? { [activeRide.assigned_rider_id]: assignedRiderDetail.vehicle_type }
-      : {};
+      : {}),
+  };
   const assignedRiderPhotoUrl = activeRide
     ? (riderPhotoUrls[activeRide.id] ?? null)
     : null;
@@ -1024,7 +1048,17 @@ export default function UserDashboard() {
     return () => {
       ignore = true;
     };
-  }, [activeRide, bookingMode, drop, pickup, routeSummary?.distanceKm, routeSummary?.durationMin, scheduledTime, userId, vehicleType]);
+  }, [
+    activeRide,
+    bookingMode,
+    drop,
+    pickup,
+    routeSummary?.distanceKm,
+    routeSummary?.durationMin,
+    scheduledTime,
+    userId,
+    vehicleType,
+  ]);
 
   const triggerSafetyAlert = useCallback(
     async (alertType: SafetyAlertType, alertMessage: string) => {
@@ -1198,7 +1232,7 @@ export default function UserDashboard() {
               <span>
                 {nearbyRiderPreviewUnavailable
                   ? "Nearby rider preview unavailable"
-                  : `${nearbyRiders.length} active ${nearbyRiders.length === 1 ? "rider" : "riders"} within 8 km`}
+                  : `${nearbyRiders.length} verified ${getVehicleLabel(vehicleType).toLowerCase()} ${nearbyRiders.length === 1 ? "rider" : "riders"} near pickup`}
               </span>
             </div>
           </div>
@@ -1608,20 +1642,26 @@ export default function UserDashboard() {
                       <div>
                         <Label>Payment preference</Label>
                         <div className="mt-2 grid grid-cols-2 gap-2">
-                          {(["cash", "upi"] as const).map((method) => (
-                            <button
-                              className={
-                                paymentMethod === method
-                                  ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground"
-                                  : "rounded-lg bg-muted px-3 py-3 text-sm font-black"
-                              }
-                              key={method}
-                              onClick={() => setPaymentMethod(method)}
-                              type="button"
-                            >
-                              {method === "cash" ? "Cash" : "UPI after ride"}
-                            </button>
-                          ))}
+                          {(["cash", "upi", "wallet"] as const).map(
+                            (method) => (
+                              <button
+                                className={
+                                  paymentMethod === method
+                                    ? "rounded-lg bg-primary px-3 py-3 text-sm font-black text-primary-foreground"
+                                    : "rounded-lg bg-muted px-3 py-3 text-sm font-black"
+                                }
+                                key={method}
+                                onClick={() => setPaymentMethod(method)}
+                                type="button"
+                              >
+                                {method === "cash"
+                                  ? "Cash"
+                                  : method === "wallet"
+                                    ? "Taxiro wallet"
+                                    : "UPI after ride"}
+                              </button>
+                            ),
+                          )}
                         </div>
                       </div>
                       <button
@@ -1810,8 +1850,11 @@ function isMissingSupabaseObject(
 }
 
 function formatRate(value: number | null | undefined) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "--";
-  return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.00$/, "");
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "--";
+  return Number.isInteger(value)
+    ? value.toString()
+    : value.toFixed(2).replace(/\.00$/, "");
 }
 function toDateTimeLocalInput(date: Date) {
   const localTime = new Date(
@@ -2346,7 +2389,8 @@ function ActiveUserRide({
         {ride.payment_status === "awaiting_payment" ? (
           <div className="mt-3 rounded-lg bg-secondary p-3">
             <p className="text-sm font-black">Pay your rider</p>
-            {ride.payment_method === "upi" ? (
+            {ride.payment_method === "upi" ||
+            ride.payment_method === "driver_direct_upi" ? (
               <div className="mt-2 grid gap-2">
                 <p className="rounded-xl bg-card p-3 text-sm font-semibold">
                   Ask the rider to show their Taxiro UPI QR, then scan it with

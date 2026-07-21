@@ -1,13 +1,28 @@
 export type UserRole = "user" | "rider" | "admin";
-export type VehicleType = "bike" | "auto" | "car" | "hatchback" | "sedan" | "suv";
+export type VehicleType =
+  "bike" | "auto" | "car" | "hatchback" | "sedan" | "suv";
 export type RideStatus =
-  | "scheduled"
-  | "ready"
-  | "assigned"
-  | "started"
-  | "completed"
-  | "cancelled";
+  "scheduled" | "ready" | "assigned" | "started" | "completed" | "cancelled";
 export type RiderRouteStatus = "active" | "expired" | "completed";
+export type PaymentMethod =
+  | "cash"
+  | "upi"
+  | "driver_direct_upi"
+  | "wallet"
+  | "card"
+  | "netbanking"
+  | "corporate"
+  | "pay_later"
+  | "partial_wallet_online";
+export type PaymentStatus =
+  | "pending"
+  | "payment_pending"
+  | "authorized"
+  | "awaiting_payment"
+  | "paid"
+  | "failed"
+  | "refunded"
+  | "disputed";
 
 export type Profile = {
   id: string;
@@ -44,14 +59,15 @@ export type RideRequest = {
   vehicle_type: VehicleType;
   service_area_id: string | null;
   pricing_rule_id: string | null;
-  fare_pricing_period: "standard" | "morning_peak" | "evening_peak" | "night_peak" | null;
+  fare_pricing_period:
+    "standard" | "morning_peak" | "evening_peak" | "night_peak" | null;
   company_commission: number | null;
   rider_earning: number | null;
   booking_for: "self" | "other";
   passenger_name: string | null;
   passenger_phone: string | null;
-  payment_method: "cash" | "upi";
-  payment_status: "pending" | "awaiting_payment" | "paid";
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
   payment_confirmed_at: string | null;
   payment_confirmed_by: string | null;
   rider_note: string | null;
@@ -87,6 +103,11 @@ export type RiderLocation = {
   updated_at: string;
 };
 
+export type NearbyRiderPreview = RiderLocation & {
+  vehicle_type: VehicleType | null;
+  distance_km: number | null;
+};
+
 export type RiderRoute = {
   id: string;
   rider_id: string;
@@ -120,7 +141,6 @@ export type RiderProfile = {
   completed_rides: number;
   updated_at: string;
 };
-
 
 export type AssignedRiderDetails = {
   rider_id: string;
@@ -214,7 +234,8 @@ export type SupportTicket = {
   created_by: string;
   related_ride_id: string | null;
   assigned_to: string | null;
-  category: "account" | "ride" | "payment" | "safety" | "rider" | "technical" | "other";
+  category:
+    "account" | "ride" | "payment" | "safety" | "rider" | "technical" | "other";
   priority: "low" | "normal" | "high" | "urgent";
   status: "open" | "in_progress" | "waiting_user" | "resolved" | "closed";
   subject: string;
@@ -311,7 +332,14 @@ export type SurgeRule = {
   id: string;
   service_area_id: string | null;
   vehicle_type: VehicleType | null;
-  surge_type: "morning_peak" | "evening_peak" | "rain" | "holiday" | "festival" | "demand" | "night";
+  surge_type:
+    | "morning_peak"
+    | "evening_peak"
+    | "rain"
+    | "holiday"
+    | "festival"
+    | "demand"
+    | "night";
   multiplier: number;
   starts_at: string | null;
   ends_at: string | null;
@@ -357,7 +385,15 @@ export type SubscriptionPlan = {
 export type DriverBonusRule = {
   id: string;
   title: string;
-  bonus_type: "daily_rides" | "weekly_rides" | "peak_hour" | "airport" | "night" | "new_driver" | "referral" | "manual";
+  bonus_type:
+    | "daily_rides"
+    | "weekly_rides"
+    | "peak_hour"
+    | "airport"
+    | "night"
+    | "new_driver"
+    | "referral"
+    | "manual";
   vehicle_type: VehicleType | null;
   service_area_id: string | null;
   target_rides: number | null;
@@ -372,7 +408,14 @@ export type FraudSignal = {
   id: string;
   profile_id: string | null;
   ride_id: string | null;
-  signal_type: "impossible_speed" | "location_jump" | "mock_location" | "repeat_cancellation" | "payment_dispute" | "account_abuse" | "other";
+  signal_type:
+    | "impossible_speed"
+    | "location_jump"
+    | "mock_location"
+    | "repeat_cancellation"
+    | "payment_dispute"
+    | "account_abuse"
+    | "other";
   severity: "low" | "medium" | "high" | "critical";
   evidence: Record<string, unknown>;
   status: "open" | "reviewing" | "dismissed" | "confirmed";
