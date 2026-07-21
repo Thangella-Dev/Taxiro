@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 
+import { isAuthOrPermissionError } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 
 const DEVICE_KEY = "taxiro-active-device-v2";
@@ -67,6 +68,10 @@ export async function establishSingleDeviceSession(
   const { error } = await supabase.rpc("claim_account_session", {
     p_device_id: deviceId,
   });
+  if (isAuthOrPermissionError(error)) {
+    await supabase.auth.signOut({ scope: "local" });
+    throw new Error("Your session could not be verified. Please sign in again.");
+  }
   if (error) throw error;
   return { deviceId, userId };
 }
@@ -81,6 +86,8 @@ async function validateDeviceClaim(
     .select("*")
     .eq("profile_id", userId)
     .maybeSingle();
+
+  if (isAuthOrPermissionError(error)) return false;
   if (error) return true;
 
   const claim = data as AccountSession | null;
@@ -88,6 +95,7 @@ async function validateDeviceClaim(
     const { error: claimError } = await supabase.rpc("claim_account_session", {
       p_device_id: deviceId,
     });
+    if (isAuthOrPermissionError(claimError)) return false;
     return !claimError;
   }
   if (claim.device_id !== deviceId) {
@@ -96,12 +104,15 @@ async function validateDeviceClaim(
       const { error: upgradeError } = await supabase.rpc("claim_account_session", {
         p_device_id: deviceId,
       });
+      if (isAuthOrPermissionError(upgradeError)) return false;
       return !upgradeError;
     }
     return false;
   }
-  await supabase.rpc("touch_account_session", { p_device_id: deviceId });
-  return true;
+  const { error: touchError } = await supabase.rpc("touch_account_session", {
+    p_device_id: deviceId,
+  });
+  return !isAuthOrPermissionError(touchError);
 }
 
 export function useSingleDeviceSession(enabled = true) {
