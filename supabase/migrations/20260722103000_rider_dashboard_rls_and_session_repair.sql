@@ -87,6 +87,7 @@ with check (
 );
 
 drop policy if exists "rider locations visible to authenticated users" on public.rider_locations;
+drop policy if exists "rider locations visible to permitted users" on public.rider_locations;
 drop policy if exists "riders insert own location" on public.rider_locations;
 drop policy if exists "riders update own location" on public.rider_locations;
 
