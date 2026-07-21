@@ -45,7 +45,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ensureProfile, getCurrentUser, getProfile } from "@/lib/auth";
+import {
+  ensureProfile,
+  getCurrentUser,
+  getProfile,
+  isAuthOrPermissionError,
+} from "@/lib/auth";
 import { getRoutePath, getRouteSummary } from "@/lib/maps";
 import { calculateFareBreakdown, formatMoney } from "@/lib/fare";
 import {
@@ -90,6 +95,7 @@ export default function RiderDashboard() {
     null,
   );
   const [riderProfile, setRiderProfile] = useState<RiderProfile | null>(null);
+  const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [riderVehicles, setRiderVehicles] = useState<RiderVehicle[]>([]);
   const [switchingVehicle, setSwitchingVehicle] = useState(false);
   const [riders, setRiders] = useState<RiderLocation[]>([]);
@@ -102,110 +108,151 @@ export default function RiderDashboard() {
   const availabilityRef = useRef(false);
   const manualOfflineRef = useRef(false);
   const autoOnlineForRef = useRef<string | null>(null);
+  const permissionBlockedRef = useRef(false);
 
-  const loadRiderData = useCallback(async (riderId: string) => {
-    const supabase = getSupabase();
-    if (!supabase) {
-      return;
-    }
-    await supabase.rpc("expire_ready_signals");
+  const handlePermissionBlock = useCallback(
+    async (error: unknown) => {
+      if (permissionBlockedRef.current) return;
+      permissionBlockedRef.current = true;
+      setPermissionBlocked(true);
+      const supabase = getSupabase();
+      setMessage("Your rider session expired or no longer has access. Please sign in again.");
+      setGpsStatus("Session expired. Sign in again to resume live GPS.");
+      setLoading(false);
+      await supabase?.auth.signOut();
+      router.replace("/auth?next=/dashboard/rider");
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("Rider dashboard permission blocked", error);
+      }
+    },
+    [router],
+  );
 
-    const [
-      rideResult,
-      riderResult,
-      myLocationResult,
-      riderProfileResult,
-      riderVehicleResult,
-    ] = await Promise.all([
-      supabase
-        .from("ride_requests")
-        .select("*")
-        .or(`status.in.(scheduled,ready),assigned_rider_id.eq.${riderId}`)
-        .order("created_at", { ascending: false }),
-      supabase.from("rider_locations").select("*"),
-      supabase
-        .from("rider_locations")
-        .select("*")
-        .eq("rider_id", riderId)
-        .maybeSingle(),
-      supabase
-        .from("rider_profiles")
-        .select("*")
-        .eq("rider_id", riderId)
-        .maybeSingle(),
-      supabase
-        .from("rider_vehicles")
-        .select("*")
-        .eq("rider_id", riderId)
-        .order("vehicle_type"),
-    ]);
+  const loadRiderData = useCallback(
+    async (riderId: string) => {
+      if (permissionBlockedRef.current) return;
+      const supabase = getSupabase();
+      if (!supabase) return;
 
-    if (rideResult.error) {
-      setMessage(rideResult.error.message);
-    } else {
-      setRides((rideResult.data as RideRequest[]) ?? []);
-    }
-    if (riderResult.data) {
-      setRiders(riderResult.data as RiderLocation[]);
-    }
-    if (myLocationResult.data) {
-      const current = myLocationResult.data as RiderLocation;
-      setRiderLocation(current);
-      setLocation({ lat: current.lat, lng: current.lng });
-      setGpsStatus(
-        current.last_seen_at
-          ? `Last live update ${formatTrackingAge(current.last_seen_at)}`
-          : "Tap refresh or allow GPS tracking.",
-      );
-    }
-    let loadedRiderProfile =
-      (riderProfileResult.data as RiderProfile | null) ?? null;
-    const loadedVehicles = (riderVehicleResult.data as RiderVehicle[]) ?? [];
-    if (riderVehicleResult.error) {
-      setMessage(riderVehicleResult.error.message);
-    } else {
-      setRiderVehicles(loadedVehicles);
-    }
+      const expireResult = await supabase.rpc("expire_ready_signals");
+      if (isAuthOrPermissionError(expireResult.error)) {
+        await handlePermissionBlock(expireResult.error);
+        return;
+      }
 
-    const verifiedVehicles = loadedVehicles.filter(
-      (vehicle) => vehicle.verification_status === "verified",
-    );
-    const activeVehicleIsVerified = verifiedVehicles.some(
-      (vehicle) =>
-        vehicle.vehicle_type === loadedRiderProfile?.active_vehicle_type,
-    );
-    const hasActiveJob = ((rideResult.data as RideRequest[] | null) ?? []).some(
-      (ride) =>
-        ride.assigned_rider_id === riderId &&
-        ["assigned", "started"].includes(ride.status),
-    );
-    if (
-      loadedRiderProfile?.verification_status === "verified" &&
-      verifiedVehicles.length > 0 &&
-      !activeVehicleIsVerified &&
-      !hasActiveJob
-    ) {
-      const preferredVehicle =
-        verifiedVehicles.find((vehicle) => vehicle.vehicle_type === "bike") ??
-        verifiedVehicles[0];
-      const { data: activatedProfile, error: activationError } =
-        await supabase.rpc("set_active_rider_vehicle", {
-          p_vehicle_type: preferredVehicle.vehicle_type,
-        });
-      if (!activationError && activatedProfile) {
-        loadedRiderProfile = activatedProfile as RiderProfile;
-        setMessage(
-          `${getVehicleLabel(preferredVehicle.vehicle_type)} verified and activated for matching.`,
-        );
-      } else if (activationError) {
-        setMessage(
-          `Vehicle is verified but could not be activated: ${activationError.message}`,
+      const [
+        rideResult,
+        riderResult,
+        myLocationResult,
+        riderProfileResult,
+        riderVehicleResult,
+      ] = await Promise.all([
+        supabase
+          .from("ride_requests")
+          .select("*")
+          .or(`status.in.(scheduled,ready),assigned_rider_id.eq.${riderId}`)
+          .order("created_at", { ascending: false }),
+        supabase.from("rider_locations").select("*"),
+        supabase
+          .from("rider_locations")
+          .select("*")
+          .eq("rider_id", riderId)
+          .maybeSingle(),
+        supabase
+          .from("rider_profiles")
+          .select("*")
+          .eq("rider_id", riderId)
+          .maybeSingle(),
+        supabase
+          .from("rider_vehicles")
+          .select("*")
+          .eq("rider_id", riderId)
+          .order("vehicle_type"),
+      ]);
+
+      const permissionError = [
+        rideResult.error,
+        riderResult.error,
+        myLocationResult.error,
+        riderProfileResult.error,
+        riderVehicleResult.error,
+      ].find(isAuthOrPermissionError);
+      if (permissionError) {
+        await handlePermissionBlock(permissionError);
+        return;
+      }
+
+      if (rideResult.error) {
+        setMessage(rideResult.error.message);
+      } else {
+        setRides((rideResult.data as RideRequest[]) ?? []);
+      }
+      if (riderResult.data) {
+        setRiders(riderResult.data as RiderLocation[]);
+      }
+      if (myLocationResult.data) {
+        const current = myLocationResult.data as RiderLocation;
+        setRiderLocation(current);
+        setLocation({ lat: current.lat, lng: current.lng });
+        setGpsStatus(
+          current.last_seen_at
+            ? `Last live update ${formatTrackingAge(current.last_seen_at)}`
+            : "Tap refresh or allow GPS tracking.",
         );
       }
-    }
-    setRiderProfile(loadedRiderProfile);
-  }, []);
+      let loadedRiderProfile =
+        (riderProfileResult.data as RiderProfile | null) ?? null;
+      const loadedVehicles = (riderVehicleResult.data as RiderVehicle[]) ?? [];
+      if (riderVehicleResult.error) {
+        setMessage(riderVehicleResult.error.message);
+      } else {
+        setRiderVehicles(loadedVehicles);
+      }
 
+      const verifiedVehicles = loadedVehicles.filter(
+        (vehicle) => vehicle.verification_status === "verified",
+      );
+      const activeVehicleIsVerified = verifiedVehicles.some(
+        (vehicle) =>
+          vehicle.vehicle_type === loadedRiderProfile?.active_vehicle_type,
+      );
+      const hasActiveJob = ((rideResult.data as RideRequest[] | null) ?? []).some(
+        (ride) =>
+          ride.assigned_rider_id === riderId &&
+          ["assigned", "started"].includes(ride.status),
+      );
+      if (
+        loadedRiderProfile?.verification_status === "verified" &&
+        verifiedVehicles.length > 0 &&
+        !activeVehicleIsVerified &&
+        !hasActiveJob
+      ) {
+        const preferredVehicle =
+          verifiedVehicles.find((vehicle) => vehicle.vehicle_type === "bike") ??
+          verifiedVehicles[0];
+        const { data: activatedProfile, error: activationError } =
+          await supabase.rpc("set_active_rider_vehicle", {
+            p_vehicle_type: preferredVehicle.vehicle_type,
+          });
+        if (isAuthOrPermissionError(activationError)) {
+          await handlePermissionBlock(activationError);
+          return;
+        }
+        if (!activationError && activatedProfile) {
+          loadedRiderProfile = activatedProfile as RiderProfile;
+          setMessage(
+            `${getVehicleLabel(preferredVehicle.vehicle_type)} verified and activated for matching.`,
+          );
+        } else if (activationError) {
+          setMessage(
+            `Vehicle is verified but could not be activated: ${activationError.message}`,
+          );
+        }
+      }
+      setRiderProfile(loadedRiderProfile);
+    },
+    [handlePermissionBlock],
+  );
   useEffect(() => {
     availabilityRef.current = riderLocation?.is_available ?? false;
   }, [riderLocation?.is_available]);
@@ -237,9 +284,13 @@ export default function RiderDashboard() {
         rider_id: profile.id,
         updated_at: now,
       });
+      if (isAuthOrPermissionError(error)) {
+        await handlePermissionBlock(error);
+        return "Session expired. Please sign in again.";
+      }
       return error?.message ?? null;
     },
-    [location.lat, location.lng, profile],
+    [handlePermissionBlock, location.lat, location.lng, profile],
   );
 
   const changeAvailability = useCallback(
@@ -272,19 +323,34 @@ export default function RiderDashboard() {
       return;
     }
 
+    let cancelled = false;
     let riderId: string | null = null;
-    void getCurrentUser(supabase).then(async (user) => {
-      if (!user) {
+    void (async () => {
+      try {
+        const user = await getCurrentUser(supabase);
+        if (cancelled) return;
+        if (!user) {
+          setLoading(false);
+          router.replace("/auth?next=/dashboard/rider");
+          return;
+        }
+        await ensureProfile(supabase, user, "rider");
+        const currentProfile = await getProfile(supabase, user.id);
+        if (cancelled) return;
+        riderId = user.id;
+        setProfile(currentProfile);
+        await loadRiderData(user.id);
+        if (!cancelled) setLoading(false);
+      } catch (error) {
+        if (cancelled) return;
+        if (isAuthOrPermissionError(error)) {
+          await handlePermissionBlock(error);
+          return;
+        }
+        setMessage(error instanceof Error ? error.message : "Rider dashboard failed to load.");
         setLoading(false);
-        return;
       }
-      await ensureProfile(supabase, user, "rider");
-      const currentProfile = await getProfile(supabase, user.id);
-      riderId = user.id;
-      setProfile(currentProfile);
-      await loadRiderData(user.id);
-      setLoading(false);
-    });
+    })();
 
     const channel = supabase
       .channel("rider-live-dashboard")
@@ -292,7 +358,7 @@ export default function RiderDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "ride_requests" },
         (payload) => {
-          if (!riderId) return;
+          if (!riderId || permissionBlockedRef.current) return;
 
           if (payload.eventType === "DELETE") {
             const deleted = payload.old as Partial<RideRequest>;
@@ -320,7 +386,7 @@ export default function RiderDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "rider_locations" },
         (payload) => {
-          if (!riderId) return;
+          if (!riderId || permissionBlockedRef.current) return;
 
           if (payload.eventType === "DELETE") {
             const deleted = payload.old as Partial<RiderLocation>;
@@ -350,7 +416,7 @@ export default function RiderDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "rider_vehicles" },
         (payload) => {
-          if (!riderId) return;
+          if (!riderId || permissionBlockedRef.current) return;
           if (payload.eventType === "DELETE") {
             const deleted = payload.old as Partial<RiderVehicle>;
             if (deleted.id)
@@ -368,7 +434,7 @@ export default function RiderDashboard() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "rider_profiles" },
         (payload) => {
-          if (!riderId) return;
+          if (!riderId || permissionBlockedRef.current) return;
           const incoming = payload.new as RiderProfile;
           if (incoming.rider_id === riderId) setRiderProfile(incoming);
         },
@@ -382,9 +448,10 @@ export default function RiderDashboard() {
       });
 
     return () => {
+      cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [loadRiderData]);
+  }, [handlePermissionBlock, loadRiderData, router]);
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -421,14 +488,15 @@ export default function RiderDashboard() {
       stop?.();
     };
   }, [profile]);
+
   const resyncRiderData = useCallback(async () => {
-    if (profile?.id) {
+    if (profile?.id && !permissionBlockedRef.current) {
       await loadRiderData(profile.id);
     }
   }, [loadRiderData, profile]);
 
   useLiveResync({
-    enabled: Boolean(profile?.id),
+    enabled: Boolean(profile?.id) && !permissionBlocked,
     intervalMs: 5000,
     onResync: resyncRiderData,
   });
@@ -438,13 +506,8 @@ export default function RiderDashboard() {
     const supabase = getSupabase();
     if (!supabase) return;
 
-    const expireAndRefresh = async () => {
-      await supabase.rpc("expire_ready_signals");
-      await loadRiderData(profile.id);
-    };
-
     const interval = window.setInterval(() => {
-      void expireAndRefresh();
+      if (!permissionBlockedRef.current) void loadRiderData(profile.id);
     }, 60_000);
 
     return () => window.clearInterval(interval);
@@ -473,6 +536,10 @@ export default function RiderDashboard() {
       speed: point.speed ?? null,
       updated_at: new Date().toISOString(),
     });
+    if (isAuthOrPermissionError(error)) {
+      await handlePermissionBlock(error);
+      return;
+    }
     setGpsStatus(
       error
         ? `${source === "gps" ? "GPS" : "Manual"} location update failed.`

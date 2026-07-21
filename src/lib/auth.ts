@@ -2,19 +2,52 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import type { Profile, UserRole, VehicleType } from "@/types/database";
 
+export type SupabasePermissionError = {
+  code?: string;
+  message?: string;
+  status?: number;
+};
+
+export function isAuthOrPermissionError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as SupabasePermissionError;
+  const message = candidate.message?.toLowerCase() ?? "";
+  return (
+    candidate.status === 401 ||
+    candidate.status === 403 ||
+    candidate.code === "42501" ||
+    candidate.code === "28000" ||
+    message.includes("jwt") ||
+    message.includes("permission denied") ||
+    message.includes("forbidden") ||
+    message.includes("authentication required")
+  );
+}
+
 export async function getCurrentUser(supabase: SupabaseClient) {
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (sessionData.session?.user) {
-    return sessionData.session.user;
-  }
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) {
-    return null;
+  if (!error && data.user) {
+    return data.user;
   }
-  return data.user;
+
+  await supabase.auth.signOut();
+  return null;
 }
 
 export async function getProfile(supabase: SupabaseClient, userId: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.id === userId) {
+    const { data: ownProfile, error: ownProfileError } =
+      await supabase.rpc("get_own_profile");
+
+    if (!ownProfileError) {
+      return ownProfile as Profile | null;
+    }
+  }
+
   const { data } = await supabase
     .from("profiles")
     .select("*")
@@ -46,7 +79,9 @@ export async function ensureProfile(
   };
   const requestedRole = metadata.role ?? fallbackRole;
   const safeRole: UserRole =
-    requestedRole === "rider" || requestedRole === "user" ? requestedRole : "user";
+    requestedRole === "rider" || requestedRole === "user"
+      ? requestedRole
+      : "user";
   const profile = {
     full_name: metadata.full_name?.trim() || "Taxiro user",
     id: user.id,
@@ -54,14 +89,24 @@ export async function ensureProfile(
     role: safeRole,
   };
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .upsert(profile)
-    .select("*")
-    .single();
+  const { data, error } = await supabase.rpc("upsert_own_profile", {
+    p_full_name: profile.full_name,
+    p_phone: profile.phone,
+    p_role: profile.role,
+  });
 
   if (error) {
-    throw error;
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("profiles")
+      .upsert(profile)
+      .select("*")
+      .single();
+
+    if (fallbackError) {
+      throw fallbackError;
+    }
+
+    return fallbackData as Profile;
   }
 
   return data as Profile;
@@ -119,11 +164,13 @@ export async function uploadRiderLivePhoto(
   photo: Blob,
 ) {
   const path = riderId + "/live-selfie-" + Date.now() + ".jpg";
-  const { error: uploadError } = await supabase.storage.from("rider-verification").upload(path, photo, {
-    cacheControl: "3600",
-    contentType: "image/jpeg",
-    upsert: false,
-  });
+  const { error: uploadError } = await supabase.storage
+    .from("rider-verification")
+    .upload(path, photo, {
+      cacheControl: "3600",
+      contentType: "image/jpeg",
+      upsert: false,
+    });
   if (uploadError) throw uploadError;
   const { error } = await supabase.from("rider_profiles").upsert({
     live_selfie_captured_at: new Date().toISOString(),
