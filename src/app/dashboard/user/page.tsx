@@ -690,7 +690,7 @@ export default function UserDashboard() {
       drop_lng: drop.lng,
       estimated_duration_min: summary.durationMin,
       fare_estimate: fareEstimate,
-      fare_rate_per_km: fareBreakdown.distance_charge && summary.distanceKm ? fareBreakdown.distance_charge / summary.distanceKm : 0,
+      fare_rate_per_km: null,
       vehicle_surcharge_per_km: 0,
       vehicle_type: vehicleType,
       service_area_id: fareBreakdown.service_area_id ?? serviceDecision.area?.id ?? null,
@@ -1192,8 +1192,8 @@ export default function UserDashboard() {
           </div>
         ) : null}
         {!mapPickMode && !activeRide && pickup ? (
-          <div className="pointer-events-none absolute left-2 top-[4.15rem] z-[1190] sm:left-3 sm:top-[4.5rem] lg:left-4">
-            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-[#101713]/92 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur">
+          <div className="pointer-events-none absolute left-2 top-[calc(max(0.5rem,env(safe-area-inset-top))+5.6rem)] z-[1190] sm:left-3 sm:top-[5.85rem] lg:left-4">
+            <div className="flex max-w-[calc(100vw-1rem)] items-center gap-2 rounded-full border border-white/80 bg-[#101713]/92 px-3 py-2 text-[11px] font-black text-white shadow-lg backdrop-blur sm:text-xs">
               <Radio className="size-3.5 text-lime-300" />
               <span>
                 {nearbyRiderPreviewUnavailable
@@ -1583,7 +1583,7 @@ export default function UserDashboard() {
                             {displayedFare.periodLabel}
                           </span>
                           <span className="font-semibold">
-                            Rs {displayedFare.ratePerKm}/km{" "}
+                            Rs {formatRate(displayedFare.ratePerKm)}/km{" "}
                             {getVehicleLabel(vehicleType)}
                             {displayedFare.isPeak ? " peak" : ""}
                           </span>
@@ -1809,6 +1809,10 @@ function isMissingSupabaseObject(
   );
 }
 
+function formatRate(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "--";
+  return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.00$/, "");
+}
 function toDateTimeLocalInput(date: Date) {
   const localTime = new Date(
     date.getTime() - date.getTimezoneOffset() * 60_000,
