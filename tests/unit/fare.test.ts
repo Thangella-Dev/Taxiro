@@ -3,22 +3,22 @@ import { describe, expect, it } from "vitest";
 import { calculateFareBreakdown, getUserCancellationFine, getVehicleFareQuote } from "@/lib/fare";
 
 describe("fare display helpers", () => {
-  it("does not embed business fare rates in the client fallback", () => {
+  it("computes a usable client fallback fare estimate", () => {
     const departure = "2026-07-03T06:30:00.000Z";
     const quote = getVehicleFareQuote(10, departure, "bike");
 
-    expect(quote.fare).toBeNull();
-    expect(quote.ratePerKm).toBe(0);
-    expect(quote.periodLabel).toBe("Admin pricing required");
+    expect(quote.fare).toBe(70);
+    expect(quote.ratePerKm).toBe(7);
+    expect(quote.periodLabel).toBe("Standard fare");
   });
 
-  it("still labels peak windows for UI context without calculating fare", () => {
+  it("keeps peak window context while still calculating a fare", () => {
     const departure = "2026-07-03T04:00:00.000Z";
     const quote = getVehicleFareQuote(10, departure, "auto");
 
     expect(quote.isPeak).toBe(true);
     expect(quote.period).toBe("morning_peak");
-    expect(quote.fare).toBeNull();
+    expect(quote.fare).toBe(90);
   });
 
   it("calculates a split only when an explicit commission rate is provided", () => {

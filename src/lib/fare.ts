@@ -35,15 +35,15 @@ export function getVehicleFareQuote(
 ): VehicleFareQuote {
   const minutes = getIndiaMinutesOfDay(departureAt);
   const period = getPricingPeriod(minutes);
-  const baseRatePerKm = 0;
-  const vehicleSurchargePerKm = 0;
-  const ratePerKm = 0;
+  const baseRatePerKm = period === "standard" ? 7 : 8;
+  const vehicleSurchargePerKm = getVehicleSurchargePerKm(vehicleType);
+  const ratePerKm = baseRatePerKm + vehicleSurchargePerKm;
   return {
-    fare: null,
+    fare: distanceKm === null ? null : Math.round(distanceKm * ratePerKm),
     baseRatePerKm,
     isPeak: period !== "standard",
     period,
-    periodLabel: "Admin pricing required",
+    periodLabel: getPricingPeriodLabel(period),
     ratePerKm,
     vehicleSurchargePerKm,
     vehicleType,
