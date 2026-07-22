@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 
 import { acceptReadyRideWithFallback } from "@/lib/ride-accept";
@@ -57,7 +58,7 @@ describe("acceptReadyRideWithFallback", () => {
 
         throw new Error(`Unexpected table ${table}`);
       }),
-    } as any;
+    } as unknown as SupabaseClient;
 
     const result = await acceptReadyRideWithFallback(supabase, {
       rideId: "ride-1",

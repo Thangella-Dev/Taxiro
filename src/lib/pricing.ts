@@ -38,7 +38,6 @@ export async function calculateTaxiroFareEstimate({
   const fallback = createFallbackFareBreakdown({
     at,
     distanceKm,
-    durationMin,
     tollCharge,
     vehicleType,
     waitingMin,
@@ -82,7 +81,6 @@ export async function calculateTaxiroFareEstimate({
 function createFallbackFareBreakdown({
   at,
   distanceKm,
-  durationMin,
   tollCharge = 0,
   vehicleType,
   waitingMin = 0,
@@ -91,7 +89,6 @@ function createFallbackFareBreakdown({
   FareEstimateRequest,
   | "at"
   | "distanceKm"
-  | "durationMin"
   | "tollCharge"
   | "vehicleType"
   | "waitingMin"
