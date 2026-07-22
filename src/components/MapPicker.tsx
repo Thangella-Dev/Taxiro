@@ -351,27 +351,32 @@ export function MapPicker({
               <Circle
                 center={[rider.lat, rider.lng]}
                 pathOptions={{
-                  color: "#101713",
-                  fillColor: "#101713",
-                  fillOpacity: 0.06,
-                  opacity: 0.18,
-                  weight: 1,
+                  color: rider.rider_id.startsWith("nearby-") ? "#dbf86f" : "#101713",
+                  fillColor: rider.rider_id.startsWith("nearby-") ? "#dbf86f" : "#101713",
+                  fillOpacity: rider.rider_id.startsWith("nearby-") ? 0.18 : 0.08,
+                  opacity: rider.rider_id.startsWith("nearby-") ? 0.58 : 0.25,
+                  weight: rider.rider_id.startsWith("nearby-") ? 2 : 1,
                 }}
-                radius={Math.min(Math.max(rider.accuracy_m, 20), 250)}
+                radius={Math.min(Math.max(rider.accuracy_m, 24), 280)}
               />
             ) : null}
             <Marker alt="Rider location" icon={riderIcon(rider, riderVehicleTypes[rider.rider_id])} position={[rider.lat, rider.lng]} title="Rider location">
               <Popup>
-                {rider.rider_id.startsWith("nearby-") ? "Nearby verified rider (approximate)" : rider.is_available ? "Available rider" : "Your assigned rider"}
-                {riderVehicleTypes[rider.rider_id] ? ` - ${getVehicleLabel(riderVehicleTypes[rider.rider_id])}` : ""}
-                <br />
-                {formatLastSeen(rider.last_seen_at ?? rider.updated_at)}
-                {!rider.rider_id.startsWith("nearby-") && rider.accuracy_m ? (
-                  <>
-                    <br />
-                    Accuracy: {Math.round(rider.accuracy_m)}m
-                  </>
-                ) : null}
+                <div className="grid gap-1 text-sm">
+                  <strong>
+                    {rider.rider_id.startsWith("nearby-") ? "Nearby verified rider" : rider.is_available ? "Available rider" : "Your assigned rider"}
+                  </strong>
+                  <span>
+                    {riderVehicleTypes[rider.rider_id] ? `${getVehicleLabel(riderVehicleTypes[rider.rider_id])}` : "Vehicle pending"}
+                  </span>
+                  <span>{formatLastSeen(rider.last_seen_at ?? rider.updated_at)}</span>
+                  {rider.rider_id.startsWith("nearby-") ? (
+                    <span className="text-[11px] font-semibold text-primary">Online and near your pickup</span>
+                  ) : null}
+                  {!rider.rider_id.startsWith("nearby-") && rider.accuracy_m ? (
+                    <span>Accuracy: {Math.round(rider.accuracy_m)}m</span>
+                  ) : null}
+                </div>
               </Popup>
             </Marker>
           </Fragment>

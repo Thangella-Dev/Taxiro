@@ -76,6 +76,7 @@ import {
 import { calculateTaxiroFareEstimate } from "@/lib/pricing";
 import { getSupabase } from "@/lib/supabase";
 import { createSafeSignedUrl } from "@/lib/storage";
+import { buildNearbyRiderLookupPlan } from "@/lib/riderPresence";
 import {
   getPromptedCurrentLocation,
   MAX_USABLE_LOCATION_ACCURACY_M,
@@ -180,21 +181,47 @@ export default function UserDashboard() {
         setNearbyRiders([]);
         return;
       }
-      const { data, error } = await supabase.rpc(
-        "get_nearby_available_riders",
-        {
+
+      const lookupPlan = buildNearbyRiderLookupPlan(vehicleType, 8);
+      let merged: NearbyRiderPreview[] = [];
+
+      for (const candidate of lookupPlan) {
+        const { data, error } = await supabase.rpc(
+          "get_nearby_available_riders",
+          {
+            p_lat: point.lat,
+            p_lng: point.lng,
+            p_radius_km: candidate.p_radius_km,
+            p_vehicle_type: candidate.p_vehicle_type,
+          },
+        );
+
+        if (isMissingSupabaseObject(error)) {
+          setNearbyRiderPreviewUnavailable(true);
+          setNearbyRiders([]);
+          return;
+        }
+
+        const rows = (data as NearbyRiderPreview[]) ?? [];
+        if (rows.length) {
+          merged = [...merged, ...rows];
+          break;
+        }
+      }
+
+      if (!merged.length && lookupPlan.length > 1) {
+        const fallback = await supabase.rpc("get_nearby_available_riders", {
           p_lat: point.lat,
           p_lng: point.lng,
-          p_radius_km: 8,
-          p_vehicle_type: vehicleType,
-        },
-      );
-      if (isMissingSupabaseObject(error)) {
-        setNearbyRiderPreviewUnavailable(true);
-        setNearbyRiders([]);
-        return;
+          p_radius_km: 20,
+          p_vehicle_type: null,
+        });
+        if (!fallback.error) {
+          merged = (fallback.data as NearbyRiderPreview[]) ?? [];
+        }
       }
-      if (!error) setNearbyRiders((data as NearbyRiderPreview[]) ?? []);
+
+      setNearbyRiders(merged);
     },
     [nearbyRiderPreviewUnavailable, vehicleType],
   );
@@ -1238,7 +1265,9 @@ export default function UserDashboard() {
               <span>
                 {nearbyRiderPreviewUnavailable
                   ? "Nearby rider preview unavailable"
-                  : `${nearbyRiders.length} verified ${getVehicleLabel(vehicleType).toLowerCase()} ${nearbyRiders.length === 1 ? "rider" : "riders"} near pickup`}
+                  : nearbyRiders.length > 0
+                    ? `${nearbyRiders.length} online ${getVehicleLabel(vehicleType).toLowerCase()} ${nearbyRiders.length === 1 ? "rider" : "riders"} near you`
+                    : `No online ${getVehicleLabel(vehicleType).toLowerCase()} riders nearby right now`}
               </span>
             </div>
           </div>
