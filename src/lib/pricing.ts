@@ -1,4 +1,5 @@
-import { calculateFareBreakdown, getVehicleFareQuote } from "@/lib/fare";`r`nimport { getSupabase } from "@/lib/supabase";
+import { calculateFareBreakdown, getVehicleFareQuote } from "@/lib/fare";
+import { getSupabase } from "@/lib/supabase";
 import type { FareCalculationBreakdown, LatLng, VehicleType } from "@/types/database";
 
 export type FareEstimateRequest = {
@@ -67,7 +68,8 @@ export async function calculateTaxiroFareEstimate({
   });
 
   if (error) {
-    if (error.status === 401 || error.status === 403 || error.code === "42501") {
+    const status = "status" in error ? (error.status as number | undefined) : undefined;
+    if (status === 401 || status === 403 || error.code === "42501") {
       return fallback;
     }
     console.warn("Taxiro pricing RPC unavailable, using fallback fare", error.message);
