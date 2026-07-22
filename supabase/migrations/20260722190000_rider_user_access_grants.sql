@@ -10,6 +10,8 @@ grant select, insert, update on public.rider_locations to authenticated;
 grant select, insert, update on public.rider_profiles to authenticated;
 grant select, insert, update on public.rider_vehicles to authenticated;
 grant select, insert, update on public.ride_fare_breakdowns to authenticated;
+grant select, insert, update on public.safety_alerts to authenticated;
+grant select, insert, update on public.app_notifications to authenticated;
 
 -- Ride flow RPCs used by users and riders.
 revoke execute on function public.accept_ready_ride(uuid) from anon;
@@ -17,6 +19,9 @@ grant execute on function public.accept_ready_ride(uuid) to authenticated;
 
 revoke execute on function public.cancel_ride(uuid, text) from anon;
 grant execute on function public.cancel_ride(uuid, text) to authenticated;
+
+revoke execute on function public.create_safety_alert(uuid, text, text, double precision, double precision, numeric) from anon;
+grant execute on function public.create_safety_alert(uuid, text, text, double precision, double precision, numeric) to authenticated;
 
 revoke execute on function public.complete_ride(uuid) from anon;
 grant execute on function public.complete_ride(uuid) to authenticated;

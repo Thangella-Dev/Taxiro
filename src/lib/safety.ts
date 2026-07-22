@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
+import { isAuthOrPermissionError } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import type { LatLng, RideRequest, SafetyAlert, SafetyAlertType } from "@/types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type CreateSafetyAlertInput = {
   accuracyM?: number | null;
@@ -18,18 +20,16 @@ type RouteSummary = {
   durationMin: number | null;
 };
 
-export async function createSafetyAlert({
-  accuracyM,
-  alertType,
-  location,
-  message,
-  rideId,
-}: CreateSafetyAlertInput) {
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { alert: null, error: "Supabase is not configured." };
-  }
-
+export async function createSafetyAlertWithSupabase(
+  supabase: SupabaseClient,
+  {
+    accuracyM,
+    alertType,
+    location,
+    message,
+    rideId,
+  }: CreateSafetyAlertInput,
+) {
   const { data, error } = await supabase.rpc("create_safety_alert", {
     p_accuracy_m: accuracyM ?? location?.accuracy_m ?? null,
     p_alert_type: alertType,
@@ -39,10 +39,99 @@ export async function createSafetyAlert({
     p_ride_id: rideId,
   });
 
+  if (!error) {
+    return {
+      alert: (data as SafetyAlert | null) ?? null,
+      error: null,
+    };
+  }
+
+  const messageText = `${error.message ?? ""}`.toLowerCase();
+  const shouldFallback =
+    isAuthOrPermissionError(error) ||
+    messageText.includes("permission denied") ||
+    messageText.includes("could not find function") ||
+    messageText.includes("not found") ||
+    messageText.includes("not authenticated") ||
+    messageText.includes("authentication required");
+
+  if (!shouldFallback) {
+    return { alert: null, error: error.message ?? null };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user?.id) {
+    return {
+      alert: null,
+      error: authError?.message ?? error.message ?? null,
+    };
+  }
+
+  const { data: rideStatusData, error: rideStatusError } = await supabase
+    .from("ride_requests")
+    .select("status")
+    .eq("id", rideId)
+    .maybeSingle();
+
+  const status = (rideStatusData?.status as RideRequest["status"] | undefined) ?? "assigned";
+
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("emergency_contact_phone")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const deliveryStatus =
+    profileError || !profileData?.emergency_contact_phone
+      ? "no_contact"
+      : "unlinked";
+
+  const { data: insertedAlert, error: insertError } = await supabase
+    .from("safety_alerts")
+    .insert({
+      accuracy_m: accuracyM ?? location?.accuracy_m ?? null,
+      alert_type: alertType,
+      delivery_status: deliveryStatus,
+      lat: location?.lat ?? null,
+      lng: location?.lng ?? null,
+      message,
+      recipient_phone: profileData?.emergency_contact_phone ?? null,
+      ride_id: rideId,
+      triggered_by: user.id,
+    })
+    .select("*")
+    .single();
+
+  if (insertError || !insertedAlert) {
+    return {
+      alert: null,
+      error: insertError?.message ?? error.message ?? null,
+    };
+  }
+
+  await supabase.from("ride_status_events").insert({
+    actor_id: user.id,
+    note: `Safety alert created: ${alertType}`,
+    ride_id: rideId,
+    status: rideStatusError ? "assigned" : status,
+  });
+
   return {
-    alert: (data as SafetyAlert | null) ?? null,
-    error: error?.message ?? null,
+    alert: insertedAlert as SafetyAlert,
+    error: null,
   };
+}
+
+export async function createSafetyAlert(input: CreateSafetyAlertInput) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { alert: null, error: "Supabase is not configured." };
+  }
+
+  return createSafetyAlertWithSupabase(supabase, input);
 }
 
 export function usePanicTrigger({
