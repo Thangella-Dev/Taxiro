@@ -602,6 +602,13 @@ revoke execute on function public.mark_ride_ready_and_assign(uuid) from anon;
 grant execute on function public.mark_ride_ready_and_assign(uuid, integer) to authenticated;
 grant execute on function public.mark_ride_ready_and_assign(uuid) to authenticated;
 
+revoke execute on function public.set_active_rider_vehicle(text) from anon;
+revoke execute on function public.accept_ready_ride(uuid) from anon;
+revoke execute on function public.cancel_ride(uuid, text) from anon;
+grant execute on function public.set_active_rider_vehicle(text) to authenticated;
+grant execute on function public.accept_ready_ride(uuid) to authenticated;
+grant execute on function public.cancel_ride(uuid, text) to authenticated;
+
 notify pgrst, 'reload schema';
 grant execute on function public.cancel_ride(uuid, text) to authenticated;
 

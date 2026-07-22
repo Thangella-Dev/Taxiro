@@ -118,4 +118,7 @@ revoke execute on function public.mark_ride_ready_and_assign(uuid) from anon;
 grant execute on function public.mark_ride_ready_and_assign(uuid, integer) to authenticated;
 grant execute on function public.mark_ride_ready_and_assign(uuid) to authenticated;
 
+revoke execute on function public.get_or_create_ride_confirmation_code(uuid) from anon;
+grant execute on function public.get_or_create_ride_confirmation_code(uuid) to authenticated;
+
 notify pgrst, 'reload schema';
