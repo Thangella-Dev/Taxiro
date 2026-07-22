@@ -74,6 +74,7 @@ import {
   useRideSafetyMonitor,
 } from "@/lib/safety";
 import { calculateTaxiroFareEstimate } from "@/lib/pricing";
+import { publishRideReadySignal } from "@/lib/ride-ready";
 import { getSupabase } from "@/lib/supabase";
 import { createSafeSignedUrl } from "@/lib/storage";
 import { buildNearbyRiderLookupPlan } from "@/lib/riderPresence";
@@ -785,10 +786,12 @@ export default function UserDashboard() {
     setReadyRideId(ride.id);
     setMessage("Publishing your ready signal...");
     try {
-      const { error } = await supabase.rpc("mark_ride_ready_and_assign", {
-        p_ride_id: ride.id,
-        p_signal_minutes: readySignalMinutes,
-      });
+      const { error } = await publishRideReadySignal(
+        supabase,
+        ride.id,
+        readySignalMinutes,
+        userId ?? "",
+      );
       setMessage(
         error
           ? `Could not publish: ${error.message}`
