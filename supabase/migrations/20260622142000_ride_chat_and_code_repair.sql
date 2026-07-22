@@ -15,8 +15,13 @@ on public.ride_chat_messages(ride_id, created_at);
 alter table public.ride_chat_messages enable row level security;
 
 drop policy if exists "ride participants view chat" on public.ride_chat_messages;
+drop policy if exists "ride participants send chat" on public.ride_chat_messages;
+drop policy if exists "users view own ride codes" on public.ride_confirmation_codes;
+drop policy if exists "ride participants insert ride codes" on public.ride_confirmation_codes;
+drop policy if exists "ride participants update ride codes" on public.ride_confirmation_codes;
+
 create policy "ride participants view chat"
-on public.ride_chat_messages for select
+on public.ride_chat_messages for select to authenticated
 using (
   public.is_admin()
   or exists (
@@ -30,9 +35,8 @@ using (
   )
 );
 
-drop policy if exists "ride participants send chat" on public.ride_chat_messages;
 create policy "ride participants send chat"
-on public.ride_chat_messages for insert
+on public.ride_chat_messages for insert to authenticated
 with check (
   sender_id = auth.uid()
   and exists (
@@ -46,6 +50,22 @@ with check (
       )
   )
 );
+
+create policy "users view own ride codes"
+on public.ride_confirmation_codes for select to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "ride participants insert ride codes"
+on public.ride_confirmation_codes for insert to authenticated
+with check (user_id = auth.uid() or public.is_admin());
+
+create policy "ride participants update ride codes"
+on public.ride_confirmation_codes for update to authenticated
+using (user_id = auth.uid() or public.is_admin())
+with check (user_id = auth.uid() or public.is_admin());
+
+grant select, insert, update on public.ride_chat_messages to authenticated;
+grant select, insert, update on public.ride_confirmation_codes to authenticated;
 
 create or replace function public.get_or_create_ride_confirmation_code(p_ride_id uuid)
 returns text
@@ -90,4 +110,7 @@ begin
 end;
 $$;
 
+revoke execute on function public.get_or_create_ride_confirmation_code(uuid) from anon;
 grant execute on function public.get_or_create_ride_confirmation_code(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
